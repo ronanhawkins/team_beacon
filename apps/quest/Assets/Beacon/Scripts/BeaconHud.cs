@@ -16,6 +16,7 @@ namespace Beacon
         RectTransform root,waypoint;
         readonly TMP_Text[] bearings=new TMP_Text[24], readings=new TMP_Text[5];
         readonly TMP_Text[] readingCaptions=new TMP_Text[5];
+        readonly Image[] statBackings=new Image[6];
         static readonly string[] Captions={"SHELTER","BASE","SUNLIGHT","OXYGEN","DOSE USED"};
         static readonly string[] LastCaptions={"SHELTER","LAST BASE","LAST SUN","LAST O2","LAST DOSE"};
         TMP_Text openSky,skyCaption,science,scienceCaption,alert,decision,credit,viewMode,nextDistance;
@@ -53,7 +54,7 @@ namespace Beacon
             {
                 bool left=i>=3;float pitch=left ? (i==3 ? -7:-16) : 2-i*9;
                 var card=Surface("Side reading "+Captions[i],left ? -24:24,pitch,250,88,.32f);
-                BeaconUi.Backing(card,250,88,new Color(.025f,.04f,.055f,.44f));
+                statBackings[i]=BeaconUi.Backing(card,250,88,new Color(.025f,.04f,.055f,.44f));
                 readingCaptions[i]=Text(card,Captions[i],0,25,230,25,19,Muted);
                 readings[i]=Text(card,"--",0,-12,230,52,36,White);
                 if(i==0)
@@ -63,7 +64,7 @@ namespace Beacon
                 }
             }
             var sky=Surface("Open sky",-24,2,250,96,.32f);
-            BeaconUi.Backing(sky,250,96,new Color(.025f,.04f,.055f,.40f));
+            statBackings[5]=BeaconUi.Backing(sky,250,96,new Color(.025f,.04f,.055f,.40f));
             skyCaption=Text(sky,"OPEN SKY",0,29,230,24,19,Muted);
             openSky=Text(sky,"--%",0,-11,230,65,46,Mint);
             sciencePanel=Surface("Science stop",24,11,280,80,.34f);
@@ -139,6 +140,7 @@ namespace Beacon
         public void Tick()
         {
             if(root==null || missionView==null) return;
+            foreach(var backing in statBackings) backing.enabled=missionView.Immersive;
             if(missionView.Immersive && !wasImmersive) ShowFeedback("L WALK · R TURN\nHOLD LEFT GRIP: SPRINT",6);
             if(!missionView.Immersive && wasImmersive) ShowFeedback("AR · ROOM VIEW RESTORED");
             wasImmersive=missionView.Immersive;

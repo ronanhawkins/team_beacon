@@ -51,8 +51,10 @@ if (($power -join "`n") -notmatch 'mWakefulness=Awake\b') {
     Write-Warning 'The Quest is asleep; Beacon has not been opened. Put on the headset, then run Start Native Quest.cmd.'
     return
 }
-$launch = & $adb -s $Serial shell am start -W --user current -n com.teambeacon.ar/com.unity3d.player.UnityPlayerGameActivity
-if ($LASTEXITCODE -ne 0 -or ($launch -join "`n") -notmatch 'Status: ok') {
+# Quest can leave `am start -W` waiting indefinitely behind an OS dialog.
+# Submit the launch, then use the bounded process/relay check below.
+$launch = & $adb -s $Serial shell am start --user current -n com.teambeacon.ar/com.unity3d.player.UnityPlayerGameActivity
+if ($LASTEXITCODE -ne 0 -or ($launch -join "`n") -match '(?im)^Error|Exception') {
     $launch | Write-Host
     throw 'The Quest did not open Beacon AR. Keep it awake and try Start Native Quest.cmd again.'
 }
@@ -69,6 +71,6 @@ for ($attempt = 0; $attempt -lt 30; $attempt++) {
     }
     Start-Sleep -Milliseconds 500
 }
-if (!$connected) { throw 'Beacon launch was requested, but its live mission connection was not confirmed. Keep the headset on and check its view.' }
+if (!$connected) { throw 'Beacon has not connected. Finish or dismiss any system prompt inside the headset, keep it awake, then run Start Native Quest.cmd again.' }
 Write-Host 'Beacon AR is running and connected to the laptop mission. Keep USB connected.'
 Write-Host 'Laptop control: http://127.0.0.1:5174/hub/'

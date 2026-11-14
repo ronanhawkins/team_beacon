@@ -11,6 +11,7 @@ The laptop relay remains the authority. The app loads `/session.json` and that s
 ## HUD
 
 - Two side columns at ±24 degrees leave the centre clear. Open sky, oxygen and dose sit on the left; shelter time, base link and sunlight sit on the right. The old bottom reading strip is removed. Brief controller/request feedback sits below the left column.
+- In AR, the six stat readings have no dark backing boxes; the text retains its outline. VR retains the translucent stat panels. The B-hold progress bar remains visible in either mode.
 - The compass is lowered from 27 to 16 degrees above forward gaze. One arrow marks the supplied direction of travel. The watch remains the detailed navigator; there is no route line or mini-map.
 - Open-sky percentage is prominent on the left. A named science-stop card appears above the right column. The HUD plane remains 1.2 m forward.
 - The ring uses the current waypoint's 72 skyline samples, with faint warm shading above the horizon in AR and N/E/S/W labels. The floating contour line is removed in both AR and VR, and the VR scenery has no artificial blocked-sky fill. There is no flat horizontal baseline or fill over the ground. Sample heights blend as the route advances. North is calibrated once and remains fixed across route changes and head turns; explicit left-stick recentering can recalibrate it.
@@ -68,9 +69,13 @@ On the 0.9 live check, a mirror started while the Quest was asleep remained blac
 
 The 0.10 device-side crop failed the wearer's picture check. Version 0.11 sends an unmodified full H.264 frame from the official scrcpy server and crops/rotates it on the laptop with FFplay. This avoids the Quest's cropped virtual-display path. The default is the left eye with 22-degree correction. `-Eye Right` selects the other eye, `-Eye Both` uses the earlier full stereo scrcpy view, and `-Crop width:height:x:y -Angle degrees` overrides the framing. The filter is tested on synthetic video; a live stream still needs wearer confirmation. Closing the video window ends its own capture and USB forwarding. Logs are in `.local/quest-client-*.log`.
 
+The 0.14 follow-up supplies presentation timestamps for the raw stream, retains its initial keyframe and synchronizes playback to video. This corrects the observed `nan` playback clock and empty frame queue. The FFplay window starts visibly while the capture helper stays hidden. Diagnostic playback now advances continuously; the wearer must still confirm the crop and orientation. Timing uses FFmpeg's [setpts filter](https://ffmpeg.org/ffmpeg-filters.html#setpts_002c-asetpts).
+
 Install the official scrcpy Windows 5.0.1 release under `.local/scrcpy/`. For local cropping, download [FFmpeg 9.0.2 essentials from Gyan](https://www.gyan.dev/ffmpeg/builds/packages/ffmpeg-9.0.2-essentials_build.zip), a provider listed on [FFmpeg's download page](https://ffmpeg.org/download.html), and extract under `.local/ffmpeg/`. The downloaded archive's SHA256 is `60f467265b1e312373dbcd92200c2618a74850f98d3d078e94296bb3fa2047ba`; verify before extracting. Keep binaries out of Git. Optional `-Record <new-file.mp4> -Seconds 90` records the same filtered picture without microphone audio; this new recording path has not yet had a headset rehearsal.
 
 ## Verified demo
+
+Version **0.14.0 / code 14** removes the six AR stat backgrounds while retaining the text outline, VR panels and shelter hold indicator. The existing HUD visual and shelter-input checks passed; the AR preview was inspected. It also repairs the laptop player's missing timestamps and hidden-window startup. See [acceptance evidence](ACCEPTANCE.md) for installation and current hardware results.
 
 Version **0.13.0 / code 13** switches the active scenery and native launcher to Jezero. **1,321 mission checks**, **8,803 VR checks**, shelter-button regression checks, rendered previews and **21 Node integration tests** pass. The physics check traverses the Jezero main route and its far-point shelter diversion. The maximum visible scene is **865,108 triangles**, with lower detail at distance. The current build includes the interrupted 0.12 shelter-feedback changes. Headset performance, physical B/haptics and the new laptop mirror remain for the later wearer check. See [acceptance evidence](ACCEPTANCE.md).
 

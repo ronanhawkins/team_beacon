@@ -16,7 +16,9 @@ function CloseOwnedProcess($process) {
 }
 # The headset sends its unmodified full frame. Cropping and rotation happen on
 # the laptop, avoiding the Quest's cropped virtual-display capture path.
-$filters=@()
+# Raw H.264 has no presentation timestamps. Supply a 30 fps clock instead of
+# dropping the initial keyframe and waiting indefinitely for a displayable frame.
+$filters=@('setpts=N/(30*TB)')
 if($Crop) {
     if($Crop -notmatch '^(\d+):(\d+):(\d+):(\d+)$') {throw 'Crop must be width:height:x:y in the reported device dimensions.'}
     $cropValues=@($Matches[1],$Matches[2],$Matches[3],$Matches[4]) | ForEach-Object {[int]$_}
@@ -66,10 +68,10 @@ try {
     if(!$ready) {throw 'Quest video capture did not become ready.'}
     $inputUrl='tcp://127.0.0.1:'+$port
     $level=if($Diagnostics) {'info'} else {'warning'}
-    $viewerArgs=@('-hide_banner','-loglevel',$level,'-fflags','nobuffer','-flags','low_delay','-probesize','65536','-analyzeduration','0','-sync','ext','-framedrop','-an','-autoexit','-window_title','Beacon Quest Demo','-x','800','-y','850')
+    $viewerArgs=@('-hide_banner','-loglevel',$level,'-fflags','+genpts','-flags','low_delay','-probesize','65536','-analyzeduration','100000','-sync','video','-framedrop','-an','-autoexit','-window_title','Beacon Quest Demo','-x','800','-y','850')
     if(!$recordPath) {
         $viewerArgs+=@('-vf',$filter,'-f','h264','-framerate','30','-i',$inputUrl)
-        $viewer=Start-Process -FilePath $player.FullName -ArgumentList (Arguments $viewerArgs) -WindowStyle Hidden -PassThru `
+        $viewer=Start-Process -FilePath $player.FullName -ArgumentList (Arguments $viewerArgs) -WindowStyle Normal -PassThru `
             -RedirectStandardOutput (Join-Path $logs 'quest-client-view.log') -RedirectStandardError (Join-Path $logs 'quest-client-view-error.log')
     } else {
         # Filter once, encode the recording, and pipe an uncompressed preview to
@@ -79,7 +81,7 @@ try {
         $viewInfo.FileName=$player.FullName;$viewInfo.Arguments=Arguments $viewerArgs;$viewInfo.UseShellExecute=$false;$viewInfo.CreateNoWindow=$true
         $viewInfo.RedirectStandardInput=$true;$viewInfo.RedirectStandardError=$true
         $viewer=[Diagnostics.Process]::Start($viewInfo);$viewErrors=$viewer.StandardError.ReadToEndAsync()
-        $encodeArgs=@('-hide_banner','-loglevel','warning','-n','-fflags','nobuffer','-flags','low_delay','-probesize','65536','-analyzeduration','0','-f','h264','-framerate','30','-i',$inputUrl,
+        $encodeArgs=@('-hide_banner','-loglevel','warning','-n','-fflags','+genpts','-flags','low_delay','-probesize','65536','-analyzeduration','100000','-f','h264','-framerate','30','-i',$inputUrl,
             '-filter_complex',('[0:v]'+$filter+',split=2[save][preview]'),'-map','[save]','-c:v','libx264','-preset','veryfast','-crf','22','-pix_fmt','yuv420p',$recordPath,
             '-map','[preview]','-c:v','rawvideo','-f','nut','pipe:1')
         $encodeInfo=New-Object Diagnostics.ProcessStartInfo

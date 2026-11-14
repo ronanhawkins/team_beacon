@@ -2,7 +2,15 @@
 
 The supplied screenshots are the functional checklist. The user's later native Unity/USB requirement replaces their original browser/HTTPS/Three.js delivery instructions. The current export is the authority for numbers and shelter ids.
 
-**Current target: 0.13 Jezero.** The wearer explicitly switched from Murray Buttes to Jezero. Historical Gale reference values below remain evidence for earlier builds, not the current Jezero mission. Hardware testing is deferred at the wearer's request.
+**Current target: 0.14 Jezero.** The wearer explicitly switched from Murray Buttes to Jezero. Historical Gale reference values below remain evidence for earlier builds, not the current Jezero mission. The wearer resumed live testing after the earlier deferral.
+
+## Version 0.14 AR stats and laptop playback
+
+The six AR stat backgrounds are removed, retaining outlined text and the shelter hold bar. VR keeps its translucent stat panels. The existing HUD visual and shelter-input checks passed, and the generated AR preview was inspected. Terrain and route logic are unchanged from 0.13, whose broader checks remain applicable.
+
+During the live 0.13 startup, Beacon opened and connected to Jezero over USB. Sampled app-frame windows reported 72.0 fps and p95 13.9 ms in the initial AR state; this is not a full VR performance run. The laptop's raw H.264 playback initially had a `nan` clock and no displayed frames. Supplying timestamps, retaining the first keyframe and using the video clock restored continuous decoding. Starting FFplay visibly produced the **Beacon Quest Demo** window. Crop/orientation and physical B/sprint checks still require wearer confirmation. No new room recording or headset screenshot was made.
+
+The device package manager confirms **0.14.0 / code 14** is installed; the APK's updated notice was verified. Reopening was blocked by a Quest system dialog (`SystemUXController: Launch is blocked ... a Reprojected OS dialog is currently showing`), then the headset slept. The launcher now submits its request without the unbounded Android `-W` wait and retains its bounded process/relay verification, with an explicit prompt-clearing instruction on failure. No success is claimed from a launch request alone. Earlier 0.13 relay logs recorded physical VR arrival events through main point 27; these establish route progression but not final shelter arrival.
 
 ## Version 0.13 Jezero switch
 
