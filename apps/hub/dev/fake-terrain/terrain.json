@@ -1,0 +1,13 @@
+{
+  "version": 1,
+  "note": "FAKE terrain generated from tools/fake_scene.py. Not Mars data.",
+  "heightGrid": {
+    "file": "heights.bin",
+    "width": 256,
+    "height": 256,
+    "metresPerPixel": 4
+  },
+  "textures": {
+    "hub": "image.png"
+  }
+}
