@@ -13,6 +13,7 @@ Files:
 - `events.md`: messages devices send to the relay, and what the relay sends back
 - `waypoints.md`: fields of the waypoint file
 - `layers.md`: the map layer images and their metadata file
+- `client.js`: ES module the apps import to talk to the relay (connect, hello, reconnect, `onState`, `send`)
 - `fake/`: fake files so apps can be built before the engine and relay are ready. Regenerate with the scripts in `tools/`, never by hand, and run `python3 tools/check_fakes.py` after.
   - `fake/waypoints.json`: 6-point main route from an open plain to a shelter beside a butte, with a reroute from every main index (`tools/make_fake_waypoints.py`)
   - `fake/state.json`: state at main waypoint 0, nominal (`tools/make_fake_waypoints.py`)

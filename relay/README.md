@@ -2,14 +2,43 @@
 
 **Owner:** Ronan
 
-Node server that holds one state object and broadcasts it to every connected device over WebSockets. Its shape is defined in `shared/state.md`.
+Node server that holds the one state object (`shared/state.md`), applies events from the devices (`shared/events.md`), and broadcasts the state to every client. It also serves the pages.
 
-It listens on two ports:
+## Ports
 
-- **Secure port (HTTPS + WSS):** serves the `apps/` pages and the browser WebSocket on the same port, so the headset and phone only accept one certificate warning, and a socket can't fail silently on a second, untrusted certificate.
-- **Plain port (WS):** for the ESP32 panic button, which can't easily handle TLS.
+| Port | Protocol | Paths |
+| --- | --- | --- |
+| 8443 | HTTPS + WSS | `/hub/`, `/headset/`, `/wrist/`, `/shared/`, `/data/` (= `data/out/`), `/debug`, `/clients`, and the WebSocket at `/ws` |
+| 8081 | plain WS | Any path. For the ESP32, which can't easily do TLS. Same protocol. |
 
-Files that will probably live here:
+The pages and the browser socket share port 8443, so each device accepts one certificate warning and the socket can't fail silently on a second untrusted certificate. Every response has `Cache-Control: no-store`. Override the ports with `HTTPS_PORT` and `PLAIN_PORT` if you need to.
 
-- `server.js`: HTTPS static server for `apps/`, WSS and WS endpoints, state broadcast
-- `certs/`: local TLS certificates for the headset and phone. Not committed.
+## Run
+
+```sh
+npm install
+npm run cert -- 192.168.1.20   # laptop's IP on the venue network; localhost always included
+npm start
+npm test                       # in a second terminal: hello, next, storm on, next, storm off, reset
+```
+
+On start the relay prints the waypoint file it loaded and the URL of each app for every IPv4 address of the laptop. Re-run `npm run cert` when the laptop's address changes.
+
+- Waypoints: `data/out/waypoints.json` if it exists, otherwise `shared/fake/waypoints.json`. Override with `WAYPOINTS=path/to/file.json npm start`.
+- `earthDelayMinutes`: `data/site.json` field `earthDelayMinutes` if present, otherwise 14.
+- Warning limit for `minutesToShelter`: `WARNING_MINUTES_TO_SHELTER` at the top of `server.js`.
+
+## Files
+
+- `server.js`: HTTPS static server, WSS and WS endpoints, state logic, broadcast, 15 s ping
+- `debug.html`: served at `/debug`. Live state, connected clients, a button per event. Presenter control until the hub has its own.
+- `make-cert.sh`: self-signed certificate into `certs/` (not committed)
+- `test-client.js`: smoke test over the plain port
+
+Browser apps use `shared/client.js`:
+
+```js
+import { connect } from '/shared/client.js';
+const relay = connect({ role: 'wrist', onState: (s) => render(s) });
+relay.send({ type: 'requestReroute' });
+```

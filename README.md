@@ -26,15 +26,29 @@ Beacon is a route planner for an astronaut's walk at Murray Buttes in Gale crate
 
 ## Network
 
-Laptop address: `TODO`
+Everything runs on one laptop. The relay prints its addresses when it starts.
 
-- Secure port (HTTPS + WSS): `TODO`. The relay serves the `apps/` pages and the browser WebSocket on this one port, so the headset and phone accept a single certificate warning.
-- Plain port (WS): `TODO`. For the ESP32 only.
+| Port | Protocol | Used by |
+| --- | --- | --- |
+| 8443 | HTTPS + WSS (`/ws`) | Pages and browser sockets: hub, headset, wrist, `/debug` |
+| 8081 | plain WS | ESP32 panic button only |
+
+Pages and browser sockets share port 8443, so the headset and phone accept one certificate warning.
+
+Laptop address: `TODO` (fill in at the venue, then run `npm run cert -- <address>` in `relay/`)
 
 ## How to run
 
 1. Engine: TODO
-2. Relay: TODO
+2. Relay (Node 18+):
+   ```sh
+   cd relay
+   npm install
+   npm run cert -- <laptop IP>   # once per network; creates relay/certs/
+   npm start                     # prints the URLs for each app
+   npm test                      # optional smoke test, in a second terminal
+   ```
+   Open `https://<laptop IP>:8443/` on each device, accept the certificate warning once, and pick the page. `/debug` is the presenter control.
 3. Hub: TODO
 4. Headset (Quest 3): TODO
 5. Wrist (phone): TODO

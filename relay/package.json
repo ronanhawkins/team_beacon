@@ -1,8 +1,15 @@
 {
   "name": "beacon-relay",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
+  "description": "Beacon relay: serves the pages over HTTPS and broadcasts state over WebSockets",
+  "main": "server.js",
   "scripts": {
-    "start": "echo \"TODO: start relay\" && exit 1"
+    "start": "node server.js",
+    "cert": "sh make-cert.sh",
+    "test": "node test-client.js"
+  },
+  "dependencies": {
+    "ws": "^8.18.0"
   }
 }
