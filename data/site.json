@@ -84,6 +84,27 @@
     "butteTopAboveSpot": "about 8 to 9 m, 10 to 20 m to the north and north-west"
   },
 
+  "earthDelayMinutes": 11.0,
+
+  "sky": {
+    "timeUT": "2026-11-14 19:40",
+    "source": "JPL Horizons, airless apparent, site 137.353006 E, -4.695202",
+    "sun": { "az": 280.4, "el": 12.0 },
+    "earth": { "az": 305.5, "el": 43.1 }
+  },
+
+  "base": { "x": 1506.1, "y": 1678.3, "mastHeight": 10.0, "note": "Curiosity's sol 1439 position" },
+
+  "routeStops": [
+    { "id": "base", "x": 1506.1, "y": 1678.3 },
+    { "id": "sol1446", "x": 1500.0, "y": 1627.7 },
+    { "id": "sol1448", "x": 1507.7, "y": 1561.4, "scienceStop": true },
+    { "id": "sol1452", "x": 1524.9, "y": 1525.8 },
+    { "id": "quela", "x": 1500.4, "y": 1500.4, "scienceStop": true },
+    { "id": "sol1468", "x": 1542.6, "y": 1437.2 },
+    { "id": "sol1471", "x": 1592.7, "y": 1389.5 }
+  ],
+
   "notes": [
     "The waypoint file's easting and northing are already in the terrain mosaic's projection. No conversion needed.",
     "The terrain at the waypoint reads -4379.53 m against the waypoint's own -4379.46 m, so the route and the terrain line up with no offset.",

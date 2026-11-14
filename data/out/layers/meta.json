@@ -1,0 +1,35 @@
+{
+  "height": 375,
+  "layers": {
+    "baseLink": {
+      "file": "baseLink.png",
+      "max": 1.0,
+      "min": 0.0
+    },
+    "earthLink": {
+      "file": "earthLink.png",
+      "max": 1.0,
+      "min": 0.0
+    },
+    "exposure": {
+      "file": "exposure.png",
+      "max": 1.0,
+      "min": 0.0
+    },
+    "slope": {
+      "file": "slope.png",
+      "max": 45.0,
+      "min": 0.0
+    },
+    "sunlight": {
+      "file": "sunlight.png",
+      "max": 1.0,
+      "min": 0.0
+    }
+  },
+  "metresPerPixel": 4.0,
+  "originX": 748.0,
+  "originY": 748.0,
+  "version": 1,
+  "width": 375
+}
