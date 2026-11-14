@@ -66,6 +66,7 @@ with no code change.
 - `terrain.js`: loads `terrain.json` and the height grid; height sampling
 - `crew-data.js`: the sample crew, their condition and which walks they did. **Edit this to change the people.**
 - `crew.js`: walk log, weekly totals and the readiness check (no drawing)
+- `walkfield.js`: walking time to the base over the whole terrain (the Minutes to base layer and "To base")
 - `vitals.js`: astronaut status: every tracked value, its alert limits, the suit model and the safety margin
 - `config.js`: file locations, layer colours, stop notes, alarm length, vitals alerts, readiness limits. **Edit this, not the code.**
 - `style.css`: page styles
@@ -110,6 +111,17 @@ Map: drag to rotate, Shift-drag or right-drag to move, scroll to zoom.
 - **Route history.** Lists past walks for one astronaut or everyone, plus Curiosity's real track. Picking
   one draws it on the map; "Use as plan" loads it into Plan mode. Walks done on this hub are recorded
   (with average and peak heart rate) in the browser's storage on this laptop.
+
+## Minutes to base and minutes to shelter
+
+- **Minutes to shelter** (engine layer) is the walk to the NEAREST refuge: the base or one of the natural
+  radiation shelters at the foot of buttes and cliffs. The engine only computes it inside its planning box,
+  so the hub draws it only there (`validBounds` in `meta.json`) instead of painting "far" everywhere else.
+- **Minutes to base** is computed in the hub (`walkfield.js`) because the base is where medical help is. It
+  covers the whole terrain, uses the engine's walking rules (`data/site.json` planner: walk speed, slope
+  penalty, steepest walkable slope) on the hub's 4 m grid, and takes about half a second at start-up. Red
+  patches are ground too steep to walk. The astronaut panel shows "To base", and body alerts say how far
+  the base is.
 
 ## How it follows `shared/` and `data/out/terrain/`
 
