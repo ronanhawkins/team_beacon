@@ -1,0 +1,95 @@
+{
+  "stops": [
+    {
+      "baseLink": true,
+      "id": "base",
+      "images": [],
+      "isScienceStop": false,
+      "label": "Base",
+      "minutesFromStart": 0.0,
+      "openSky": 0.924,
+      "waypoint": "m00",
+      "x": 1598.0,
+      "y": 1250.0
+    },
+    {
+      "baseLink": true,
+      "id": "quela",
+      "images": [
+        {
+          "credit": "NASA/JPL-Caltech/MSSS",
+          "date": "2016-10-03",
+          "description": "This self-portrait of NASA's Curiosity Mars rover shows the vehicle at the \"Quela\" drilling location in the \"Murray Buttes\" area on lower Mount Sharp. Key features on the skyline of this panorama are the dark mesa called \"M12\" to the left of the rover's mast and pale, upper Mount Sharp to the right of the mast. The top of M12 stands about 23 feet (7 meters) above the base of the sloping piles of rocks just behind Curiosity. The scene combines approximately 60 images taken by the Mars Hand Lens Imager (MAHLI) camera at the end of the rover's robotic arm. Most of the component images were taken on Sept. 17, 2016, during the 1,463rd Martian day, or sol, of Curiosity's work on Mars. Two component images of the drill-hole area in front of the rover were taken on Sol 1466 (Sept. 20) to show the hole created by collecting a drilled sample at Quela on Sol 1464 (Sept. 18). The skyline sweeps from west on the left to south-southwest on the right, with the rover's mast at northeast. The rover's location when it recorded this scene was where it ended a drive on Sol 1455, mapped at http://mars.nasa.gov/msl/multimedia/images/?ImageID=8029. The view does not include the rover's arm nor the MAHLI camera itself, except in the miniature scene reflected upside down in the parabolic mirror at the top of the mast. That mirror is part of Curiosity's Chemistry and Camera (ChemCam) instrument. MAHLI appears in the center of the mirror. Wrist motions and turret rotations on the arm allowed MAHLI to acquire the mosaic's component images. The arm was positioned out of the shot in the images, or portions of images, that were used in this mosaic. This process was used previously in acquiring and assembling Curiosity self-portraits taken at other sample-collection sites, including \"Rocknest\" (PIA16468), \"Windjana\" (PIA18390\"), \"Buckskin\" (PIA19808) and \"Gobabeb\" (PIA20316). For scale, the rover's wheels are 20 inches (50 centimeters) in diameter and about 16 inches (40 centimeters) wide. http://photojournal.jpl.nasa.gov/catalog/PIA20844",
+          "file": "media/PIA20844.jpg",
+          "nasa_id": "PIA20844",
+          "page": "https://images.nasa.gov/details/PIA20844",
+          "thumbnailUrl": "https://images-assets.nasa.gov/image/PIA20844/PIA20844~thumb.jpg",
+          "title": "Curiosity Self-Portrait at Murray Buttes."
+        }
+      ],
+      "isScienceStop": true,
+      "label": "Quela drill site",
+      "minutesFromStart": 6.6,
+      "openSky": 0.815,
+      "waypoint": "m19",
+      "x": 1500.4,
+      "y": 1500.4
+    },
+    {
+      "baseLink": false,
+      "id": "sol1448",
+      "images": [
+        {
+          "credit": "NASA/JPL-Caltech/MSSS",
+          "date": "2016-09-09",
+          "description": "This view from the Mast Camera (Mastcam) in NASA's Curiosity Mars rover shows sloping buttes and layered outcrops within the \"Murray Buttes\" region on lower Mount Sharp. The buttes and mesas rising above the surface are eroded remnants of ancient sandstone that originated when winds deposited sand after lower Mount Sharp had formed. Curiosity closely examined that layer -- called the \"Stimson formation\" -- during the first half of 2016, while crossing a feature called \"Naukluft Plateau\" between two exposures of the Murray formation. The layering within the sandstone is called \"cross-bedding\" and indicates that the sandstone was deposited by wind as migrating sand dunes. The image was taken on Sept. 8, 2016, during the 1454th Martian day, or sol, of Curiosity's work on Mars. http://photojournal.jpl.nasa.gov/catalog/PIA21042",
+          "file": "media/PIA21042.jpg",
+          "nasa_id": "PIA21042",
+          "page": "https://images.nasa.gov/details/PIA21042",
+          "thumbnailUrl": "https://images-assets.nasa.gov/image/PIA21042/PIA21042~thumb.jpg",
+          "title": "Farewell to Murray Buttes Image 2"
+        },
+        {
+          "credit": "NASA/JPL-Caltech/MSSS",
+          "date": "2016-08-19",
+          "description": "This 360-degree panorama was acquired by the Mast Camera (Mastcam) on NASA's Curiosity Mars rover as the rover neared features called \"Murray Buttes\" on lower Mount Sharp. The view combines more than 130 images taken on Aug. 5, 2016, during the afternoon of the mission's 1,421st sol, or Martian day, by Mastcam's left-eye camera. This date also was the fourth anniversary of Curiosity's landing. The dark, flat-topped mesa seen to the left of Curiosity's robotic arm is about 300 feet (about 90 meters) from the rover's position. It stands about 50 feet (about 15 meters) high. The horizontal ledge near the top of the mesa is about 200 feet (about 60 meters) across. An upper portion of Mount Sharp appears on the distant horizon to the left of this mesa. The relatively flat foreground is part of a geological layer called the Murray formation, which formed from lakebed mud deposits. The buttes and mesas rising above this surface are eroded remnants of ancient sandstone that originated when winds deposited sand after lower Mount Sharp had formed. Curiosity closely examined that layer -- the Stimson formation -- during the first half of 2016 while crossing a feature called \"Naukluft Plateau\" between two exposures of the Murray formation. The buttes and mesas of Murray Buttes are capped by material that is relatively resistant to erosion, just as is the case with many similarly shaped buttes and mesas on Earth. The informal naming honors Bruce Murray (1931-2013), a Caltech planetary scientist and director of NASA's Jet Propulsion Laboratory, Pasadena, California. The scene is presented with a color adjustment that approximates white balancing, to resemble how the rocks and sand would appear under daytime lighting conditions on Earth. http://photojournal.jpl.nasa.gov/catalog/PIA20765",
+          "file": "media/PIA20765.jpg",
+          "nasa_id": "PIA20765",
+          "page": "https://images.nasa.gov/details/PIA20765",
+          "thumbnailUrl": "https://images-assets.nasa.gov/image/PIA20765/PIA20765~thumb.jpg",
+          "title": "Rover Panorama of Entrance to Murray Buttes on Mars"
+        },
+        {
+          "credit": "NASA/JPL-Caltech/MSSS",
+          "date": "2016-09-09",
+          "description": "This view from the Mast Camera (Mastcam) in NASA's Curiosity Mars rover shows finely layered rocks within the \"Murray Buttes\" region on lower Mount Sharp. The buttes and mesas rising above the surface in this area are eroded remnants of ancient sandstone that originated when winds deposited sand after lower Mount Sharp had formed. Curiosity closely examined that layer -- called the \"Stimson formation\" -- during the first half of 2016, while crossing a feature called \"Naukluft Plateau\" between two exposures of the Murray formation. The layering within the sandstone is called \"cross-bedding\" and indicates that the sandstone was deposited by wind as migrating sand dunes. The image was taken on Sept. 8, 2016, during the 1454th Martian day, or sol, of Curiosity's work on Mars. http://photojournal.jpl.nasa.gov/catalog/PIA21043",
+          "file": "media/PIA21043.jpg",
+          "nasa_id": "PIA21043",
+          "page": "https://images.nasa.gov/details/PIA21043",
+          "thumbnailUrl": "https://images-assets.nasa.gov/image/PIA21043/PIA21043~thumb.jpg",
+          "title": "Farewell to Murray Buttes Image 3"
+        }
+      ],
+      "isScienceStop": true,
+      "label": "Butte outcrop",
+      "minutesFromStart": 8.71,
+      "openSky": 0.871,
+      "waypoint": "m25",
+      "x": 1507.7,
+      "y": 1561.4
+    },
+    {
+      "baseLink": true,
+      "id": "sol1446",
+      "images": [],
+      "isScienceStop": false,
+      "label": "Far point",
+      "minutesFromStart": 10.47,
+      "openSky": 0.903,
+      "waypoint": "m30",
+      "x": 1500.0,
+      "y": 1627.7
+    }
+  ],
+  "version": 1
+}

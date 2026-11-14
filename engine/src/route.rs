@@ -51,6 +51,8 @@ pub struct PlanInputs<'a> {
     pub space_weather: Option<Value>,
     /// REMS conditions for the briefing (rems.rs), when known.
     pub conditions: Option<Value>,
+    /// Images per stop id (data/cache/stop_images.json "stops"), when known.
+    pub stop_images: Option<Value>,
     pub stops: Vec<Stop>,
 }
 
@@ -585,6 +587,25 @@ pub fn run(inp: &PlanInputs, out_dir: &Path) -> Result<(), String> {
     write("waypoints.json", &doc)?;
     write("shelters.json", &json!({ "version": 1, "refuges": shelter_list }))?;
     write("briefing.json", &briefing)?;
+
+    // stops.json: every labelled stop, at its main waypoint.
+    let stops_json: Vec<Value> = inp
+        .stops
+        .iter()
+        .enumerate()
+        .filter(|(_, s)| !s.label.is_empty())
+        .filter_map(|(s_idx, s)| {
+            let i = main_pts.iter().position(|p| p.stop == Some(s_idx))?;
+            let w = &main_json[i];
+            let images = inp.stop_images.as_ref().and_then(|m| m.get(&s.id)).and_then(|v| v.get("images")).cloned().unwrap_or(json!([]));
+            Some(json!({
+                "id": s.id, "label": s.label, "waypoint": w["id"], "x": w["pos"]["x"], "y": w["pos"]["y"],
+                "minutesFromStart": w["minutesFromStart"], "openSky": w["openSky"], "baseLink": w["base"]["visible"],
+                "isScienceStop": s.science, "images": images,
+            }))
+        })
+        .collect();
+    write("stops.json", &json!({ "version": 1, "stops": stops_json }))?;
     write_minutes_layer(g, field, &out_dir.join("layers"))?;
 
     // Report.
@@ -623,7 +644,7 @@ pub fn run(inp: &PlanInputs, out_dir: &Path) -> Result<(), String> {
     }
     let late_count = reroutes_plan.iter().filter(|rr| rr.minutes_late.is_some()).count();
     println!("  {} of {} waypoints have a site within the limit", reroutes_plan.len() - late_count, reroutes_plan.len());
-    println!("\nWrote waypoints.json, shelters.json, briefing.json and layers/minutesToShelter.png to {}", out_dir.display());
+    println!("\nWrote waypoints.json, shelters.json, briefing.json, stops.json and layers/minutesToShelter.png to {}", out_dir.display());
     Ok(())
 }
 

@@ -55,3 +55,20 @@ Added when the engine has the REMS weather feed (`data/cache/rems.json`). Values
 | `conditions.ls` | number | Solar longitude of that sol, degrees |
 | `conditions.skyTimeLocal` | `{lmst, ltst, ls}` | The sky time as local mean and true solar time at the site, and its solar longitude (Mars24 algorithm) |
 | `conditions.source`, `disclaimer` | string | Where the data came from, and the feed's disclaimer |
+
+## stops.json
+
+Every labelled stop of the planned walk, at its main waypoint, with Curiosity images for the science stops. Written by `engine plan`.
+
+| Field | Type | Meaning |
+|---|---|---|
+| `version` | number | 1 |
+| `stops` | array | One entry per labelled stop, in route order |
+| `stops[].id`, `label` | string | The stop's id and label from `data/site.json` `routeStops` |
+| `stops[].waypoint` | string | The main waypoint at the stop, like `m19` |
+| `stops[].x`, `y` | number | Local metres |
+| `stops[].minutesFromStart`, `openSky`, `baseLink` | | As on that waypoint |
+| `stops[].isScienceStop` | boolean | |
+| `stops[].images` | array | Empty when there are none. Each: `nasa_id`, `title`, `date`, `description`, `credit`, `thumbnailUrl`, `page`, and `file`: the thumbnail's path relative to `data/out` (served by the relay at `/data/` + `file`) |
+
+Images come from the NASA Image and Video Library (`tools/fetch_stop_images.py`, cached in `data/cache/stop_images.json`). Credit them as given in `credit`.

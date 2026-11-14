@@ -39,6 +39,7 @@ const SITE_JSON: &str = "data/site.json";
 const RAD_CACHE: &str = "data/cache/rad_storm.json";
 const DONKI_CACHE: &str = "data/cache/donki_mars.json";
 const REMS_CACHE: &str = "data/cache/rems.json";
+const IMAGES_CACHE: &str = "data/cache/stop_images.json";
 
 // Settings matching referenceCheck.method in data/site.json.
 const EYE_HEIGHT_M: f64 = 1.0;
@@ -77,6 +78,9 @@ struct Site {
     /// The briefing's conditions and a sunset check line, from data/cache/rems.json when present.
     #[serde(skip)]
     conditions: Option<(serde_json::Value, String)>,
+    /// Images per stop id, from data/cache/stop_images.json when present.
+    #[serde(skip)]
+    stop_images: Option<serde_json::Value>,
 }
 
 #[derive(Deserialize)]
@@ -184,6 +188,7 @@ fn load_site(root: &Path) -> Result<Site, String> {
     }
     site.space_weather = load_space_weather(root, &site);
     site.conditions = load_conditions(root, &site);
+    site.stop_images = load_stop_images(root);
     Ok(site)
 }
 
@@ -207,6 +212,22 @@ fn load_conditions(root: &Path, site: &Site) -> Option<(serde_json::Value, Strin
         Ok(v) => Some(v),
         Err(e) => {
             eprintln!("warning: cannot read {REMS_CACHE} ({e}); the briefing has no conditions");
+            None
+        }
+    }
+}
+
+/// The "stops" map of data/cache/stop_images.json, or None (with a warning if the file is there but unreadable).
+fn load_stop_images(root: &Path) -> Option<serde_json::Value> {
+    let text = std::fs::read_to_string(root.join(IMAGES_CACHE)).ok()?;
+    match serde_json::from_str::<serde_json::Value>(&text).map(|v| v["stops"].clone()) {
+        Ok(stops) if stops.is_object() => Some(stops),
+        Ok(_) => {
+            eprintln!("warning: {IMAGES_CACHE} has no \"stops\" object; stops.json will have no images");
+            None
+        }
+        Err(e) => {
+            eprintln!("warning: cannot read {IMAGES_CACHE} ({e}); stops.json will have no images");
             None
         }
     }
@@ -488,6 +509,7 @@ fn plan_inputs<'a>(site: &Site, grid: &'a terrain::Grid, far72: &'a [f32], far36
         dose_rate_ugy_h: site.rad.as_ref().map(|r| r.baseline_rate),
         space_weather: site.space_weather.clone(),
         conditions: site.conditions.as_ref().map(|c| c.0.clone()),
+        stop_images: site.stop_images.clone(),
         stops,
     }
 }
