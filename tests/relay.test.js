@@ -28,7 +28,7 @@ test('two screens synchronise shared events, reconnect mid-reroute, and ignore u
       assert.deepEqual(JSON.parse(ra[0]), JSON.parse(rb[0])); return JSON.parse(ra[0]).state;
     }
     assert.equal((await event({ type: 'goto', index: 3 })).waypointIndex, 3);
-    assert.equal((await event({ type: 'storm', on: true })).rerouteFromIndex, 3);
+    assert.equal((await event({ type: 'storm', on: true })).rerouteFrom, 3);
     const moving = await event({ type: 'next' }); assert.equal(resolveSelection(moving, route).point.id, 'r03-01');
     const [, reconnect] = await client(); assert.deepEqual(reconnect, moving);
     const malformed = once(a, 'message'); a.send('not json'); assert.equal(JSON.parse((await malformed)[0]).type, 'error');

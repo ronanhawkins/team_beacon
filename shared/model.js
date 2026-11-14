@@ -96,7 +96,7 @@ export function validateState(state, route) {
   for (const key of ['openSky', 'oxygenFraction', 'doseFraction']) fraction(state[key], key);
   for (const key of ['headingDeg', 'shelterBearingDeg']) bearing(state[key], key);
   for (const key of ['minutesToShelter', 'earthDelayMinutes']) finiteIn(state[key], 0, 1e6, key);
-  if (state.rerouteFromIndex !== undefined && (!Number.isSafeInteger(state.rerouteFromIndex) || !route.reroutes[String(state.rerouteFromIndex)])) throw new Error('Invalid rerouteFromIndex');
+  if (state.rerouteFrom != null && (!Number.isSafeInteger(state.rerouteFrom) || !route.reroutes[String(state.rerouteFrom)])) throw new Error('Invalid rerouteFrom');
   const paths = state.route === 'main' ? [route.main] : Object.values(route.reroutes);
   if (!paths.some(points => state.waypointIndex < points.length)) throw new Error('Waypoint index outside route');
   return state;
@@ -114,10 +114,10 @@ function matchesSnapshot(point, state) {
 // Reconnects never reuse old history or guess a skyline.
 export function resolveSelection(state, route, previous = null) {
   if (state.route === 'main') return { route: 'main', points: route.main, point: route.main[state.waypointIndex], index: state.waypointIndex, origin: state.waypointIndex };
-  let origin = state.rerouteFromIndex ?? previous?.origin;
+  let origin = state.rerouteFrom ?? previous?.origin;
   if (origin === undefined || origin === null) {
     const candidates = Object.entries(route.reroutes).filter(([, points]) => points[state.waypointIndex] && matchesSnapshot(points[state.waypointIndex], state));
-    if (candidates.length !== 1) throw new Error('Reroute origin is ambiguous. The relay needs to include rerouteFromIndex in its state.');
+    if (candidates.length !== 1) throw new Error('Reroute origin is ambiguous. The relay needs to include rerouteFrom in its state.');
     origin = Number(candidates[0][0]);
   }
   const points = route.reroutes[String(origin)], point = points?.[state.waypointIndex];
@@ -146,7 +146,7 @@ export function reduceDemoState(state, event, route, initialState) {
     if (event.type === 'requestReroute') next.rerouteRequested = true;
     if ((event.type !== 'storm' || event.on) && state.route === 'main') {
       if (!route.reroutes[String(state.waypointIndex)]) throw new Error('No precomputed shelter route from this stop');
-      next.route = 'reroute'; next.rerouteFromIndex = state.waypointIndex; next.rerouteFrom = state.waypointIndex; next.waypointIndex = 0;
+      next.route = 'reroute'; next.rerouteFrom = state.waypointIndex; next.waypointIndex = 0;
     }
   } else return state;
   next = atPoint(next, resolveSelection(next, route, selected).point);

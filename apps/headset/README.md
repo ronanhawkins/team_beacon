@@ -27,9 +27,9 @@ The client sends `{type:"hello", role:"headset", version:1}` on each connection 
 
 ## Reroute snapshot integration gap
 
-The v1 state identifies `route:"reroute"` and `waypointIndex` but omits the starting main index. **Suggested additive field for Ronan: `rerouteFromIndex`** (main index used to select `reroutes[String(index)]`). The rehearsal relay already includes this extra field.
+The state carries `rerouteFrom` (shared/state.md): the main index used to select `reroutes[String(index)]`, or `null` on the main route. The headset uses it when present, and both the real relay and the rehearsal relay send it.
 
-For the unchanged v1 examples, the headset uses the main index observed on the current connection, or an exact unique match between snapshot fields and a reroute waypoint. This loads `state-storm.json` correctly even on first connect. If a reconnect is ambiguous, telemetry stays visible but spatial markers and the skyline are hidden, with a warning. It never assumes reroute 0. Connection history is cleared on reconnect. A full route identifier is still needed for unambiguous future live telemetry. Ronan's contract markdown and generators are unchanged.
+If `rerouteFrom` is missing (older state files), the headset uses the main index observed on the current connection, or an exact unique match between snapshot fields and a reroute waypoint. This loads `state-storm.json` correctly even on first connect. If a reconnect is ambiguous, telemetry stays visible but spatial markers and the skyline are hidden, with a warning. It never assumes reroute 0. Connection history is cleared on reconnect. A full route identifier is still needed for unambiguous future live telemetry. Ronan's contract markdown and generators are unchanged.
 
 ## Display conventions
 

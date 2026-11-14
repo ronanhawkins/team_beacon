@@ -62,7 +62,7 @@ test('storm at main 3 selects reroute 3, advances to shelter, and reset returns 
   const atThree = step(state, { type: 'goto', index: 3 });
   const alert = step(atThree, { type: 'storm', on: true });
   assert.deepEqual(Object.fromEntries(Object.keys(storm).map(key => [key, alert[key]])), storm);
-  assert.equal(alert.rerouteFromIndex, 3);
+  assert.equal(alert.rerouteFrom, 3);
   let current = alert;
   for (let i = 0; i < 10; i++) current = step(current, { type: 'next' });
   assert.equal(resolveSelection(current, route).point.isShelter, true);
@@ -85,10 +85,11 @@ test('ambiguous reconnect never guesses a reroute; explicit origin and continuou
   const ambiguous = structuredClone(route);
   ambiguous.reroutes['2'][0] = { ...structuredClone(ambiguous.reroutes['3'][0]), id: 'different-id' };
   validateRoute(ambiguous);
-  assert.throws(() => resolveSelection(storm, ambiguous), /ambiguous/);
-  assert.equal(resolveSelection({ ...storm, rerouteFromIndex: 3 }, ambiguous).point.id, 'r03-00');
+  const noOrigin = { ...storm, rerouteFrom: null }; // as an older relay would send it
+  assert.throws(() => resolveSelection(noOrigin, ambiguous), /ambiguous/);
+  assert.equal(resolveSelection({ ...storm, rerouteFrom: 3 }, ambiguous).point.id, 'r03-00');
   const prior = resolveSelection({ ...state, waypointIndex: 3 }, ambiguous);
-  assert.equal(resolveSelection(storm, ambiguous, prior).point.id, 'r03-00');
+  assert.equal(resolveSelection(noOrigin, ambiguous, prior).point.id, 'r03-00');
 });
 test('secure pages use a secure WebSocket', () => {
   assert.equal(relayUrl({ protocol: 'https:', host: 'demo.example' }), 'wss://demo.example/relay');

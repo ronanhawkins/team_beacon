@@ -35,7 +35,7 @@ Sources: [device setup](https://developers.meta.com/vr/documentation/android-app
 
 ## What to coordinate next
 
-Ronan: the headset now reads your `shared/fake/` fixtures and v1 contracts directly. Supply the relay endpoint and real `data/out/waypoints.json`; consider adding `rerouteFromIndex` to every reroute snapshot for reconnects. See `apps/headset/README.md`. The team's exact crop is prepared under `data/out/terrain/`; date and real Sun/Earth directions still come from the engine/site definition.
+Ronan: the headset now reads your `shared/fake/` fixtures and v1 contracts directly. Supply the relay endpoint and real `data/out/waypoints.json`; the state now carries `rerouteFrom` (shared/state.md), which the headset uses on reconnects. See `apps/headset/README.md`. The team's exact crop is prepared under `data/out/terrain/`; date and real Sun/Earth directions still come from the engine/site definition.
 
 Ronn: `data/out/terrain/README.md` explains the committed height grid, both textures, coordinate conversion and optional `shared/terrain.js` mesh loader. Keep the 1 m raw crop for the engine; the 4 m grid is a visual asset.
 
