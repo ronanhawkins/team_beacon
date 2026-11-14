@@ -8,6 +8,13 @@ relay/certs/
 # Dependencies and build output
 node_modules/
 target/
+dist/
+.local/
+.venv/
+__pycache__/
+*.pem
+*.key
+.env
 
 # OS
 .DS_Store

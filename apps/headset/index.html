@@ -1,12 +1,55 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Beacon Headset</title>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b1014"><link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cpath fill='%23c4f288' d='M20 2 38 36H2zm0 10L9 31h22z'/%3E%3C/svg%3E">
+  <title>Beacon — Surface companion</title>
 </head>
 <body>
-  <h1>Beacon Headset</h1>
+  <main id="app">
+    <header class="topbar">
+      <a class="brand" href="/apps/headset/"><span class="beacon-logo">△</span> BEACON <span class="brand-detail">SURFACE COMPANION</span></a>
+      <div class="top-status"><span id="connection" class="chip">CONNECTING</span><span class="chip" id="data-badge">DEMO DATA</span></div>
+    </header>
+    <section class="workspace">
+      <aside class="briefing">
+        <div class="eyebrow">MARS / MURRAY BUTTES</div>
+        <h1>Know your<br>next move.</h1>
+        <p class="intro">Read the skyline. Find your shelter.<br>Stay connected on the surface.</p>
+        <div class="section-label"><span id="route-kind">PLANNED WALK</span><span id="waypoint-number">—</span></div>
+        <h2 id="waypoint-name">Loading route…</h2>
+        <div id="route-stops" class="route-stops" aria-label="Route progress"></div>
+        <div class="sky-stat"><strong id="open-sky">—</strong><span>%<br>OPEN SKY</span><svg viewBox="0 0 70 45" aria-hidden="true"><path d="M5 40a30 30 0 0 1 60 0"/><path d="m5 40 12-10 8 4 12-21 12 11 8-3 8 19" class="mini-sky"/></svg></div>
+        <div class="sky-caption"><span id="blocked-sky">—% terrain-blocked sky</span><span>Upper hemisphere</span></div>
+        <div id="alert" class="alert" role="status"><span class="status-dot"></span><div><b id="alert-title">Nominal conditions</b><p id="alert-copy">Keep the shelter marker in view.</p></div></div>
+        <div class="section-label">HEADSET VIEW</div>
+        <div class="xr-buttons"><button id="enter-ar" class="primary" disabled>Enter AR <span>↗</span></button><button id="enter-vr" disabled>Enter VR</button></div>
+        <p id="xr-help" class="helper">Checking headset support…</p>
+        <button id="align-north" class="text-button">Set this direction as north ↗</button>
+        <div class="briefing-footer"><span class="tiny-dot"></span> CJ / HEADSET PROTOTYPE <span>01</span></div>
+      </aside>
+      <section class="visual-area" aria-label="Interactive skyline preview">
+        <div class="view-label"><span class="tiny-dot"></span> SKYLINE VIEW <span id="view-mode">DESKTOP PREVIEW</span></div>
+        <div id="scene" role="img" aria-label="Interactive 360 degree skyline; drag to look around" tabindex="0"></div>
+        <div class="view-reticle" aria-hidden="true">+</div>
+        <div class="scene-legend"><span><i class="legend-sun"></i>Sun</span><span><i class="legend-earth"></i>Earth</span><span><i class="legend-base"></i>Base bearing</span><span><i class="legend-shelter"></i>Shelter bearing</span><span id="sunlight">—</span></div>
+        <div class="view-hint">DRAG TO LOOK AROUND <span>•</span> AR USES YOUR ROOM AS THE BACKGROUND</div>
+        <div class="metrics">
+          <article><span>TO SHELTER</span><div><strong id="shelter-time">—</strong><small>min</small></div><span class="metric-note">Nearest designated shelter</span></article>
+          <article><span>BASE CONTACT</span><div><strong id="contact">—</strong><i id="contact-dot" class="tiny-dot"></i></div><span class="metric-note" id="earth-contact">Earth —</span></article>
+          <article><span>OXYGEN</span><div><strong id="oxygen">—</strong><small>%</small></div><div class="meter"><span id="oxygen-bar"></span></div></article>
+          <article><span>DOSE BUDGET USED</span><div><strong id="dose">—</strong><small>%</small></div><span class="metric-note">Fraction of walk budget</span></article>
+        </div>
+      </section>
+    </section>
+    <footer class="controls">
+      <div class="control-label"><span class="eyebrow">REHEARSAL CONTROLS</span><span id="control-help">Synced across local browser tabs</span></div>
+      <div class="control-buttons"><button id="play-tour" hidden>Play headset tour</button><button data-action="back" aria-label="Previous waypoint">← Back</button><button data-action="next">Next waypoint →</button><span class="divider"></span><button data-action="storm" id="storm-button" aria-pressed="false">◉ Trigger storm</button><button data-action="requestReroute" class="panic">Request shelter route</button><button data-action="reset" class="reset">Reset</button></div>
+    </footer>
+    <div class="data-note" id="data-note">SIMULATED MISSION · Skyline, directions and telemetry are illustrative. Real terrain and relay integration pending.</div>
+    <div id="message" role="status" hidden></div>
+    <div id="fatal-error" role="alert" hidden></div>
+  </main>
   <script type="module" src="./main.js"></script>
 </body>
 </html>

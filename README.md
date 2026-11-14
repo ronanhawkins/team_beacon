@@ -50,6 +50,8 @@ Laptop address: `TODO` (fill in at the venue, then run `npm run cert -- <address
    ```
    Open `https://<laptop IP>:8443/` on each device, accept the certificate warning once, and pick the page. `/debug` is the presenter control.
 3. Hub: TODO
-4. Headset (Quest 3): TODO
+4. Headset (Quest 3): `npm ci`, then `npm run dev`. Open `http://localhost:5173/apps/headset/`. See [headset setup](apps/headset/README.md) and [USB checklist](docs/CJ-START-HERE.md).
 5. Wrist (phone): TODO
 6. Firmware (ESP32): TODO
+
+The headset currently runs against the canonical generated files in `shared/fake/` with a local rehearsal relay. This is synthetic demo data, not the Mars terrain calculation. `npm test` checks the browser model and relay integration; `npm run build` produces the headset bundle. Ronan's production relay remains in `relay/`.
