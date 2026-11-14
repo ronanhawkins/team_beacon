@@ -1,4 +1,4 @@
-param([string]$Editor = 'C:\Program Files\Unity\Hub\Editor\6000.3.28f1\Editor\Unity.exe', [switch]$UseSourceProject)
+param([string]$Editor = 'C:\Program Files\Unity\Hub\Editor\6000.3.28f1\Editor\Unity.exe', [switch]$UseSourceProject, [switch]$PrepareOnly)
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path -Parent $PSScriptRoot
 $sourceProject = Join-Path $repo 'apps\quest'
@@ -19,14 +19,19 @@ if (!$UseSourceProject) {
         if ($LASTEXITCODE -ge 8) { throw ('Could not copy ' + $folder + ' into the build folder.') }
     }
 }
-foreach ($stage in @(
+$stages = @(
     @{ Method = 'BeaconBuild.Prepare'; Name = 'prepare'; Marker = 'BEACON_PREPARED' },
     @{ Method = 'BeaconVerify.Run'; Name = 'verify'; Marker = 'BEACON_CHECKS_PASSED' },
-    @{ Method = 'BeaconBuild.BuildAndroid'; Name = 'build'; Marker = 'BEACON_APK_READY' }
-)) {
+    @{ Method = 'BeaconVrVerify.Run'; Name = 'vr-verify'; Marker = 'BEACON_VR_CHECKS_PASSED' },
+    @{ Method = 'BeaconVrPreview.Render'; Name = 'vr-preview'; Marker = 'BEACON_VR_PREVIEWS_READY'; Graphics = $true },
+    @{ Method = 'BeaconMissionPreview.Render'; Name = 'mission-preview'; Marker = 'BEACON_MISSION_PREVIEWS_READY'; Graphics = $true }
+)
+if (!$PrepareOnly) { $stages += @{ Method = 'BeaconBuild.BuildAndroid'; Name = 'build'; Marker = 'BEACON_APK_READY' } }
+foreach ($stage in $stages) {
     $log = Join-Path $logs ('unity-' + $stage.Name + '.log')
     Write-Host ('Unity: ' + $stage.Name + ' (log: ' + $log + ')')
-    $arguments = @('-batchmode', '-nographics', '-projectPath', ('"' + $project + '"'), '-buildTarget', 'Android',
+    $graphicsOption = if ($stage.Graphics) { '-force-d3d11' } else { '-nographics' }
+    $arguments = @('-batchmode', $graphicsOption, '-projectPath', ('"' + $project + '"'), '-buildTarget', 'Android',
         '-executeMethod', $stage.Method, '-accept-apiupdate', '-quit', '-logFile', ('"' + $log + '"'))
     $process = Start-Process -FilePath $Editor -ArgumentList $arguments -WorkingDirectory $project -WindowStyle Hidden -PassThru -Wait
     if ($process.ExitCode -ne 0 -or !(Select-String -LiteralPath $log -SimpleMatch $stage.Marker -Quiet)) {
@@ -37,7 +42,7 @@ foreach ($stage in @(
 if (!$UseSourceProject) {
     $builds = Join-Path $sourceProject 'Builds'
     New-Item -ItemType Directory -Path $builds -Force | Out-Null
-    Copy-Item -LiteralPath (Join-Path $project 'Builds\BeaconAR.apk') -Destination (Join-Path $builds 'BeaconAR.apk') -Force
+    if (!$PrepareOnly) { Copy-Item -LiteralPath (Join-Path $project 'Builds\BeaconAR.apk') -Destination (Join-Path $builds 'BeaconAR.apk') -Force }
     # Bring back generated scene, XR settings, fonts and GUID metadata. Source
     # scripts are never overwritten by the working copy.
     $generated = @('Assets\Beacon\Scenes', 'Assets\XR', 'Assets\Resources', 'Assets\Oculus', 'Assets\CompositionLayers', 'Assets\TextMesh Pro', 'ProjectSettings')
@@ -54,6 +59,7 @@ if (!$UseSourceProject) {
         $relative = Join-Path 'Assets\Beacon\Art' $name
         Copy-Item -LiteralPath (Join-Path $project $relative) -Destination (Join-Path $sourceProject $relative) -Force
     }
+    Get-ChildItem -LiteralPath (Join-Path $project 'Assets\Beacon\Art\AccessMars\Textures') -Filter '*.jpg.meta' | Copy-Item -Destination (Join-Path $sourceProject 'Assets\Beacon\Art\AccessMars\Textures') -Force
     Get-ChildItem -LiteralPath (Join-Path $project 'Assets') -Filter '*.meta' -Recurse | ForEach-Object {
         $relative = $_.FullName.Substring($project.Length + 1); $to = Join-Path $sourceProject $relative
         $asset = $to.Substring(0, $to.Length - 5)
@@ -61,4 +67,5 @@ if (!$UseSourceProject) {
     }
     Copy-Item -LiteralPath (Join-Path $project 'Packages\packages-lock.json') -Destination (Join-Path $sourceProject 'Packages\packages-lock.json') -Force
 }
-Write-Host 'Ready: apps/quest/Builds/BeaconAR.apk. Run Install Native Quest.cmd with the Quest connected.'
+if ($PrepareOnly) { Write-Host 'Prepared and checked native AR/VR scenes; editor previews are in .local.' }
+else { Write-Host 'Ready: apps/quest/Builds/BeaconAR.apk. Run Install Native Quest.cmd with the Quest connected.' }

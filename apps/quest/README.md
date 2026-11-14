@@ -21,18 +21,20 @@ The laptop relay remains the authority. The app loads `/session.json` and that s
 - Disconnection labels readings as last-known data, hides navigation and retains any last-known emergency with a red border. Reconnection or arrival does not repeat the alert chime; a new emergency does.
 - Holding B shows a temporary progress bar, then the request/result. Already-sheltered and already-rerouted states give confirmation without another request. Feedback disappears automatically to keep the centre clear.
 
-Physical room movement does not advance the Mars route. Flick the right stick up/down to request one next/previous waypoint from the relay; release to the centre before another step. This is discrete route movement, not free locomotion. The hub's Next/Storm/Reset controls still work and all clients share the same state. A surveyed lecture-hall route and persistent spatial anchors are a separate next step.
+Physical room movement and thumbsticks do not advance the Mars route. The presenter uses the hub's Next/Storm/Reset controls; all mission clients share that state. B remains the headset's emergency shelter request. In VR, the sticks move through the Murray Buttes reference scenery independently of the mission. Returning to AR restores the physical tracking frame. A surveyed lecture-hall route and persistent spatial anchors are a separate next step.
 
 | Controller | Action |
 | --- | --- |
 | Right A | Toggle Mars atmosphere / clear passthrough |
 | Right B, hold one second | Ask the relay for a shelter route |
-| Right stick up/down | Next/previous route point; return stick to centre between steps |
-| Left X | Toggle AR passthrough / NASA panorama |
+| Left stick direction | Continuous walking in VR; no action in AR |
+| Right stick left/right | Smooth turning in VR; no action in AR |
+| Right index trigger while moving | Faster walking in VR |
+| Left X | Toggle AR passthrough / Murray Buttes 3D scenery |
 | Left Y | Show or hide the skyline ring in AR |
 | Left stick click | Smoothly recenter the mission's forward direction to the current gaze |
 
-VR uses a real [NASA/JPL-Caltech/MSSS Murray Buttes panorama](https://www.jpl.nasa.gov/images/pia20840-rovers-panorama-taken-amid-murray-buttes-on-mars/) (PIA20840, sol 1451), a warm sky, and the faint calculated skyline overlay. X returns to AR. This historical panorama is reference scenery, not a route-matched 3D terrain model. Its partial vertical coverage fades into the background. The original image is bundled and compressed to a 4096-pixel ASTC texture for Quest. See [image source and rendering notes](Assets/Beacon/Art/README.md).
+VR uses the ground-level Murray Buttes model and photographs from [Access Mars](https://github.com/googlecreativelab/access-mars), with 158,096 visible terrain triangles, a warm sky and the calculated skyline overlay. X returns to AR. The model is reference scenery, visually oriented toward the Quela ring's high side; it is not georegistered to the live route. The ring and mission readings continue to use Ronan's data while stick movement only moves the viewpoint. See [model source, Apache 2.0 licence and conversion notes](Assets/Beacon/Art/AccessMars/README.md). The older PIA20840 panorama remains in the source archive but is disabled when this 3D scene is present.
 
 ## Mars atmosphere
 
@@ -52,7 +54,7 @@ The tint, haze and wind are artistic effects. The Sun follows the waypoint's JPL
 
 The same setup/build can run with Unity's documented `-batchmode -projectPath ... -executeMethod BeaconBuild.Prepare` / `BeaconBuild.BuildAndroid`. `BeaconVerify.Run` checks the canonical fixtures, navigation, arrival and invalid-state handling.
 
-On Windows, `powershell -NoProfile -ExecutionPolicy Bypass -File tools/build-quest-native.ps1` runs preparation, fixture/exported-route checks and the Android build in order. It uses an isolated working copy in `.local/quest-build` (which avoids a Windows package-folder lock seen during setup), then returns the APK and generated Unity assets to this folder. Logs go in `.local/`. Close both projects in Unity before running it. `-UseSourceProject` builds this folder directly.
+On Windows, `powershell -NoProfile -ExecutionPolicy Bypass -File tools/build-quest-native.ps1` runs preparation, mission and VR checks, comparison renders and the Android build in order. It uses an isolated working copy in `.local/quest-build` (which avoids a Windows package-folder lock seen during setup), then returns the APK and generated Unity assets to this folder. Logs go in `.local/`. Close both projects in Unity before running it. `-UseSourceProject` builds this folder directly; `-PrepareOnly` stops after checks and previews. The converted Access Mars assets are committed, so Python/Draco is needed only to regenerate them.
 
 Development builds allow HTTP for the local USB mission connection. Do not treat this development endpoint as a public deployment.
 
@@ -62,7 +64,11 @@ Development builds allow HTTP for the local USB mission connection. Do not treat
 
 ## Verified demo
 
-Version **0.7.0** is installed on Quest 3 (version code 7). It fixes the Sun/Earth frame across route changes, removes moving particles and ground fill, replaces the blue baseline with a faint warm contour, hides arrived destination markers, adds relay-backed right-stick route steps, and bundles the NASA panorama for VR. It passed **816 native checks**, **16 relay/client tests**, and eleven rendered mission previews. Scene regression checks exercise a 90° head turn plus route change, unchanged Sun/north, no ground mask, no flat baseline and one atmosphere draw with no dust geometry. The panorama was visually checked after feathering uncaptured mosaic boundaries without cutting out dark rocks. The Quest was asleep after installation; wearer confirmation of the new stick controls, fixed Sun and final appearance is still pending. USB mirroring is restored.
+Version **0.9.0** is installed on Quest 3 (version code 9). It adds the Access Mars ground-level model only in VR, continuous stick walking/turning and a visual alignment under the Quela ring's northwest high side. AR still starts in the real room; walking does not change mission state. **815 mission checks**, **1,630 VR checks**, **16 relay/client tests**, and the mission/VR preview renders passed. Source hashes and unchanged photographs were verified; the completed APK contains the Apache licence and modification/attribution notice. Installation was independently confirmed through the device package manager. Wearer movement and new frame-rate checks are pending. See [acceptance notes and alignment limits](ACCEPTANCE.md).
+
+Version **0.8.0** was installed on Quest 3 (version code 8). It removed native thumbstick waypoint stepping and the corresponding relay-sender method, retaining the B emergency request and presenter controls. All **815 native checks** passed and the Android build succeeded.
+
+Version **0.7.0** was installed on Quest 3 (version code 7). It fixed the Sun/Earth frame across route changes, removed moving particles and ground fill, replaced the blue baseline with a faint warm contour, hid arrived destination markers, added the now-superseded relay-backed right-stick route steps, and bundled the NASA panorama for VR. It passed **816 native checks**, **16 relay/client tests**, and eleven rendered mission previews. Scene regression checks exercise a 90° head turn plus route change, unchanged Sun/north, no ground mask, no flat baseline and one atmosphere draw with no dust geometry. The panorama was visually checked after feathering uncaptured mosaic boundaries without cutting out dark rocks. The Quest was asleep after that installation; wearer confirmation was pending. USB mirroring was restored.
 
 Version **0.6.0** adds hold-to-request feedback, left-stick recentering, explicit stale readings and persistent last-known emergency alerts on USB loss. It passed **812 native checks**, built successfully, rendered ten mission previews, and was installed over USB (version code 6). The new offline and recenter screens were visually checked. The headset was asleep after this update, so the new controller actions await wearer confirmation. The USB mirror was reopened. The full live recording and measured frame rate below are from 0.5 immediately before this usability update.
 

@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using Beacon;
+using Newtonsoft.Json.Linq;
 using TMPro;
 using UnityEditor;
 using UnityEditor.Build;
@@ -25,7 +26,7 @@ public static class BeaconBuild
         Directory.CreateDirectory("Assets/Beacon/Scenes"); Directory.CreateDirectory("Assets/XR");
         PlayerSettings.companyName = "Team Beacon"; PlayerSettings.productName = "Beacon AR";
         PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, "com.teambeacon.ar");
-        PlayerSettings.bundleVersion = "0.7.0"; PlayerSettings.Android.bundleVersionCode = 7;
+        PlayerSettings.bundleVersion = "0.9.0"; PlayerSettings.Android.bundleVersionCode = 9;
         PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android, ScriptingImplementation.IL2CPP);
         PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64;
         PlayerSettings.Android.minSdkVersion = AndroidSdkVersions.AndroidApiLevel32;
@@ -37,6 +38,7 @@ public static class BeaconBuild
         PlayerSettings.SetGraphicsAPIs(BuildTarget.Android, new[] { GraphicsDeviceType.Vulkan });
         PlayerSettings.runInBackground = true;
         QualitySettings.antiAliasing = 4; QualitySettings.vSyncCount = 0;
+        QualitySettings.anisotropicFiltering=AnisotropicFiltering.ForceEnable;
         // Enable the new input backend required by OpenXR.
         var settingsObject = new SerializedObject(AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/ProjectSettings.asset")[0]);
         settingsObject.FindProperty("activeInputHandler").intValue = 1; settingsObject.ApplyModifiedPropertiesWithoutUndo();
@@ -86,10 +88,13 @@ public static class BeaconBuild
         var prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Packages/com.meta.xr.sdk.core/Prefabs/OVRCameraRig.prefab");
         if (prefab == null) throw new Exception("Meta camera rig prefab is missing");
         var rigObject = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
+        var playerRoot=new GameObject("VR movement root",typeof(CharacterController));
+        playerRoot.GetComponent<CharacterController>().enabled=false;
+        rigObject.transform.SetParent(playerRoot.transform,false);
         var rig = rigObject.GetComponent<OVRCameraRig>();
         var manager = rigObject.GetComponent<OVRManager>() ?? rigObject.AddComponent<OVRManager>();
         manager.isInsightPassthroughEnabled = true; manager.trackingOriginType = OVRManager.TrackingOrigin.Stage;
-        foreach (var camera in rig.GetComponentsInChildren<Camera>(true)) { camera.clearFlags = CameraClearFlags.SolidColor; camera.backgroundColor = Color.clear; camera.nearClipPlane = .05f; camera.farClipPlane = 100; }
+        foreach (var camera in rig.GetComponentsInChildren<Camera>(true)) { camera.clearFlags = CameraClearFlags.SolidColor; camera.backgroundColor = Color.clear; camera.nearClipPlane = .05f; camera.farClipPlane = 5000; }
         var passthrough = new GameObject("Room passthrough").AddComponent<OVRPassthroughLayer>();
         passthrough.textureOpacity = 1; passthrough.edgeRenderingEnabled = false;
         RenderSettings.skybox = null;
@@ -101,7 +106,31 @@ public static class BeaconBuild
         missionView.skylineShader=AssetDatabase.LoadAssetAtPath<Shader>("Assets/Beacon/Shaders/Skyline.shader");
         if(missionView.skylineShader==null) throw new Exception("Skyline shader is missing");
         hud.missionView=missionView;
+        var terrain=new GameObject("Access Mars VR scenery").AddComponent<AccessMarsTerrain>();
+        const string accessPath="Assets/Beacon/Art/AccessMars/";
+        terrain.geometry=AssetDatabase.LoadAssetAtPath<TextAsset>(accessPath+"terrain.bytes");
+        terrain.metadata=AssetDatabase.LoadAssetAtPath<TextAsset>(accessPath+"terrain.json");
+        terrain.surfaceShader=AssetDatabase.LoadAssetAtPath<Shader>("Assets/Beacon/Shaders/AccessMars.shader");
+        if(terrain.geometry==null || terrain.metadata==null || terrain.surfaceShader==null) throw new Exception("Access Mars scenery is missing; run tools/prepare-access-mars.py");
+        var records=(JArray)JObject.Parse(terrain.metadata.text)["meshes"];
+        terrain.photographs=new Texture2D[records.Count];
+        for(int i=0;i<records.Count;i++)
+        {
+            string photo=(string)records[i]["texture"];if(photo==null) continue;
+            string path=accessPath+"Textures/"+photo;
+            var importer=AssetImporter.GetAtPath(path) as TextureImporter;
+            if(importer==null) throw new Exception("Missing Access Mars photograph: "+photo);
+            importer.textureType=TextureImporterType.Default;importer.sRGBTexture=true;
+            importer.maxTextureSize=2048;importer.mipmapEnabled=true;importer.isReadable=false;
+            importer.wrapMode=TextureWrapMode.Clamp;importer.anisoLevel=8;
+            importer.SetPlatformTextureSettings(new TextureImporterPlatformSettings {name="Android",overridden=true,maxTextureSize=2048,format=TextureImporterFormat.ASTC_6x6});
+            importer.SaveAndReimport();terrain.photographs[i]=AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+        }
+        terrain.gameObject.SetActive(false);
+        var scenery=app.AddComponent<BeaconVrScenery>();scenery.rig=rig;scenery.missionView=missionView;
+        scenery.terrain=terrain;scenery.playerRoot=playerRoot.transform;missionView.vrScenery=scenery;
         var atmosphere = app.AddComponent<MarsAtmosphere>(); atmosphere.rig = rig; atmosphere.relay = relay;
+        atmosphere.externalVrScenery=true;
         atmosphere.missionView=missionView; missionView.atmosphere=atmosphere;
         atmosphere.skyShader = AssetDatabase.LoadAssetAtPath<Shader>("Assets/Beacon/Shaders/MarsAtmosphere.shader");
         const string photoPath="Assets/Beacon/Art/MurrayButtes-PIA20840.jpg";
@@ -158,6 +187,9 @@ public static class BeaconBuild
     public static void BuildAndroid()
     {
         if (!File.Exists(ScenePath)) Prepare();
+        PlayerSettings.productName="Beacon AR";
+        PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android,"com.teambeacon.ar");
+        PlayerSettings.bundleVersion="0.9.0"; PlayerSettings.Android.bundleVersionCode=9;
         Directory.CreateDirectory("Builds");
         var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions {
             scenes = new[] { ScenePath }, target = BuildTarget.Android,

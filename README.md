@@ -7,7 +7,7 @@ Beacon is a route planner for an astronaut's walk at Murray Buttes in Gale crate
 | Area | Owner |
 | --- | --- |
 | `engine/`, `relay/`, `shared/` contracts, integration | Ronan |
-| `apps/headset/` | CJ |
+| `apps/headset/`, `apps/quest/` | CJ |
 | `apps/hub/` | Ronn |
 | `apps/wrist/`, `firmware/` | Joel |
 
@@ -20,7 +20,7 @@ Beacon is a route planner for an astronaut's walk at Murray Buttes in Gale crate
 | `tools/` | Small scripts |
 | `engine/` | Rust crate: skyline and derived layers |
 | `relay/` | Node relay: serves the pages and broadcasts state over WebSockets |
-| `apps/` | Browser pages: `headset/`, `hub/`, `wrist/` |
+| `apps/` | Browser pages: `headset/`, `hub/`, `wrist/`; native Unity Quest app: `quest/` |
 | `firmware/` | ESP32 panic button |
 | `docs/` | Pitch, submission and sources (everyone) |
 
@@ -38,6 +38,14 @@ Pages and browser sockets share port 8443, so the headset and phone accept one c
 Laptop address: `TODO` (fill in at the venue, then run `npm run cert -- <address>` in `relay/`)
 
 ## How to run
+
+### Native Quest over USB
+
+The current headset demos use Unity/OpenXR and installed Android apps. **Install Native Quest.cmd** opens **Beacon AR**, with room passthrough, the mission HUD and an emergency shelter request. The laptop relay is carried over USB on port 5174. Thumbsticks do not advance the mission; the presenter controls route progress. See [native setup and validation](apps/quest/README.md).
+
+Inside Beacon AR, **left X** switches to the Murray Buttes 3D reference scene from NASA/JPL and Google Creative Lab's Access Mars project. **Left stick** walks continuously and **right stick** turns in VR; neither changes the mission route. X restores room passthrough. The scenery is for visual context; the ring still follows Ronan's waypoint data. See [sources, licence and alignment notes](apps/quest/Assets/Beacon/Art/AccessMars/README.md).
+
+**Mirror Quest USB.cmd** shows the app on the laptop; HDMI can carry that window to the projector. Build the APK first using `tools/build-quest-native.ps1`.
 
 ### Local laptop rehearsal / Quest over Wi-Fi
 

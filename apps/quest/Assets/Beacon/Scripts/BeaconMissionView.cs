@@ -14,6 +14,7 @@ namespace Beacon
         public Shader skylineShader;
         public OVRPassthroughLayer passthrough;
         public MarsAtmosphere atmosphere;
+        public BeaconVrScenery vrScenery;
         public float NorthYaw { get; private set; }
         public float Heading => (float)Navigation.Wrap(EyeYaw - NorthYaw);
         public bool Immersive { get; private set; }
@@ -101,7 +102,8 @@ namespace Beacon
             Immersive=enabled;
             if(passthrough!=null) passthrough.hidden=enabled;
             if(atmosphere!=null) atmosphere.SetImmersive(enabled);
-            Debug.Log("BEACON_VIEW: "+(enabled ? "VR fallback" : "AR passthrough"));
+            if(vrScenery!=null) vrScenery.SetActive(enabled);
+            Debug.Log("BEACON_VIEW: "+(enabled ? "Murray Buttes VR" : "AR passthrough"));
         }
         void Update()
         {

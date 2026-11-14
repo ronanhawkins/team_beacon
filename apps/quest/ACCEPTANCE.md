@@ -5,7 +5,7 @@ The supplied screenshots are the functional checklist. The user's later native U
 | Item | Implementation / evidence |
 | --- | --- |
 | Readable, less peripheral HUD | Compass lowered 27° → 16°; core readings enlarged and moved to a lower strip; open sky/science at ±24° rather than corner dashboards. Wearer fit confirmation remains necessary. |
-| AR and VR fallback | Starts in Quest passthrough. Left X switches to the bundled NASA Murray Buttes panorama and warm sky, then back to the room. |
+| AR and VR fallback | Starts in Quest passthrough. Left X switches to the Access Mars Murray Buttes 3D scenery and warm sky, then back to the room. The terrain and walking controller are disabled in AR. |
 | 72-sample skyline, N/E/S/W, smooth transitions | Native dynamic mesh from the exact selected waypoint; smooth sample interpolation and stable calibrated north. Warm faint contour, no blue baseline, no ground fill. Y hides the ring in AR. |
 | Sun/Earth/base/shelter markers | Supplied azimuths/elevations in a fixed frame; visibility and base-link dimming; Earth delay and base distance; shelter minutes. Base/shelter markers hide at arrival. No local sky calculation. |
 | Main readings | Open sky from `openSky`; lower line includes shelter time, base link, sunlight, oxygen and dose. Fractions displayed as percentages. |
@@ -17,9 +17,21 @@ The supplied screenshots are the functional checklist. The user's later native U
 | Visual QA | Unity previews for base, Quela, northwest skyline, warning, storm, arrival and VR fallback. Preview caught missing CanvasRenderer on custom UI; fixed and covered by a regression check. |
 | Laptop/projector | USB mirror previously confirmed by wearer. Physical HDMI projector rehearsal still needs the actual projector. |
 | Full recording and frame rate | Completed on 0.5: 31 main points, all 13 S03 diversion points, arrival and reset. USB recording 85.54 s; Unity reported mean 72.0 fps, p95 13.9 ms throughout sampled windows, including storm and recording. These measure app-frame pacing. |
-| NASA panorama in VR | PIA20840 (sol 1451) bundled and credited; historical reference scenery, not route-matched geometry. Real DEM remains available in `data/out/terrain/`. |
+| Ground-level 3D scenery in VR | Access Mars's real glTF/Draco model and 64 photo tiles, converted offline to 158,096 visible triangles. Apache 2.0 licence/attribution bundled. Continuous sticks move only the viewpoint; no mission events. Older panorama remains in source; real DEM remains available in `data/out/terrain/`. |
 
-## Version 0.7 verification
+## Version 0.9 verification
+
+The user replaced the separate Jezero work with Murray Buttes. No Jezero app was installed; unfinished local assets are retained outside the active project. Beacon starts in AR and exposes the original-area scenery through X.
+
+**815 mission checks**, **1,630 VR checks**, and **16 relay/client tests** passed. The two relay-network tests initially encountered the restricted environment's local-network denial; all 16 passed with local networking allowed. VR checks cover geometry/winding, the photographed ground collider, gradual left-stick movement, continuous right-stick turning, no route changes, stable north/Sun, dead zone, diagonal speed and restoration of the physical AR frame. Five VR/AR comparison renders and the eleven mission regression previews completed. The scene regressions retain the fixed Sun, clear floor, absent blue baseline and absence of particles.
+
+The starting view was inspected by eye with NASA's M12/Quela reference photo and the supplied Quela skyline. The butte is placed under the northwest high side, with a roughly 4° peak-height difference. This is deliberately reference scenery, not georegistration; the mission ring does not follow free exploration. The roughly 128 m central reconstruction has uneven photographic coverage and a coarser distant background. Movement is bounded inside the reconstructed surface. The 600 m fallback was not needed for the directional alignment. Full source, transformations and pinned hashes are documented in `Assets/Beacon/Art/AccessMars/README.md`.
+
+The **0.9.0 APK / version code 9** built successfully and was installed over USB, independently confirmed by the device package manager. The Apache licence and attribution/modification notice were verified inside the finished APK. The headset was asleep immediately after installation. The laptop mirror was reopened; wearer movement/performance checks are pending, and no new on-headset performance claim is made yet.
+
+## Earlier version verification
+
+Superseded movement: version **0.8.0 / code 8** removes thumbstick waypoint stepping, per the wearer's correction. The update passed **815 native checks**, built and was installed over USB. The emergency B request remains.
 
 Installed over USB and independently confirmed as version 0.7.0 / code 7. **816 native checks**, **16 relay/client tests**, and eleven mission previews passed. The scene checks confirm that a 90° head turn and route step do not rotate the Sun or north, the skyline does not mask the ground or draw a flat baseline, and the atmosphere has no dust geometry. Arrival-marker suppression and offline next/back requests are covered. AR and the final NASA panorama were visually inspected in editor renders. The original NASA pixels remain unchanged; a conservative coverage lookup feathers the mosaic edges. The Quest was asleep after installation, so physical controller input, wearer appearance and a new frame-rate run remain unverified for 0.7. USB mirroring is restored.
 

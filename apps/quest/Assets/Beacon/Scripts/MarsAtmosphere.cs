@@ -13,6 +13,7 @@ namespace Beacon
         public BeaconMissionView missionView;
         public Shader skyShader;
         public Texture2D panorama, panoramaBounds;
+        public bool externalVrScenery;
         public bool effectsEnabled = true;
         Transform eye, visuals, sky;
         Material skyMaterial;
@@ -35,7 +36,7 @@ namespace Beacon
             skyMaterial.SetFloat("_SunVisibility",0);
             skyMaterial.SetTexture("_Panorama",panorama);
             skyMaterial.SetTexture("_PanoramaBounds",panoramaBounds);
-            skyMaterial.SetFloat("_HasPanorama",panorama!=null ? 1 : 0);
+            skyMaterial.SetFloat("_HasPanorama",panorama!=null && !externalVrScenery ? 1 : 0);
             skyMesh = MakeDome();
             sky = Draw("Dusty sky, sun and horizon haze", skyMesh, skyMaterial);
             sky.position=eye.position;

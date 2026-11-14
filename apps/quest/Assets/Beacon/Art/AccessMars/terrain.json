@@ -1,0 +1,1763 @@
+{
+  "sourceRepository": "https://github.com/googlecreativelab/access-mars",
+  "commit": "4b0a445f4e3b3fbfbc6b06f3adf07c24c05a2c57",
+  "license": "Apache-2.0",
+  "sourceCredit": "NASA/JPL-Caltech and Google Creative Lab",
+  "sourceCopyright": "Copyright 2017 Google Inc.",
+  "modifications": "Draco decoded offline; original Access Mars scene scale and shader V correction applied; Z mirrored and winding reversed for Unity; mesh arrays packed; JPEG bytes unchanged.",
+  "alignment": "Visual reference scenery only; not georegistered to the mission waypoints.",
+  "visibleTriangles": 158096,
+  "collisionTriangles": 1320,
+  "meshes": [
+    {
+      "name": "collision",
+      "kind": "collision",
+      "texture": null,
+      "vertices": 818,
+      "triangles": 1320,
+      "min": [
+        -63.999998569488525,
+        -6.411719655728643,
+        -63.999998569488525
+      ],
+      "max": [
+        63.999998569488525,
+        11.498903017515616,
+        63.999998569488525
+      ],
+      "textureSize": null
+    },
+    {
+      "name": "background",
+      "kind": "background",
+      "texture": "background.jpg",
+      "vertices": 16499,
+      "triangles": 30144,
+      "min": [
+        -2047.9999542236328,
+        -113.67900594296287,
+        -2047.9999542236328
+      ],
+      "max": [
+        2047.9999542236328,
+        249.40963187643206,
+        2047.9999542236328
+      ],
+      "textureSize": [
+        512,
+        512
+      ]
+    },
+    {
+      "name": "30000033",
+      "kind": "tile",
+      "texture": "30000033.jpg",
+      "vertices": 175,
+      "triangles": 188,
+      "min": [
+        -63.999998569488525,
+        -6.5676096401897865,
+        -63.999998569488525
+      ],
+      "max": [
+        -47.999998927116394,
+        -4.895326504960806,
+        -47.999998927116394
+      ],
+      "textureSize": [
+        256,
+        256
+      ]
+    },
+    {
+      "name": "30000032",
+      "kind": "tile",
+      "texture": "30000032.jpg",
+      "vertices": 179,
+      "triangles": 199,
+      "min": [
+        -47.999998927116394,
+        -6.537799689073864,
+        -63.999998569488525
+      ],
+      "max": [
+        -31.999999284744263,
+        -4.244271183514492,
+        -47.999998927116394
+      ],
+      "textureSize": [
+        256,
+        256
+      ]
+    },
+    {
+      "name": "30000031",
+      "kind": "tile",
+      "texture": "30000031.jpg",
+      "vertices": 176,
+      "triangles": 185,
+      "min": [
+        -63.999998569488525,
+        -5.288189769800233,
+        -47.999998927116394
+      ],
+      "max": [
+        -47.999998927116394,
+        -3.6237208033266466,
+        -31.999999284744263
+      ],
+      "textureSize": [
+        256,
+        256
+      ]
+    },
+    {
+      "name": "30000030",
+      "kind": "tile",
+      "texture": "30000030.jpg",
+      "vertices": 414,
+      "triangles": 511,
+      "min": [
+        -47.999998927116394,
+        -5.05958974973284,
+        -47.999998927116394
+      ],
+      "max": [
+        -31.999999284744263,
+        -3.0356580532567623,
+        -31.999999284744263
+      ],
+      "textureSize": [
+        256,
+        256
+      ]
+    },
+    {
+      "name": "30000023",
+      "kind": "tile",
+      "texture": "30000023.jpg",
+      "vertices": 182,
+      "triangles": 197,
+      "min": [
+        -31.999999284744263,
+        -6.347089625587543,
+        -63.999998569488525
+      ],
+      "max": [
+        -15.999999642372131,
+        -3.799592648455663,
+        -47.999998927116394
+      ],
+      "textureSize": [
+        256,
+        256
+      ]
+    },
+    {
+      "name": "30000022",
+      "kind": "tile",
+      "texture": "30000022.jpg",
+      "vertices": 242,
+      "triangles": 226,
+      "min": [
+        -15.999999642372131,
+        -5.177589777612912,
+        -63.999998569488525
+      ],
+      "max": [
+        0.0,
+        -0.8405933192239701,
+        -47.999998927116394
+      ],
+      "textureSize": [
+        512,
+        512
+      ]
+    },
+    {
+      "name": "30000021",
+      "kind": "tile",
+      "texture": "30000021.jpg",
+      "vertices": 430,
+      "triangles": 522,
+      "min": [
+        -31.999999284744263,
+        -4.613539592619098,
+        -47.999998927116394
+      ],
+      "max": [
+        -15.999999642372131,
+        -3.0233074942981997,
+        -31.999999284744263
+      ],
+      "textureSize": [
+        512,
+        512
+      ]
+    },
+    {
+      "name": "30000020",
+      "kind": "tile",
+      "texture": "30000020.jpg",
+      "vertices": 393,
+      "triangles": 457,
+      "min": [
+        -15.999999642372131,
+        -3.9664298601501446,
+        -47.999998927116394
+      ],
+      "max": [
+        0.0,
+        -1.1649646498643307,
+        -31.999999284744263
+      ],
+      "textureSize": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "name": "30000013",
+      "kind": "tile",
+      "texture": "30000013.jpg",
+      "vertices": 188,
+      "triangles": 201,
+      "min": [
+        -63.999998569488525,
+        -4.153870012897176,
+        -31.999999284744263
+      ],
+      "max": [
+        -47.999998927116394,
+        -2.434700196205819,
+        -15.999999642372131
+      ],
+      "textureSize": [
+        512,
+        512
+      ]
+    },
+    {
+      "name": "30000012",
+      "kind": "tile",
+      "texture": "30000012.jpg",
+      "vertices": 416,
+      "triangles": 514,
+      "min": [
+        -47.999998927116394,
+        -3.8530797097143576,
+        -31.999999284744263
+      ],
+      "max": [
+        -31.999999284744263,
+        -2.0479514141093613,
+        -15.999999642372131
+      ],
+      "textureSize": [
+        512,
+        512
+      ]
+    },
+    {
+      "name": "30000011",
+      "kind": "tile",
+      "texture": "30000011.jpg",
+      "vertices": 189,
+      "triangles": 183,
+      "min": [
+        -63.999998569488525,
+        -2.835309918925688,
+        -15.999999642372131
+      ],
+      "max": [
+        -47.999998927116394,
+        -1.0536248448425933,
+        1.110219955785152e-16
+      ],
+      "textureSize": [
+        512,
+        512
+      ]
+    },
+    {
+      "name": "30000010",
+      "kind": "tile",
+      "texture": "30000010.jpg",
+      "vertices": 413,
+      "triangles": 489,
+      "min": [
+        -47.999998927116394,
+        -2.8429698308638507,
+        -15.999999642372131
+      ],
+      "max": [
+        -31.999999284744263,
+        0.16948461153765138,
+        0.0
+      ],
+      "textureSize": [
+        512,
+        512
+      ]
+    },
+    {
+      "name": "30000003",
+      "kind": "tile",
+      "texture": "30000003.jpg",
+      "vertices": 1531,
+      "triangles": 2361,
+      "min": [
+        -31.999999284744263,
+        -3.416599912570417,
+        -31.999999284744263
+      ],
+      "max": [
+        -15.999999642372131,
+        -1.9943776876991004,
+        -15.999999642372131
+      ],
+      "textureSize": [
+        2048,
+        2048
+      ]
+    },
+    {
+      "name": "30000002",
+      "kind": "tile",
+      "texture": "30000002.jpg",
+      "vertices": 2154,
+      "triangles": 3115,
+      "min": [
+        -15.999999642372131,
+        -3.5796198044802274,
+        -31.999999284744263
+      ],
+      "max": [
+        0.0,
+        -1.8604499877888703,
+        -15.999999642372131
+      ],
+      "textureSize": [
+        2048,
+        2048
+      ]
+    },
+    {
+      "name": "30000001",
+      "kind": "tile",
+      "texture": "30000001.jpg",
+      "vertices": 1857,
+      "triangles": 2746,
+      "min": [
+        -31.999999284744263,
+        -3.173269916178212,
+        -15.999999642372131
+      ],
+      "max": [
+        -15.999999642372131,
+        0.04235911274643733,
+        5.551120293004493e-17
+      ],
+      "textureSize": [
+        2048,
+        2048
+      ]
+    },
+    {
+      "name": "30000000",
+      "kind": "tile",
+      "texture": "30000000.jpg",
+      "vertices": 11480,
+      "triangles": 20127,
+      "min": [
+        -15.999999642372131,
+        -3.01100008910149,
+        -15.999999642372131
+      ],
+      "max": [
+        0.0,
+        0.017083167647946595,
+        2.7755601465022464e-17
+      ],
+      "textureSize": [
+        2048,
+        2048
+      ]
+    },
+    {
+      "name": "21111133",
+      "kind": "tile",
+      "texture": "21111133.jpg",
+      "vertices": 250,
+      "triangles": 316,
+      "min": [
+        -2.220449970086328e-16,
+        -3.599759736662511,
+        -63.999998569488525
+      ],
+      "max": [
+        15.999999642372131,
+        2.659581363359509,
+        -47.999998927116394
+      ],
+      "textureSize": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "name": "21111132",
+      "kind": "tile",
+      "texture": "21111132.jpg",
+      "vertices": 255,
+      "triangles": 292,
+      "min": [
+        15.999999642372131,
+        -1.476000037580727,
+        -63.999998569488525
+      ],
+      "max": [
+        31.999999284744263,
+        3.7323028207055575,
+        -47.999998927116394
+      ],
+      "textureSize": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "name": "21111131",
+      "kind": "tile",
+      "texture": "21111131.jpg",
+      "vertices": 442,
+      "triangles": 501,
+      "min": [
+        0.0,
+        -2.4829599302345517,
+        -47.999998927116394
+      ],
+      "max": [
+        15.999999642372131,
+        -0.30664729386611356,
+        -31.999999284744263
+      ],
+      "textureSize": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "name": "21111130",
+      "kind": "tile",
+      "texture": "21111130.jpg",
+      "vertices": 398,
+      "triangles": 443,
+      "min": [
+        15.999999642372131,
+        -2.3496999215401715,
+        -47.999998927116394
+      ],
+      "max": [
+        31.999999284744263,
+        -0.4312627219126508,
+        -31.999999284744263
+      ],
+      "textureSize": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "name": "21111123",
+      "kind": "tile",
+      "texture": "21111123.jpg",
+      "vertices": 274,
+      "triangles": 327,
+      "min": [
+        31.999999284744263,
+        -0.7098919590586728,
+        -63.999998569488525
+      ],
+      "max": [
+        47.999998927116394,
+        4.896945843913869,
+        -47.999998927116394
+      ],
+      "textureSize": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "name": "21111122",
+      "kind": "tile",
+      "texture": "21111122.jpg",
+      "vertices": 276,
+      "triangles": 364,
+      "min": [
+        47.999998927116394,
+        -1.2438299377896644,
+        -63.999998569488525
+      ],
+      "max": [
+        63.999998569488525,
+        5.574241513589584,
+        -47.999998927116394
+      ],
+      "textureSize": [
+        512,
+        512
+      ]
+    },
+    {
+      "name": "21111121",
+      "kind": "tile",
+      "texture": "21111121.jpg",
+      "vertices": 336,
+      "triangles": 361,
+      "min": [
+        31.999999284744263,
+        -1.7614199721495805,
+        -47.999998927116394
+      ],
+      "max": [
+        47.999998927116394,
+        2.7631222584145743,
+        -31.999999284744263
+      ],
+      "textureSize": [
+        512,
+        512
+      ]
+    },
+    {
+      "name": "21111120",
+      "kind": "tile",
+      "texture": "21111120.jpg",
+      "vertices": 214,
+      "triangles": 217,
+      "min": [
+        47.999998927116394,
+        -1.5730000382736309,
+        -47.999998927116394
+      ],
+      "max": [
+        63.999998569488525,
+        2.6545948388890572,
+        -31.999999284744263
+      ],
+      "textureSize": [
+        64,
+        64
+      ]
+    },
+    {
+      "name": "21111113",
+      "kind": "tile",
+      "texture": "21111113.jpg",
+      "vertices": 1886,
+      "triangles": 2792,
+      "min": [
+        -1.110219955785152e-16,
+        -3.250319885082842,
+        -31.999999284744263
+      ],
+      "max": [
+        15.999999642372131,
+        -0.13627814941976624,
+        -15.999999642372131
+      ],
+      "textureSize": [
+        2048,
+        2048
+      ]
+    },
+    {
+      "name": "21111112",
+      "kind": "tile",
+      "texture": "21111112.jpg",
+      "vertices": 1919,
+      "triangles": 2863,
+      "min": [
+        15.999999642372131,
+        -2.2960698091372134,
+        -31.999999284744263
+      ],
+      "max": [
+        31.999999284744263,
+        6.585004659332228,
+        -15.999999642372131
+      ],
+      "textureSize": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "name": "21111111",
+      "kind": "tile",
+      "texture": "21111111.jpg",
+      "vertices": 9979,
+      "triangles": 17597,
+      "min": [
+        -2.7755601465022464e-17,
+        -2.0280599140809485,
+        -15.999999642372131
+      ],
+      "max": [
+        15.999999642372131,
+        3.1567997226834343,
+        2.7755601465022464e-17
+      ],
+      "textureSize": [
+        2048,
+        2048
+      ]
+    },
+    {
+      "name": "21111110",
+      "kind": "tile",
+      "texture": "21111110.jpg",
+      "vertices": 2193,
+      "triangles": 3385,
+      "min": [
+        15.999999642372131,
+        -0.3152039874671997,
+        -15.999999642372131
+      ],
+      "max": [
+        31.999999284744263,
+        8.937055388009796,
+        5.551120293004493e-17
+      ],
+      "textureSize": [
+        2048,
+        2048
+      ]
+    },
+    {
+      "name": "21111103",
+      "kind": "tile",
+      "texture": "21111103.jpg",
+      "vertices": 466,
+      "triangles": 641,
+      "min": [
+        31.999999284744263,
+        -0.7174519736144247,
+        -31.999999284744263
+      ],
+      "max": [
+        47.999998927116394,
+        7.655686207361079,
+        -15.999999642372131
+      ],
+      "textureSize": [
+        256,
+        256
+      ]
+    },
+    {
+      "name": "21111102",
+      "kind": "tile",
+      "texture": "21111102.jpg",
+      "vertices": 210,
+      "triangles": 251,
+      "min": [
+        47.999998927116394,
+        1.5815798882786947,
+        -31.999999284744263
+      ],
+      "max": [
+        63.999998569488525,
+        7.965951741502764,
+        -15.999999642372131
+      ],
+      "textureSize": [
+        64,
+        64
+      ]
+    },
+    {
+      "name": "21111101",
+      "kind": "tile",
+      "texture": "21111101.jpg",
+      "vertices": 369,
+      "triangles": 496,
+      "min": [
+        31.999999284744263,
+        2.318529792460877,
+        -15.999999642372131
+      ],
+      "max": [
+        47.999998927116394,
+        7.6870277593949154,
+        1.110219955785152e-16
+      ],
+      "textureSize": [
+        128,
+        128
+      ]
+    },
+    {
+      "name": "21111100",
+      "kind": "tile",
+      "texture": "21111100.jpg",
+      "vertices": 290,
+      "triangles": 345,
+      "min": [
+        47.999998927116394,
+        0.7057639798723758,
+        -15.999999642372131
+      ],
+      "max": [
+        63.999998569488525,
+        7.973163426522234,
+        0.0
+      ],
+      "textureSize": [
+        128,
+        128
+      ]
+    },
+    {
+      "name": "12222233",
+      "kind": "tile",
+      "texture": "12222233.jpg",
+      "vertices": 208,
+      "triangles": 201,
+      "min": [
+        -63.999998569488525,
+        -1.679659925110788,
+        0.0
+      ],
+      "max": [
+        -47.999998927116394,
+        0.8053217946293545,
+        15.999999642372131
+      ],
+      "textureSize": [
+        256,
+        256
+      ]
+    },
+    {
+      "name": "12222232",
+      "kind": "tile",
+      "texture": "12222232.jpg",
+      "vertices": 440,
+      "triangles": 496,
+      "min": [
+        -47.999998927116394,
+        -1.2174699034362302,
+        0.0
+      ],
+      "max": [
+        -31.999999284744263,
+        1.7129330252200425,
+        15.999999642372131
+      ],
+      "textureSize": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "name": "12222231",
+      "kind": "tile",
+      "texture": "12222231.jpg",
+      "vertices": 200,
+      "triangles": 209,
+      "min": [
+        -63.999998569488525,
+        0.252932989904292,
+        15.999999642372131
+      ],
+      "max": [
+        -47.999998927116394,
+        4.464898963312081,
+        31.999999284744263
+      ],
+      "textureSize": [
+        256,
+        256
+      ]
+    },
+    {
+      "name": "12222230",
+      "kind": "tile",
+      "texture": "12222230.jpg",
+      "vertices": 470,
+      "triangles": 585,
+      "min": [
+        -47.999998927116394,
+        0.6408079719362858,
+        15.999999642372131
+      ],
+      "max": [
+        -31.999999284744263,
+        6.208573679434348,
+        31.999999284744263
+      ],
+      "textureSize": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "name": "12222223",
+      "kind": "tile",
+      "texture": "12222223.jpg",
+      "vertices": 2076,
+      "triangles": 2934,
+      "min": [
+        -31.999999284744263,
+        -1.681279979319572,
+        0.0
+      ],
+      "max": [
+        -15.999999642372131,
+        1.585142696235864,
+        15.999999642372131
+      ],
+      "textureSize": [
+        2048,
+        2048
+      ]
+    },
+    {
+      "name": "12222222",
+      "kind": "tile",
+      "texture": "12222222.jpg",
+      "vertices": 11321,
+      "triangles": 19614,
+      "min": [
+        -15.999999642372131,
+        -1.3544898922482895,
+        0.0
+      ],
+      "max": [
+        0.0,
+        2.0877570639306953,
+        15.999999642372131
+      ],
+      "textureSize": [
+        2048,
+        2048
+      ]
+    },
+    {
+      "name": "12222221",
+      "kind": "tile",
+      "texture": "12222221.jpg",
+      "vertices": 1721,
+      "triangles": 2594,
+      "min": [
+        -31.999999284744263,
+        0.7822769705442267,
+        15.999999642372131
+      ],
+      "max": [
+        -15.999999642372131,
+        6.197661738149929,
+        31.999999284744263
+      ],
+      "textureSize": [
+        2048,
+        2048
+      ]
+    },
+    {
+      "name": "12222220",
+      "kind": "tile",
+      "texture": "12222220.jpg",
+      "vertices": 1744,
+      "triangles": 2584,
+      "min": [
+        -15.999999642372131,
+        1.0226799021062272,
+        15.999999642372131
+      ],
+      "max": [
+        0.0,
+        6.31303391650988,
+        31.999999284744263
+      ],
+      "textureSize": [
+        2048,
+        2048
+      ]
+    },
+    {
+      "name": "12222213",
+      "kind": "tile",
+      "texture": "12222213.jpg",
+      "vertices": 190,
+      "triangles": 230,
+      "min": [
+        -63.999998569488525,
+        2.7169498789992197,
+        31.999999284744263
+      ],
+      "max": [
+        -47.999998927116394,
+        10.30474067543281,
+        47.999998927116394
+      ],
+      "textureSize": [
+        512,
+        512
+      ]
+    },
+    {
+      "name": "12222212",
+      "kind": "tile",
+      "texture": "12222212.jpg",
+      "vertices": 443,
+      "triangles": 655,
+      "min": [
+        -47.999998927116394,
+        4.310830019917411,
+        31.999999284744263
+      ],
+      "max": [
+        -31.999999284744263,
+        11.476642352119626,
+        47.999998927116394
+      ],
+      "textureSize": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "name": "12222211",
+      "kind": "tile",
+      "texture": "12222211.jpg",
+      "vertices": 189,
+      "triangles": 235,
+      "min": [
+        -63.999998569488525,
+        5.539089555909715,
+        47.999998927116394
+      ],
+      "max": [
+        -47.999998927116394,
+        10.419187312889377,
+        63.999998569488525
+      ],
+      "textureSize": [
+        64,
+        64
+      ]
+    },
+    {
+      "name": "12222210",
+      "kind": "tile",
+      "texture": "12222210.jpg",
+      "vertices": 265,
+      "triangles": 305,
+      "min": [
+        -47.999998927116394,
+        3.5756699239685386,
+        47.999998927116394
+      ],
+      "max": [
+        -31.999999284744263,
+        11.487758379703195,
+        63.999998569488525
+      ],
+      "textureSize": [
+        64,
+        64
+      ]
+    },
+    {
+      "name": "12222203",
+      "kind": "tile",
+      "texture": "12222203.jpg",
+      "vertices": 472,
+      "triangles": 671,
+      "min": [
+        -31.999999284744263,
+        4.743439568353303,
+        31.999999284744263
+      ],
+      "max": [
+        -15.999999642372131,
+        11.40131543424765,
+        47.999998927116394
+      ],
+      "textureSize": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "name": "12222202",
+      "kind": "tile",
+      "texture": "12222202.jpg",
+      "vertices": 521,
+      "triangles": 794,
+      "min": [
+        -15.999999642372131,
+        3.7165297631204908,
+        31.999999284744263
+      ],
+      "max": [
+        0.0,
+        10.440828089993559,
+        47.999998927116394
+      ],
+      "textureSize": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "name": "12222201",
+      "kind": "tile",
+      "texture": "12222201.jpg",
+      "vertices": 209,
+      "triangles": 251,
+      "min": [
+        -31.999999284744263,
+        2.1799599637100098,
+        47.999998927116394
+      ],
+      "max": [
+        -15.999999642372131,
+        11.393147213910204,
+        63.999998569488525
+      ],
+      "textureSize": [
+        128,
+        128
+      ]
+    },
+    {
+      "name": "12222200",
+      "kind": "tile",
+      "texture": "12222200.jpg",
+      "vertices": 248,
+      "triangles": 276,
+      "min": [
+        -15.999999642372131,
+        1.3985799238403152,
+        47.999998927116394
+      ],
+      "max": [
+        0.0,
+        9.88893391440211,
+        63.999998569488525
+      ],
+      "textureSize": [
+        64,
+        64
+      ]
+    },
+    {
+      "name": "03333333",
+      "kind": "tile",
+      "texture": "03333333.jpg",
+      "vertices": 11738,
+      "triangles": 20259,
+      "min": [
+        -2.7755601465022464e-17,
+        -0.14407899653735012,
+        0.0
+      ],
+      "max": [
+        15.999999642372131,
+        3.2786318522997515,
+        15.999999642372131
+      ],
+      "textureSize": [
+        2048,
+        2048
+      ]
+    },
+    {
+      "name": "03333332",
+      "kind": "tile",
+      "texture": "03333332.jpg",
+      "vertices": 2079,
+      "triangles": 3285,
+      "min": [
+        15.999999642372131,
+        1.68162997778587,
+        0.0
+      ],
+      "max": [
+        31.999999284744263,
+        8.827906411262454,
+        15.999999642372131
+      ],
+      "textureSize": [
+        1024,
+        1024
+      ]
+    },
+    {
+      "name": "03333331",
+      "kind": "tile",
+      "texture": "03333331.jpg",
+      "vertices": 1572,
+      "triangles": 2213,
+      "min": [
+        -5.551120293004493e-17,
+        1.922959880762698,
+        15.999999642372131
+      ],
+      "max": [
+        15.999999642372131,
+        5.466793891784683,
+        31.999999284744263
+      ],
+      "textureSize": [
+        2048,
+        2048
+      ]
+    },
+    {
+      "name": "03333330",
+      "kind": "tile",
+      "texture": "03333330.jpg",
+      "vertices": 1471,
+      "triangles": 2216,
+      "min": [
+        15.999999642372131,
+        1.768049915849046,
+        15.999999642372131
+      ],
+      "max": [
+        31.999999284744263,
+        3.5536421935191242,
+        31.999999284744263
+      ],
+      "textureSize": [
+        256,
+        256
+      ]
+    },
+    {
+      "name": "03333323",
+      "kind": "tile",
+      "texture": "03333323.jpg",
+      "vertices": 480,
+      "triangles": 551,
+      "min": [
+        31.999999284744263,
+        0.44937898704307533,
+        0.0
+      ],
+      "max": [
+        47.999998927116394,
+        5.884299623572087,
+        15.999999642372131
+      ],
+      "textureSize": [
+        64,
+        64
+      ]
+    },
+    {
+      "name": "03333322",
+      "kind": "tile",
+      "texture": "03333322.jpg",
+      "vertices": 265,
+      "triangles": 291,
+      "min": [
+        47.999998927116394,
+        0.4506370026475859,
+        0.0
+      ],
+      "max": [
+        63.999998569488525,
+        2.4784759921176125,
+        15.999999642372131
+      ],
+      "textureSize": [
+        64,
+        64
+      ]
+    },
+    {
+      "name": "03333321",
+      "kind": "tile",
+      "texture": "03333321.jpg",
+      "vertices": 379,
+      "triangles": 466,
+      "min": [
+        31.999999284744263,
+        0.8624619648800347,
+        15.999999642372131
+      ],
+      "max": [
+        47.999998927116394,
+        2.7379199846553792,
+        31.999999284744263
+      ],
+      "textureSize": [
+        64,
+        64
+      ]
+    },
+    {
+      "name": "03333320",
+      "kind": "tile",
+      "texture": "03333320.jpg",
+      "vertices": 149,
+      "triangles": 154,
+      "min": [
+        47.999998927116394,
+        0.5496339675120865,
+        15.999999642372131
+      ],
+      "max": [
+        63.999998569488525,
+        1.7843104202081905,
+        31.999999284744263
+      ],
+      "textureSize": [
+        64,
+        64
+      ]
+    },
+    {
+      "name": "03333313",
+      "kind": "tile",
+      "texture": "03333313.jpg",
+      "vertices": 453,
+      "triangles": 580,
+      "min": [
+        -5.551120293004493e-17,
+        1.5731799250875422,
+        31.999999284744263
+      ],
+      "max": [
+        15.999999642372131,
+        7.004193149413318,
+        47.999998927116394
+      ],
+      "textureSize": [
+        64,
+        64
+      ]
+    },
+    {
+      "name": "03333312",
+      "kind": "tile",
+      "texture": "03333312.jpg",
+      "vertices": 427,
+      "triangles": 520,
+      "min": [
+        15.999999642372131,
+        1.1019699327207366,
+        31.999999284744263
+      ],
+      "max": [
+        31.999999284744263,
+        3.3603338444158304,
+        47.999998927116394
+      ],
+      "textureSize": [
+        64,
+        64
+      ]
+    },
+    {
+      "name": "03333311",
+      "kind": "tile",
+      "texture": "03333311.jpg",
+      "vertices": 202,
+      "triangles": 212,
+      "min": [
+        0.0,
+        1.3141599599832299,
+        47.999998927116394
+      ],
+      "max": [
+        15.999999642372131,
+        3.8929146850202656,
+        63.999998569488525
+      ],
+      "textureSize": [
+        64,
+        64
+      ]
+    },
+    {
+      "name": "03333310",
+      "kind": "tile",
+      "texture": "03333310.jpg",
+      "vertices": 164,
+      "triangles": 171,
+      "min": [
+        15.999999642372131,
+        1.0931598895826955,
+        47.999998927116394
+      ],
+      "max": [
+        31.999999284744263,
+        1.905858354884571,
+        63.999998569488525
+      ],
+      "textureSize": [
+        64,
+        64
+      ]
+    },
+    {
+      "name": "03333303",
+      "kind": "tile",
+      "texture": "03333303.jpg",
+      "vertices": 287,
+      "triangles": 341,
+      "min": [
+        31.999999284744263,
+        0.6578529926124288,
+        31.999999284744263
+      ],
+      "max": [
+        47.999998927116394,
+        2.396558708029417,
+        47.999998927116394
+      ],
+      "textureSize": [
+        64,
+        64
+      ]
+    },
+    {
+      "name": "03333302",
+      "kind": "tile",
+      "texture": "03333302.jpg",
+      "vertices": 208,
+      "triangles": 224,
+      "min": [
+        47.999998927116394,
+        0.4780940008589474,
+        31.999999284744263
+      ],
+      "max": [
+        63.999998569488525,
+        1.708863220165746,
+        47.999998927116394
+      ],
+      "textureSize": [
+        64,
+        64
+      ]
+    },
+    {
+      "name": "03333301",
+      "kind": "tile",
+      "texture": "03333301.jpg",
+      "vertices": 161,
+      "triangles": 168,
+      "min": [
+        31.999999284744263,
+        0.6351370073451768,
+        47.999998927116394
+      ],
+      "max": [
+        47.999998927116394,
+        1.8776278076106045,
+        63.999998569488525
+      ],
+      "textureSize": [
+        64,
+        64
+      ]
+    },
+    {
+      "name": "03333300",
+      "kind": "tile",
+      "texture": "03333300.jpg",
+      "vertices": 229,
+      "triangles": 255,
+      "min": [
+        47.999998927116394,
+        0.5238879801954033,
+        47.999998927116394
+      ],
+      "max": [
+        63.999998569488525,
+        2.520469132353309,
+        63.999998569488525
+      ],
+      "textureSize": [
+        64,
+        64
+      ]
+    }
+  ],
+  "sourceFiles": [
+    {
+      "path": "LICENSE",
+      "sha": "afdfe50e72e0e63f3b2bd373e6147a170277ffdc",
+      "size": 11342
+    },
+    {
+      "path": "README.md",
+      "sha": "4e7dfeea6d37c2aab4ff6cbce0be14b4c4c42264",
+      "size": 4030
+    },
+    {
+      "path": "public/index.html",
+      "sha": "842ee60bbad0f2f8d21d96db01c5683e8224f3c6",
+      "size": 22242
+    },
+    {
+      "path": "public/terrain/murray_buttes/background.jpg",
+      "sha": "40e26125090d6a66982297e3e7b5dad004bdd8bb",
+      "size": 53947
+    },
+    {
+      "path": "public/terrain/murray_buttes/terrain.glb",
+      "sha": "54d0927f2d35b5de459e83dab431b1daeb27daee",
+      "size": 565548
+    },
+    {
+      "path": "public/terrain/murray_buttes/tiles/03333300_lg.jpg",
+      "sha": "39e0aa2dba13c154789f622543caf69cf7c806a0",
+      "size": 917
+    },
+    {
+      "path": "public/terrain/murray_buttes/tiles/03333301_lg.jpg",
+      "sha": "586d5bf8135164bf06edb6a4b0327150838b5cba",
+      "size": 885
+    },
+    {
+      "path": "public/terrain/murray_buttes/tiles/03333302_lg.jpg",
+      "sha": "bfa36aedeed6bc9c61c40faef5743012801b1f68",
+      "size": 899
+    },
+    {
+      "path": "public/terrain/murray_buttes/tiles/03333303_lg.jpg",
+      "sha": "9f7556b31d77c70ac55e4325063207e0a657f812",
+      "size": 875
+    },
+    {
+      "path": "public/terrain/murray_buttes/tiles/03333310_lg.jpg",
+      "sha": "6ffa30a50c158e4dafb400fdddbd532348ff0c3f",
+      "size": 859
+    },
+    {
+      "path": "public/terrain/murray_buttes/tiles/03333311_lg.jpg",
+      "sha": "b86b7117428b9296bd160d7f51860cb4b2c9fa9d",
+      "size": 897
+    },
+    {
+      "path": "public/terrain/murray_buttes/tiles/03333312_lg.jpg",
+      "sha": "7388ffbdfc3658f2fc3a0f6b95ca36f9d1f36016",
+      "size": 858
+    },
+    {
+      "path": "public/terrain/murray_buttes/tiles/03333313_lg.jpg",
+      "sha": "2e40a4eac6c12781eba5d4b9eb630ddf91115526",
+      "size": 1009
+    },
+    {
+      "path": "public/terrain/murray_buttes/tiles/03333320_lg.jpg",
+      "sha": "e9586f6d3389d16103ab73a5c46afdad9c47e937",
+      "size": 868
+    },
+    {
+      "path": "public/terrain/murray_buttes/tiles/03333321_lg.jpg",
+      "sha": "e9cbf56aa9a6dca11ba71be36100595e4055e7ec",
+      "size": 894
+    },
+    {
+      "path": "public/terrain/murray_buttes/tiles/03333322_lg.jpg",
+      "sha": "21b89509d6eebe1c7fa28bd12cd8c14fd298a2b5",
+      "size": 925
+    },
+    {
+      "path": "public/terrain/murray_buttes/tiles/03333323_lg.jpg",
+      "sha": "1eca0638eac5e510ab8f7eb992f83e79d885d925",
+      "size": 998
+    },
+    {
+      "path": "public/terrain/murray_buttes/tiles/03333330_lg.jpg",
+      "sha": "efe83635d382f12ef5f693fd13a20adf3e3dcf68",
+      "size": 4454
+    },
+    {
+      "path": "public/terrain/murray_buttes/tiles/03333331_lg.jpg",
+      "sha": "267628eaf9d47bd25ae955b5d7021d83cf1d67bc",
+      "size": 467052
+    },
+    {
+      "path": "public/terrain/murray_buttes/tiles/03333332_lg.jpg",
+      "sha": "81fa6f3e1bccfda9f5101dfe448f54f44c82802d",
+      "size": 53681
+    },
+    {
+      "path": "public/terrain/murray_buttes/tiles/03333333_lg.jpg",
+      "sha": "78edc0db2f52702dd34e64ddab14403260b93a76",
+      "size": 624261
+    },
+    {
+      "path": "public/terrain/murray_buttes/tiles/12222200_lg.jpg",
+      "sha": "6e5157f82d3a81d5d6131b93649af585be932a2d",
+      "size": 951
+    },
+    {
+      "path": "public/terrain/murray_buttes/tiles/12222201_lg.jpg",
+      "sha": "0073e950fc0e050e43f6abe1e3fac35c3c992de7",
+      "size": 1502
+    },
+    {
+      "path": "public/terrain/murray_buttes/tiles/12222202_lg.jpg",
+      "sha": "10078f6d35bc3280684074de798ce47ea675dddc",
+      "size": 92130
+    },
+    {
+      "path": "public/terrain/murray_buttes/tiles/12222203_lg.jpg",
+      "sha": "8c24ea10166ccf5c25c0cfb0c665e8d0da83ddbb",
+      "size": 71026
+    },
+    {
+      "path": "public/terrain/murray_buttes/tiles/12222210_lg.jpg",
+      "sha": "c043c51f59e20dc05e1bc95b1e7d845a134aa347",
+      "size": 924
+    },
+    {
+      "path": "public/terrain/murray_buttes/tiles/12222211_lg.jpg",
+      "sha": "5da47b7819de425e49b0d117604af9187920263c",
+      "size": 893
+    },
+    {
+      "path": "public/terrain/murray_buttes/tiles/12222212_lg.jpg",
+      "sha": "cb3beff5c85e7d779534cb926c45a14f5ec86970",
+      "size": 52331
+    },
+    {
+      "path": "public/terrain/murray_buttes/tiles/12222213_lg.jpg",
+      "sha": "727c973b219eedd166304ace697d7a410d628611",
+      "size": 24786
+    },
+    {
+      "path": "public/terrain/murray_buttes/tiles/12222220_lg.jpg",
+      "sha": "058245524fa14d24e00d02804c1895e2a0dce687",
+      "size": 644666
+    },
+    {
+      "path": "public/terrain/murray_buttes/tiles/12222221_lg.jpg",
+      "sha": "b742cb00acb5c79c4a4b8f0dfadadc2d593a59ba",
+      "size": 421063
+    },
+    {
+      "path": "public/terrain/murray_buttes/tiles/12222222_lg.jpg",
+      "sha": "b36b5f7f11e051bd31aef0dd202aadeacee16f73",
+      "size": 665260
+    },
+    {
+      "path": "public/terrain/murray_buttes/tiles/12222223_lg.jpg",
+      "sha": "0110276eeff9959a89434a4fb3c2ddb4c6d117f2",
+      "size": 533697
+    },
+    {
+      "path": "public/terrain/murray_buttes/tiles/12222230_lg.jpg",
+      "sha": "57ecf4294f2d569add88c553926efc2513557012",
+      "size": 114000
+    },
+    {
+      "path": "public/terrain/murray_buttes/tiles/12222231_lg.jpg",
+      "sha": "a0ad0f91e93bb42f4681828e07f4cbc2e4f9a8b4",
+      "size": 9598
+    },
+    {
+      "path": "public/terrain/murray_buttes/tiles/12222232_lg.jpg",
+      "sha": "f62ce5419042913c9da3b2aab343b4087c1e24f0",
+      "size": 66459
+    },
+    {
+      "path": "public/terrain/murray_buttes/tiles/12222233_lg.jpg",
+      "sha": "b0e96bb61e98ea895c4d2b5337f9843a954b5c2d",
+      "size": 5683
+    },
+    {
+      "path": "public/terrain/murray_buttes/tiles/21111100_lg.jpg",
+      "sha": "2fbc350260a9878ca9970f41f28752cc2a304978",
+      "size": 1580
+    },
+    {
+      "path": "public/terrain/murray_buttes/tiles/21111101_lg.jpg",
+      "sha": "24c144dd6c67e4857cb81dff1511d071d444f05e",
+      "size": 1519
+    },
+    {
+      "path": "public/terrain/murray_buttes/tiles/21111102_lg.jpg",
+      "sha": "b195b0d935ed48f4f84e7c589a7960576c45c101",
+      "size": 861
+    },
+    {
+      "path": "public/terrain/murray_buttes/tiles/21111103_lg.jpg",
+      "sha": "6604e8187251f19ffdf64af827514e750b2f462e",
+      "size": 2988
+    },
+    {
+      "path": "public/terrain/murray_buttes/tiles/21111110_lg.jpg",
+      "sha": "d75e0afdc85a2042429b5661685c69be26bc5f01",
+      "size": 349672
+    },
+    {
+      "path": "public/terrain/murray_buttes/tiles/21111111_lg.jpg",
+      "sha": "c7b0798a361d96bde27681f348ac126991bb350e",
+      "size": 493852
+    },
+    {
+      "path": "public/terrain/murray_buttes/tiles/21111112_lg.jpg",
+      "sha": "b3d37b806840d7f935c9b095bb29a193d1c5b003",
+      "size": 54698
+    },
+    {
+      "path": "public/terrain/murray_buttes/tiles/21111113_lg.jpg",
+      "sha": "706fd9cb84129f0c8b28430060c528e01c2b5f21",
+      "size": 395216
+    },
+    {
+      "path": "public/terrain/murray_buttes/tiles/21111120_lg.jpg",
+      "sha": "9194a790bed4d74509abe1be15c7b7940867b33d",
+      "size": 865
+    },
+    {
+      "path": "public/terrain/murray_buttes/tiles/21111121_lg.jpg",
+      "sha": "1fb788aaa64c991111538e381e768a6b68da094f",
+      "size": 21697
+    },
+    {
+      "path": "public/terrain/murray_buttes/tiles/21111122_lg.jpg",
+      "sha": "3fc2f7f2bf8c9fad0c8306d9c017ad987ec778dc",
+      "size": 23263
+    },
+    {
+      "path": "public/terrain/murray_buttes/tiles/21111123_lg.jpg",
+      "sha": "6d11a3b775b57f80b3c812946941e0ac4d7ae835",
+      "size": 58570
+    },
+    {
+      "path": "public/terrain/murray_buttes/tiles/21111130_lg.jpg",
+      "sha": "84d25c63550bbc91b7eaf49a9e698a9c4a4a5eb4",
+      "size": 93140
+    },
+    {
+      "path": "public/terrain/murray_buttes/tiles/21111131_lg.jpg",
+      "sha": "9bdbdba6bc71556691aaa0276825ad035c0afdc7",
+      "size": 96793
+    },
+    {
+      "path": "public/terrain/murray_buttes/tiles/21111132_lg.jpg",
+      "sha": "3478077f136d72690cd314510b9db09d5e28d588",
+      "size": 54823
+    },
+    {
+      "path": "public/terrain/murray_buttes/tiles/21111133_lg.jpg",
+      "sha": "ff495c7b41e0b998859bc5a57b36297a01ffa493",
+      "size": 59702
+    },
+    {
+      "path": "public/terrain/murray_buttes/tiles/30000000_lg.jpg",
+      "sha": "4687c8b4e66b73ceaca9b5130b53ef4ff96c1d44",
+      "size": 655305
+    },
+    {
+      "path": "public/terrain/murray_buttes/tiles/30000001_lg.jpg",
+      "sha": "fa01275e73a1a2f11c32d5214c9f0b5aef77586b",
+      "size": 615409
+    },
+    {
+      "path": "public/terrain/murray_buttes/tiles/30000002_lg.jpg",
+      "sha": "90e5028c33bc3a49a794cdb0c7a45519bc9ab98a",
+      "size": 329460
+    },
+    {
+      "path": "public/terrain/murray_buttes/tiles/30000003_lg.jpg",
+      "sha": "faf38d4b3cd0700e5cc1dc389b2366354bb992e2",
+      "size": 515883
+    },
+    {
+      "path": "public/terrain/murray_buttes/tiles/30000010_lg.jpg",
+      "sha": "c59081d2b462e791e583cf03c6ac8d9928ca5803",
+      "size": 23103
+    },
+    {
+      "path": "public/terrain/murray_buttes/tiles/30000011_lg.jpg",
+      "sha": "b938d6020ab1826f22bcf249e6fb88625c7e7e05",
+      "size": 18491
+    },
+    {
+      "path": "public/terrain/murray_buttes/tiles/30000012_lg.jpg",
+      "sha": "f74088781d8c9aab75ebb5488fb27124988c28fa",
+      "size": 43086
+    },
+    {
+      "path": "public/terrain/murray_buttes/tiles/30000013_lg.jpg",
+      "sha": "6d885ef0b3e4abbdc590261dd92fda2d33d563d4",
+      "size": 48021
+    },
+    {
+      "path": "public/terrain/murray_buttes/tiles/30000020_lg.jpg",
+      "sha": "4b74c7003611018c7b6e889cb9678b5a33b97844",
+      "size": 122031
+    },
+    {
+      "path": "public/terrain/murray_buttes/tiles/30000021_lg.jpg",
+      "sha": "e905bd3a15c97a778a6ed41e2bec0c87aa322330",
+      "size": 50730
+    },
+    {
+      "path": "public/terrain/murray_buttes/tiles/30000022_lg.jpg",
+      "sha": "78a96fb51ff132893a2f9bb1440aadd3fa7e1a8e",
+      "size": 15371
+    },
+    {
+      "path": "public/terrain/murray_buttes/tiles/30000023_lg.jpg",
+      "sha": "6509dfcaa3ed23e1e4f6894e81271e220babe4d8",
+      "size": 9491
+    },
+    {
+      "path": "public/terrain/murray_buttes/tiles/30000030_lg.jpg",
+      "sha": "1aa2b245f2e6531f4ae988581f96267f8ba663e3",
+      "size": 13007
+    },
+    {
+      "path": "public/terrain/murray_buttes/tiles/30000031_lg.jpg",
+      "sha": "4d0be27e8043a48cbdeab60b40462849d43d3336",
+      "size": 12167
+    },
+    {
+      "path": "public/terrain/murray_buttes/tiles/30000032_lg.jpg",
+      "sha": "c64aab796320a78e9af26c8f83e3d336d7165757",
+      "size": 5745
+    },
+    {
+      "path": "public/terrain/murray_buttes/tiles/30000033_lg.jpg",
+      "sha": "5a02d7cb2fe72643cd23914888bd99482aa519ec",
+      "size": 9024
+    },
+    {
+      "path": "src/js/components/terrain.js",
+      "sha": "0aa7a44fdb765e384c11c1cfa7214241b865c813",
+      "size": 23537
+    },
+    {
+      "path": "src/js/core/scene.js",
+      "sha": "80fd61dfc7c9e08d5988331cdf20a16f3869f30d",
+      "size": 18079
+    },
+    {
+      "path": "src/js/shaders/terrain-shader.js",
+      "sha": "146b114a88995a7cd4adb7c336b5a41846f57f72",
+      "size": 2463
+    },
+    {
+      "path": "src/js/shaders/uv-highpass-shader.js",
+      "sha": "8945f468f0b4e4e4bca28954a8295662aaba770f",
+      "size": 1265
+    }
+  ]
+}

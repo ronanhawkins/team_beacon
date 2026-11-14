@@ -116,7 +116,6 @@ namespace Beacon
             finally { sendLock.Release(); }
         }
         public Task<bool> RequestShelter() => SendEvent("requestReroute");
-        public Task<bool> StepRoute(bool forward) => SendEvent(forward ? "next" : "back");
         async Task<bool> SendEvent(string type)
         {
             var ws = socket;
