@@ -1,0 +1,12 @@
+node_modules/
+dist/
+data/raw/*
+!data/raw/.gitkeep
+data/out/*
+!data/out/.gitkeep
+.local/
+*.pem
+*.key
+.env
+__pycache__/
+.venv/

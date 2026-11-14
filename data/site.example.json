@@ -1,0 +1,14 @@
+{
+  "status": "AWAITING_RONAN_SITE_AGREEMENT",
+  "site": "Murray Buttes, Gale crater, Mars",
+  "dtmUrl": null,
+  "orthoimageUrl": null,
+  "cropBoundsProjectedMetres": null,
+  "parkingSpotProjectedMetres": null,
+  "dateUTC": null,
+  "sunAzimuthDeg": null,
+  "sunElevationDeg": null,
+  "earthAzimuthDeg": null,
+  "earthElevationDeg": null,
+  "notes": "Copy to site.json after the team agrees the source product, CRS, crop, position and date. Do not invent these values."
+}
