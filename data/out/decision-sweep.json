@@ -1,0 +1,282 @@
+{
+  "baseDoseFactor": 0.5,
+  "doseMultiplier": 7.985,
+  "noLinkPenalty": 0.05,
+  "stormMinutes": 240.0,
+  "version": 1,
+  "waypoints": [
+    {
+      "label": "",
+      "mainIndex": 10,
+      "pos": {
+        "x": 1582.79,
+        "y": 1399.21
+      },
+      "results": [
+        {
+          "chosen": {
+            "id": "s03",
+            "kind": "shelter",
+            "late": true,
+            "minutes": 3.42,
+            "minutesLate": 3.42,
+            "score": 1747.3
+          },
+          "limitMinutes": 0.0,
+          "warningMinutes": 0.0
+        },
+        {
+          "chosen": {
+            "id": "s03",
+            "kind": "shelter",
+            "late": true,
+            "minutes": 3.42,
+            "minutesLate": 1.42,
+            "score": 1747.9
+          },
+          "limitMinutes": 2.0,
+          "warningMinutes": 2.0
+        },
+        {
+          "chosen": {
+            "id": "base",
+            "kind": "base",
+            "late": false,
+            "minutes": 3.53,
+            "score": 962.5
+          },
+          "limitMinutes": 5.0,
+          "warningMinutes": 5.0
+        },
+        {
+          "chosen": {
+            "id": "base",
+            "kind": "base",
+            "late": false,
+            "minutes": 3.53,
+            "score": 965.0
+          },
+          "limitMinutes": 10.0,
+          "warningMinutes": 10.0
+        },
+        {
+          "chosen": {
+            "id": "base",
+            "kind": "base",
+            "late": false,
+            "minutes": 3.53,
+            "score": 967.5
+          },
+          "limitMinutes": 15.0,
+          "warningMinutes": 15.0
+        }
+      ],
+      "waypoint": "m10",
+      "what": "open ground"
+    },
+    {
+      "label": "Quela drill site",
+      "mainIndex": 19,
+      "pos": {
+        "x": 1500.4,
+        "y": 1500.4
+      },
+      "results": [
+        {
+          "chosen": {
+            "id": "s03",
+            "kind": "shelter",
+            "late": true,
+            "minutes": 0.78,
+            "minutesLate": 0.78,
+            "score": 1745.4
+          },
+          "limitMinutes": 0.0,
+          "warningMinutes": 0.0
+        },
+        {
+          "chosen": {
+            "id": "s03",
+            "kind": "shelter",
+            "late": false,
+            "minutes": 0.78,
+            "score": 1746.8
+          },
+          "limitMinutes": 2.0,
+          "warningMinutes": 2.0
+        },
+        {
+          "chosen": {
+            "id": "s03",
+            "kind": "shelter",
+            "late": false,
+            "minutes": 0.78,
+            "score": 1749.5
+          },
+          "limitMinutes": 5.0,
+          "warningMinutes": 5.0
+        },
+        {
+          "chosen": {
+            "id": "base",
+            "kind": "base",
+            "late": false,
+            "minutes": 6.59,
+            "score": 966.5
+          },
+          "limitMinutes": 10.0,
+          "warningMinutes": 10.0
+        },
+        {
+          "chosen": {
+            "id": "base",
+            "kind": "base",
+            "late": false,
+            "minutes": 6.59,
+            "score": 969.0
+          },
+          "limitMinutes": 15.0,
+          "warningMinutes": 15.0
+        }
+      ],
+      "waypoint": "m19",
+      "what": "Quela drill site"
+    },
+    {
+      "label": "Butte outcrop",
+      "mainIndex": 25,
+      "pos": {
+        "x": 1507.7,
+        "y": 1561.4
+      },
+      "results": [
+        {
+          "chosen": {
+            "id": "s05",
+            "kind": "shelter",
+            "late": true,
+            "minutes": 0.99,
+            "minutesLate": 0.99,
+            "score": 1905.5
+          },
+          "limitMinutes": 0.0,
+          "warningMinutes": 0.0
+        },
+        {
+          "chosen": {
+            "id": "s06",
+            "kind": "shelter",
+            "late": false,
+            "minutes": 1.55,
+            "score": 1790.2
+          },
+          "limitMinutes": 2.0,
+          "warningMinutes": 2.0
+        },
+        {
+          "chosen": {
+            "id": "s03",
+            "kind": "shelter",
+            "late": false,
+            "minutes": 2.78,
+            "score": 1749.7
+          },
+          "limitMinutes": 5.0,
+          "warningMinutes": 5.0
+        },
+        {
+          "chosen": {
+            "id": "base",
+            "kind": "base",
+            "late": false,
+            "minutes": 7.98,
+            "score": 967.2
+          },
+          "limitMinutes": 10.0,
+          "warningMinutes": 10.0
+        },
+        {
+          "chosen": {
+            "id": "base",
+            "kind": "base",
+            "late": false,
+            "minutes": 7.98,
+            "score": 969.7
+          },
+          "limitMinutes": 15.0,
+          "warningMinutes": 15.0
+        }
+      ],
+      "waypoint": "m25",
+      "what": "butte outcrop"
+    },
+    {
+      "label": "Far point",
+      "mainIndex": 30,
+      "pos": {
+        "x": 1500.0,
+        "y": 1627.7
+      },
+      "results": [
+        {
+          "chosen": {
+            "id": "s21",
+            "kind": "shelter",
+            "late": true,
+            "minutes": 1.54,
+            "minutesLate": 1.54,
+            "score": 1897.3
+          },
+          "limitMinutes": 0.0,
+          "warningMinutes": 0.0
+        },
+        {
+          "chosen": {
+            "id": "s17",
+            "kind": "shelter",
+            "late": false,
+            "minutes": 1.97,
+            "score": 1870.9
+          },
+          "limitMinutes": 2.0,
+          "warningMinutes": 2.0
+        },
+        {
+          "chosen": {
+            "id": "s03",
+            "kind": "shelter",
+            "late": false,
+            "minutes": 4.52,
+            "score": 1749.8
+          },
+          "limitMinutes": 5.0,
+          "warningMinutes": 5.0
+        },
+        {
+          "chosen": {
+            "id": "base",
+            "kind": "base",
+            "late": false,
+            "minutes": 9.73,
+            "score": 968.1
+          },
+          "limitMinutes": 10.0,
+          "warningMinutes": 10.0
+        },
+        {
+          "chosen": {
+            "id": "base",
+            "kind": "base",
+            "late": false,
+            "minutes": 9.73,
+            "score": 970.6
+          },
+          "limitMinutes": 15.0,
+          "warningMinutes": 15.0
+        }
+      ],
+      "waypoint": "m30",
+      "what": "far point"
+    }
+  ]
+}

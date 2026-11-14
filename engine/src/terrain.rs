@@ -205,6 +205,14 @@ fn parse_map_info(value: &str, hdr: &Path) -> Result<MapInfo, String> {
     })
 }
 
+/// The header's "data ignore value", if any.
+fn data_ignore_value(fields: &[(String, String)], hdr: &Path) -> Result<Option<f32>, String> {
+    match fields.iter().find(|(k, _)| k == "data ignore value") {
+        None => Ok(None),
+        Some((_, v)) => v.parse::<f32>().map(Some).map_err(|_| format!("{}: \"data ignore value\" is not a number: {}", hdr.display(), v)),
+    }
+}
+
 /// Loads a float32 ENVI raster and its header.
 pub fn load(bin_path: &Path) -> Result<Grid, String> {
     let hdr = header_path(bin_path)?;
@@ -236,9 +244,12 @@ pub fn load(bin_path: &Path) -> Result<Grid, String> {
         ));
     }
 
+    // A file's own no-data value (MOLA uses -32768) is mapped to NO_DATA, so `cell` needs only one.
+    let ignore = data_ignore_value(&fields, &hdr)?;
     let data = bytes
         .chunks_exact(4)
         .map(|b| f32::from_le_bytes([b[0], b[1], b[2], b[3]]))
+        .map(|v| if ignore == Some(v) { NO_DATA } else { v })
         .collect();
 
     Ok(Grid {
@@ -254,6 +265,22 @@ pub fn load(bin_path: &Path) -> Result<Grid, String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn files_own_no_data_value_becomes_no_data() {
+        let dir = std::env::temp_dir().join(format!("beacon-terrain-test-{}", std::process::id()));
+        fs::create_dir_all(&dir).unwrap();
+        let bin = dir.join("m.bin");
+        let values = [1.0f32, -32768.0, 3.0, 4.0];
+        fs::write(&bin, values.iter().flat_map(|v| v.to_le_bytes()).collect::<Vec<u8>>()).unwrap();
+        let hdr = "ENVI\nsamples = 2\nlines = 2\nbands = 1\ndata type = 4\nbyte order = 0\nmap info = {Equirectangular, 1, 1, 100, 200, 10, 10}\ndata ignore value = -32768\n";
+        fs::write(dir.join("m.hdr"), hdr).unwrap();
+        let g = load(&bin).unwrap();
+        fs::remove_dir_all(&dir).unwrap();
+        assert_eq!(g.cell(0, 0), Some(1.0));
+        assert_eq!(g.cell(1, 0), None);
+        assert_eq!((g.origin_easting, g.origin_northing, g.metres_per_pixel), (100.0, 200.0, 10.0));
+    }
 
     #[test]
     fn bilinear_and_edges() {

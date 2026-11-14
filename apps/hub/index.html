@@ -14,6 +14,7 @@
     <div class="modes" role="group" aria-label="Mode">
       <button id="modePlan" type="button">Plan</button>
       <button id="modeLive" type="button">Live</button>
+      <button id="modeCrew" type="button" title="C">Crew</button>
     </div>
     <div class="spacer"></div>
     <div class="clock"><span class="lbl">Walk clock</span><span id="clock" class="mono">0:00</span></div>
@@ -32,6 +33,7 @@
     <aside id="left">
       <section class="panel" id="layersPanel"></section>
       <section class="panel" id="routePanel"></section>
+      <section class="panel" id="crewPanel"></section>
       <section class="panel" id="briefPanel"></section>
     </aside>
 
@@ -45,12 +47,15 @@
       </div>
       <div id="mapHint" class="mapHint" hidden></div>
       <div id="toast" class="toast" role="alert" hidden></div>
+      <aside id="vitalsDrawer" class="drawer" aria-label="Astronaut status" hidden></aside>
       <div class="mapHelp">Drag to rotate · Shift-drag to move · Scroll to zoom</div>
     </section>
 
     <aside id="right">
       <section class="panel" id="astroPanel"></section>
       <section class="panel" id="stopPanel"></section>
+      <section class="panel" id="profilePanel"></section>
+      <section class="panel" id="historyPanel"></section>
       <section class="panel" id="mirrorPanel">
         <h2 id="mirrorTitle">What the astronaut sees</h2>
         <div class="mirrors">

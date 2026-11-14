@@ -26,13 +26,12 @@ const SHELTER_MIN_CELLS: usize = 3;
 pub struct PlannerConfig {
     pub walk_speed: f64,
     pub max_slope_deg: f64,
-    pub shelter_blocked_min: f64,
+    pub shelter_extra_blocked: f64,
     pub shelter_max_slope_deg: f64,
     pub minutes_to_shelter_limit: f64,
     pub waypoint_spacing: f64,
     pub open_blocked: f64,
     pub dose_shielding_factor: f64,
-    pub storm_dose_multiplier: f64,
     pub oxygen_minutes: f64,
 }
 
@@ -196,7 +195,7 @@ pub fn build(near: &Grid, sky: &SiteSky, bounds: Bounds, cfg: &PlannerConfig) ->
 pub fn find_shelters(g: &PlanGrid, cfg: &PlannerConfig) -> Vec<usize> {
     let candidate: Vec<bool> = (0..g.len())
         .map(|i| {
-            g.passable[i] && g.blocked[i] as f64 >= cfg.shelter_blocked_min && (g.slope[i] as f64) <= cfg.shelter_max_slope_deg
+            g.passable[i] && g.blocked[i] as f64 >= cfg.open_blocked + cfg.shelter_extra_blocked && (g.slope[i] as f64) <= cfg.shelter_max_slope_deg
         })
         .collect();
     let mut seen = vec![false; g.len()];
@@ -342,17 +341,17 @@ pub fn dose_rate(blocked: f64, cfg: &PlannerConfig) -> f64 {
     (1.0 - cfg.dose_shielding_factor * (blocked - cfg.open_blocked)).clamp(0.5, 1.05)
 }
 
-/// Dose fraction at each point along a route: starts at `start`, adds the mean rate of
-/// each leg times its minutes times `multiplier`, divided by `budget`, clamped to 0..1.
-pub fn accumulate_dose(rates: &[f64], minutes: &[f64], start: f64, multiplier: f64, budget: f64) -> Vec<f64> {
+/// Dose at each point along a route in minutes at the open-ground rate: starts at `start`,
+/// adds the mean rate of each leg times its minutes times `multiplier`.
+pub fn accumulate_dose(rates: &[f64], minutes: &[f64], start: f64, multiplier: f64) -> Vec<f64> {
     let mut out = Vec::with_capacity(rates.len());
     let mut dose = start;
     for i in 0..rates.len() {
         if i > 0 {
             let dt = (minutes[i] - minutes[i - 1]).max(0.0);
-            dose += 0.5 * (rates[i] + rates[i - 1]) * multiplier * dt / budget;
+            dose += 0.5 * (rates[i] + rates[i - 1]) * multiplier * dt;
         }
-        out.push(dose.clamp(0.0, 1.0));
+        out.push(dose);
     }
     out
 }
@@ -366,13 +365,12 @@ mod tests {
         PlannerConfig {
             walk_speed: 0.8,
             max_slope_deg: 25.0,
-            shelter_blocked_min: 0.15,
+            shelter_extra_blocked: 0.09,
             shelter_max_slope_deg: 15.0,
             minutes_to_shelter_limit: 5.0,
             waypoint_spacing: 15.0,
             open_blocked: 0.06,
             dose_shielding_factor: 0.5,
-            storm_dose_multiplier: 2.0,
             oxygen_minutes: 480.0,
         }
     }
@@ -489,7 +487,7 @@ mod tests {
         assert!(rates.iter().all(|&r| (0.5..=1.05).contains(&r)));
         let minutes = [0.0, 1.0, 1.0, 2.5, 4.0, 4.1, 9.0];
         for mult in [1.0, 2.0] {
-            let dose = accumulate_dose(&rates, &minutes, 0.1, mult, 20.0);
+            let dose = accumulate_dose(&rates, &minutes, 0.1, mult);
             assert!(dose.windows(2).all(|w| w[1] >= w[0]), "{dose:?}");
             assert_eq!(dose[0], 0.1);
         }

@@ -94,33 +94,64 @@ pub fn skyline_at_distances(
     Ok(out)
 }
 
+/// Furthest distance marched in the MOLA grid, metres.
+pub const MOLA_MAX_M: f64 = 300_000.0;
+
 /// Far-field skyline through a coarse grid (far.bin), from the point at
-/// `easting`, `northing` with the eye at absolute elevation `eye_elevation`.
+/// `easting`, `northing` with the eye at absolute elevation `eye_elevation`,
+/// optionally continued in the global MOLA grid.
 ///
-/// Each direction is marched from `from_m` to the edge of the grid in steps of
-/// one far-grid cell (20 m for far.bin). Each terrain height is lowered by
-/// d^2 / (2R) for the planet's curvature before taking the angle. No-data is
-/// skipped. A direction with no samples gives -90, so merging ignores it.
-pub fn far_skyline(far: &Grid, easting: f64, northing: f64, eye_elevation: f64, n_dirs: usize, from_m: f64) -> Vec<f32> {
+/// Each direction is marched from `from_m` to the edge of `far` in steps of
+/// one far cell (20 m for far.bin). Where far.bin has no data inside its edge,
+/// the MOLA height at that point is used instead. Once the march leaves far.bin
+/// it continues in MOLA in steps of one MOLA cell out to `MOLA_MAX_M` or MOLA's
+/// edge. Each terrain height is lowered by d^2 / (2R) for the planet's
+/// curvature before taking the angle. Remaining no-data is skipped. A
+/// direction with no samples gives -90, so merging ignores it.
+pub fn far_skyline(far: &Grid, mola: Option<&Grid>, easting: f64, northing: f64, eye_elevation: f64, n_dirs: usize, from_m: f64) -> Vec<f32> {
+    let mola_at = |e: f64, n: f64| -> Option<f32> {
+        let m = mola?;
+        let (mx, my) = m.en_to_local(e, n);
+        m.sample_local(mx, my)
+    };
+    let angle = |h: f32, dist: f64| {
+        let drop = dist * dist / (2.0 * MARS_RADIUS_M);
+        (h as f64 - drop - eye_elevation).atan2(dist)
+    };
     let (x, y) = far.en_to_local(easting, northing);
-    let step = far.metres_per_pixel;
     (0..n_dirs)
         .map(|i| {
             let az = (i as f64) * std::f64::consts::TAU / n_dirs as f64;
             let (dx, dy) = (az.sin(), az.cos());
             let mut best: Option<f64> = None;
+            let mut keep = |a: f64| best = Some(best.map_or(a, |b: f64| b.max(a)));
             let mut dist = from_m;
             loop {
                 let (px, py) = (x + dx * dist, y + dy * dist);
                 if !far.contains_local(px, py) {
                     break;
                 }
-                if let Some(h) = far.sample_local(px, py) {
-                    let drop = dist * dist / (2.0 * MARS_RADIUS_M);
-                    let angle = (h as f64 - drop - eye_elevation).atan2(dist);
-                    best = Some(best.map_or(angle, |b| b.max(angle)));
+                let h = far.sample_local(px, py).or_else(|| {
+                    let (e, n) = far.local_to_en(px, py);
+                    mola_at(e, n)
+                });
+                if let Some(h) = h {
+                    keep(angle(h, dist));
                 }
-                dist += step;
+                dist += far.metres_per_pixel;
+            }
+            if let Some(m) = mola {
+                while dist <= MOLA_MAX_M {
+                    let (e, n) = far.local_to_en(x + dx * dist, y + dy * dist);
+                    let (mx, my) = m.en_to_local(e, n);
+                    if !m.contains_local(mx, my) {
+                        break;
+                    }
+                    if let Some(h) = m.sample_local(mx, my) {
+                        keep(angle(h, dist));
+                    }
+                    dist += m.metres_per_pixel;
+                }
             }
             best.map_or(-90.0, |b| b.to_degrees() as f32)
         })
@@ -288,7 +319,7 @@ mod tests {
         let (size, mpp) = (2001usize, 20.0);
         let g = Grid::synthetic(size, size, vec![-4400.0; size * size], mpp);
         let (e, n) = g.local_to_en(20010.0, 20010.0);
-        let angle_from = |from_m: f64| far_skyline(&g, e, n, -4400.0, 8, from_m);
+        let angle_from = |from_m: f64| far_skyline(&g, None, e, n, -4400.0, 8, from_m);
         for from_m in [1000.0, 5000.0, 15000.0] {
             let sky = angle_from(from_m);
             // The nearest sample is the highest: d / (2R) radians below the horizontal.
@@ -299,6 +330,50 @@ mod tests {
         }
         assert!(angle_from(5000.0)[0] < angle_from(1000.0)[0]);
         assert!(angle_from(15000.0)[0] < angle_from(5000.0)[0]);
+    }
+
+    #[test]
+    fn mola_continues_the_march_past_the_far_grid_and_fills_its_holes() {
+        // far: flat 20 m grid, 4 km square, centred on the observer (local = easting/northing).
+        let (fs, fm) = (200usize, 20.0);
+        let mut far_data = vec![0.0f32; fs * fs];
+        // A no-data band 1.5 to 1.7 km north of the observer.
+        for row in 15..25 {
+            for col in 0..fs {
+                far_data[row * fs + col] = NO_DATA;
+            }
+        }
+        let far = Grid::synthetic(fs, fs, far_data, fm);
+        let (e, n) = far.local_to_en(2000.0, 2000.0);
+        // MOLA: 500 m grid, 200 km square, same easting/northing frame and centre.
+        let (ms, mm) = (400usize, 500.0);
+        let offset = 100_000.0 - 2000.0; // MOLA local = far local + offset
+        let mut mola_data = vec![0.0f32; ms * ms];
+        let mut put = |x: f64, y: f64, h: f32| {
+            let (col, row) = ((x / mm) as usize, ms - 1 - (y / mm) as usize);
+            mola_data[row * ms + col] = h;
+        };
+        // A 2 km ridge, three cells wide, 50 km east of the observer, and a 100 m hill in the hole to the north.
+        for k in 0..ms {
+            for dx in [-1.0, 0.0, 1.0] {
+                put(2000.0 + offset + 50_000.0 + dx * mm, k as f64 * mm, 2000.0);
+            }
+        }
+        for dx in [-1.0, 0.0, 1.0] {
+            put(2000.0 + offset + dx * mm, 2000.0 + offset + 1600.0, 100.0);
+        }
+        let mut mola = Grid::synthetic(ms, ms, mola_data, mm);
+        mola.origin_easting = -offset;
+        mola.origin_northing = ms as f64 * mm - offset;
+
+        let without = far_skyline(&far, None, e, n, 1.0, 4, 100.0);
+        let with = far_skyline(&far, Some(&mola), e, n, 1.0, 4, 100.0);
+        assert!(without[1] <= 0.0, "east without MOLA {}", without[1]);
+        // East: the ridge, lowered by curvature (50 km: about 368 m).
+        let expected = ((2000.0 - 50_000f64.powi(2) / (2.0 * MARS_RADIUS_M) - 1.0) / 50_000.0).atan().to_degrees();
+        assert!((with[1] as f64 - expected).abs() < 0.2, "east with MOLA {} vs {expected}", with[1]);
+        // North: the hill inside far.bin's no-data band is filled from MOLA.
+        assert!(without[0] <= 0.0 && with[0] > 1.0, "north {} -> {}", without[0], with[0]);
     }
 
     #[test]

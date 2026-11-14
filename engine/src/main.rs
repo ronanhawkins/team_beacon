@@ -7,17 +7,22 @@
 //!   engine base-candidates        base link coverage for each candidate base position
 //!   engine plan                   planner: shelters, main route, reroutes -> data/out/
 //!   engine plan --stops "x,y;x,y;..." --out <dir>   plan other stops (first is the start) into <dir>
+//!   engine decide <mainIndex> [--lead L] [--limit X]   storm decision table at one main waypoint
+//!   engine decide --sweep         chosen site at four waypoints for warnings of 0 to 15 minutes
 //!
 //! Positions are local metres: x east, y north, origin at the crop's south-west
 //! outer corner (shared/conventions.md).
 //!
 //! Paths are relative to the repo root (the folder above engine/). Override with --root <dir>.
 
+mod decision;
 mod layers;
 mod planner;
+mod rems;
 mod route;
 mod sight;
 mod skyline;
+mod space;
 mod terrain;
 
 use std::collections::BTreeMap;
@@ -28,8 +33,13 @@ use serde::Deserialize;
 
 const NEAR_BIN: &str = "data/raw/near.bin";
 const FAR_BIN: &str = "data/raw/far.bin";
+const MOLA_BIN: &str = "data/raw/mola.bin";
 const LAYERS_DIR: &str = "data/out/layers";
 const SITE_JSON: &str = "data/site.json";
+const RAD_CACHE: &str = "data/cache/rad_storm.json";
+const DONKI_CACHE: &str = "data/cache/donki_mars.json";
+const REMS_CACHE: &str = "data/cache/rems.json";
+const IMAGES_CACHE: &str = "data/cache/stop_images.json";
 
 // Settings matching referenceCheck.method in data/site.json.
 const EYE_HEIGHT_M: f64 = 1.0;
@@ -49,6 +59,7 @@ const PROOF_MAX_DIST_M: f64 = 700.0;
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct Site {
+    parking_spot: ParkingSpot,
     near_crop: NearCrop,
     reference_check: ReferenceCheck,
     paper_target: PaperTarget,
@@ -57,7 +68,43 @@ struct Site {
     route_stops: Vec<RouteStop>,
     planner: planner::PlannerConfig,
     planner_bounds: planner::Bounds,
+    storm: decision::StormConfig,
+    /// The measured storm from data/cache/rad_storm.json, when present.
+    #[serde(skip)]
+    rad: Option<RadCache>,
+    /// The briefing's spaceWeather, from data/cache/donki_mars.json when present.
+    #[serde(skip)]
+    space_weather: Option<serde_json::Value>,
+    /// The briefing's conditions and a sunset check line, from data/cache/rems.json when present.
+    #[serde(skip)]
+    conditions: Option<(serde_json::Value, String)>,
+    /// Images per stop id, from data/cache/stop_images.json when present.
+    #[serde(skip)]
+    stop_images: Option<serde_json::Value>,
 }
+
+#[derive(Deserialize)]
+struct ParkingSpot {
+    lon: f64,
+}
+
+/// The fields of data/cache/rad_storm.json (tools/fetch_rad.py) that the engine uses.
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct RadCache {
+    /// Quiet open-ground dose rate, microgray per hour.
+    baseline_rate: f64,
+    /// Minutes above 1.5 x the baseline.
+    minutes_above: f64,
+    /// Mean dose rate over those minutes, as a multiple of the baseline.
+    mean_multiplier_above: f64,
+    /// First reading above 1.5 x the baseline, UTC.
+    #[serde(default)]
+    onset: Option<String>,
+}
+
+/// Default for storm.stormMinutesCap.
+const STORM_MINUTES_CAP: f64 = 240.0;
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -86,6 +133,7 @@ struct BaseFile {
     x: f64,
     y: f64,
     mast_height: f64,
+    dose_factor: f64,
 }
 
 #[derive(Deserialize)]
@@ -132,22 +180,113 @@ struct ReferenceCheck {
 fn load_site(root: &Path) -> Result<Site, String> {
     let path = root.join(SITE_JSON);
     let text = std::fs::read_to_string(&path).map_err(|e| format!("cannot read {}: {}", path.display(), e))?;
-    serde_json::from_str(&text).map_err(|e| format!("{}: {}", path.display(), e))
+    let mut site: Site = serde_json::from_str(&text).map_err(|e| format!("{}: {}", path.display(), e))?;
+    site.rad = load_rad(root);
+    if let Some(rad) = &site.rad {
+        site.storm.storm_minutes = rad.minutes_above.min(site.storm.storm_minutes_cap.unwrap_or(STORM_MINUTES_CAP));
+        site.storm.dose_multiplier = rad.mean_multiplier_above;
+    }
+    site.space_weather = load_space_weather(root, &site);
+    site.conditions = load_conditions(root, &site);
+    site.stop_images = load_stop_images(root);
+    Ok(site)
+}
+
+/// DONKI forecasts summarised for the briefing, or None (with a warning if the file is there but unreadable).
+fn load_space_weather(root: &Path, site: &Site) -> Option<serde_json::Value> {
+    let text = std::fs::read_to_string(root.join(DONKI_CACHE)).ok()?;
+    let onset = site.rad.as_ref().and_then(|r| r.onset.as_deref());
+    match serde_json::from_str::<space::Cache>(&text).map_err(|e| e.to_string()).and_then(|c| space::briefing(&c, &site.sky.time_u_t, onset)) {
+        Ok(v) => Some(v),
+        Err(e) => {
+            eprintln!("warning: cannot read {DONKI_CACHE} ({e}); the briefing has no spaceWeather");
+            None
+        }
+    }
+}
+
+/// REMS conditions for the briefing, or None (with a warning if the file is there but unreadable).
+fn load_conditions(root: &Path, site: &Site) -> Option<(serde_json::Value, String)> {
+    let text = std::fs::read_to_string(root.join(REMS_CACHE)).ok()?;
+    match serde_json::from_str::<rems::Cache>(&text).map_err(|e| e.to_string()).and_then(|c| rems::briefing(&c, &site.sky.time_u_t, site.parking_spot.lon)) {
+        Ok(v) => Some(v),
+        Err(e) => {
+            eprintln!("warning: cannot read {REMS_CACHE} ({e}); the briefing has no conditions");
+            None
+        }
+    }
+}
+
+/// The "stops" map of data/cache/stop_images.json, or None (with a warning if the file is there but unreadable).
+fn load_stop_images(root: &Path) -> Option<serde_json::Value> {
+    let text = std::fs::read_to_string(root.join(IMAGES_CACHE)).ok()?;
+    match serde_json::from_str::<serde_json::Value>(&text).map(|v| v["stops"].clone()) {
+        Ok(stops) if stops.is_object() => Some(stops),
+        Ok(_) => {
+            eprintln!("warning: {IMAGES_CACHE} has no \"stops\" object; stops.json will have no images");
+            None
+        }
+        Err(e) => {
+            eprintln!("warning: cannot read {IMAGES_CACHE} ({e}); stops.json will have no images");
+            None
+        }
+    }
+}
+
+/// The measured storm, or None (with a warning if the file is there but unreadable).
+/// Without it the storm settings in data/site.json are used as they are.
+fn load_rad(root: &Path) -> Option<RadCache> {
+    let path = root.join(RAD_CACHE);
+    let text = std::fs::read_to_string(&path).ok()?;
+    match serde_json::from_str::<RadCache>(&text) {
+        Ok(rad) if rad.baseline_rate > 0.0 && rad.minutes_above > 0.0 && rad.mean_multiplier_above > 0.0 => Some(rad),
+        Ok(_) => {
+            eprintln!("warning: {RAD_CACHE} has non-positive values; using the storm settings in {SITE_JSON}");
+            None
+        }
+        Err(e) => {
+            eprintln!("warning: cannot read {RAD_CACHE} ({e}); using the storm settings in {SITE_JSON}");
+            None
+        }
+    }
 }
 
 fn load_grid(root: &Path) -> Result<terrain::Grid, String> {
     terrain::load(&root.join(NEAR_BIN))
 }
 
-fn load_far(root: &Path) -> Result<terrain::Grid, String> {
-    terrain::load(&root.join(FAR_BIN))
+/// The far-field grids: far.bin, and the MOLA crop when it has been downloaded.
+struct FarGrids {
+    far: terrain::Grid,
+    mola: Option<terrain::Grid>,
+}
+
+impl FarGrids {
+    fn describe(&self) -> String {
+        match self.mola {
+            Some(_) => format!("far.bin, then mola.bin to {} km", skyline::MOLA_MAX_M / 1000.0),
+            None => "far.bin only".into(),
+        }
+    }
+}
+
+fn load_far(root: &Path) -> Result<FarGrids, String> {
+    let far = terrain::load(&root.join(FAR_BIN))?;
+    let mola_path = root.join(MOLA_BIN);
+    let mola = if mola_path.exists() {
+        Some(terrain::load(&mola_path)?)
+    } else {
+        eprintln!("warning: {MOLA_BIN} not found (run python3 tools/fetch_mola.py); the far field stops at the edge of far.bin");
+        None
+    };
+    Ok(FarGrids { far, mola })
 }
 
 /// Far-field skyline at the parking spot with `n_dirs` directions, from FAR_FROM_M outwards.
-fn far_at_parking(near: &terrain::Grid, far: &terrain::Grid, spot: &LocalXY, n_dirs: usize) -> Result<Vec<f32>, String> {
+fn far_at_parking(near: &terrain::Grid, far: &FarGrids, spot: &LocalXY, n_dirs: usize) -> Result<Vec<f32>, String> {
     let ground = near.sample_local(spot.x, spot.y).ok_or("parking spot is on no-data")?;
     let (e, n) = near.local_to_en(spot.x, spot.y);
-    Ok(skyline::far_skyline(far, e, n, ground as f64 + EYE_HEIGHT_M, n_dirs, FAR_FROM_M))
+    Ok(skyline::far_skyline(&far.far, far.mola.as_ref(), e, n, ground as f64 + EYE_HEIGHT_M, n_dirs, FAR_FROM_M))
 }
 
 fn check(root: &Path) -> Result<bool, String> {
@@ -266,7 +405,7 @@ fn proof_numbers(root: &Path, site: &Site, grid: &terrain::Grid) -> Result<(), S
     let (ox, oy) = site.stop("sol1468")?;
     let (open_ground, _) = precise_with_far(grid, &far, ox, oy)?;
 
-    println!("\nProof numbers (eye {EYE_HEIGHT_M} m, {N_DIRS} directions, step {STEP_M} m; far field from {FAR_FROM_M} m on far.bin, computed at the parking spot)");
+    println!("\nProof numbers (eye {EYE_HEIGHT_M} m, {N_DIRS} directions, step {STEP_M} m; far field from {FAR_FROM_M} m on {}, computed at the parking spot)", far_grid.describe());
     println!("  Blocked fraction                                     engine   paper");
     println!("  parking spot, near field to {MAX_DIST_M} m (reference)         {near_280:.3}");
     println!("  parking spot, near field to {PROOF_MAX_DIST_M} m                     {near_700:.3}");
@@ -348,18 +487,131 @@ fn plan_command(root: &Path, stops_arg: Option<&str>, out: Option<&str>) -> Resu
         return Err("a plan needs at least two stops".into());
     }
     let out_dir = out.map_or_else(|| root.join("data/out"), PathBuf::from);
-    let inputs = route::PlanInputs {
-        near: &grid,
-        far72: &far72,
-        far360: &far360,
+    if let Some((_, line)) = &site.conditions {
+        println!("{line}\n");
+    }
+    let inputs = plan_inputs(&site, &grid, &far72, &far360, stops);
+    route::run(&inputs, &out_dir)
+}
+
+fn plan_inputs<'a>(site: &Site, grid: &'a terrain::Grid, far72: &'a [f32], far360: &'a [f32], stops: Vec<route::Stop>) -> route::PlanInputs<'a> {
+    route::PlanInputs {
+        near: grid,
+        far72,
+        far360,
         sun: (site.sky.sun.az, site.sky.sun.el),
         earth: (site.sky.earth.az, site.sky.earth.el),
         base: layers::Base { x: site.base.x, y: site.base.y, mast_height_m: site.base.mast_height },
         bounds: site.planner_bounds,
         cfg: site.planner.clone(),
+        storm: site.storm,
+        base_dose_factor: site.base.dose_factor,
+        dose_rate_ugy_h: site.rad.as_ref().map(|r| r.baseline_rate),
+        space_weather: site.space_weather.clone(),
+        conditions: site.conditions.as_ref().map(|c| c.0.clone()),
+        stop_images: site.stop_images.clone(),
         stops,
-    };
-    route::run(&inputs, &out_dir)
+    }
+}
+
+/// Warnings for the sweep; the limit to cover equals the warning.
+const SWEEP_WARNINGS: [f64; 5] = [0.0, 2.0, 5.0, 10.0, 15.0];
+
+struct DecideArgs {
+    index: Option<usize>,
+    lead: Option<f64>,
+    limit: Option<f64>,
+    sweep: bool,
+}
+
+/// Storm decisions at main waypoints of data/out/waypoints.json (run `engine plan` first).
+fn decide_command(root: &Path, a: DecideArgs) -> Result<(), String> {
+    let site = load_site(root)?;
+    let wp_path = root.join("data/out/waypoints.json");
+    let doc: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string(&wp_path).map_err(|e| format!("cannot read {} (run engine plan first): {}", wp_path.display(), e))?,
+    )
+    .map_err(|e| format!("{}: {}", wp_path.display(), e))?;
+    let main = doc["main"].as_array().ok_or("waypoints.json has no main route")?.clone();
+    if main.is_empty() {
+        return Err("waypoints.json has an empty main route".into());
+    }
+    let pos = |i: usize| (main[i]["pos"]["x"].as_f64().unwrap_or(f64::NAN), main[i]["pos"]["y"].as_f64().unwrap_or(f64::NAN));
+    let name = |i: usize| main[i]["id"].as_str().unwrap_or("?").to_string();
+
+    let grid = load_grid(root)?;
+    let far_grid = load_far(root)?;
+    let spot = &site.near_crop.parking_spot_local;
+    let far72 = far_at_parking(&grid, &far_grid, spot, skyline::FAST_DIRS)?;
+    let far360 = far_at_parking(&grid, &far_grid, spot, N_DIRS)?;
+    let inputs = plan_inputs(&site, &grid, &far72, &far360, Vec::new());
+    let ctx = route::prepare(&inputs)?;
+
+    if !a.sweep {
+        let i = a.index.ok_or_else(usage)?;
+        if i >= main.len() {
+            return Err(format!("main index {i} is out of range (0..{})", main.len() - 1));
+        }
+        let mut storm = site.storm;
+        storm.lead_minutes = a.lead.unwrap_or(storm.lead_minutes);
+        storm.max_minutes_to_cover = a.limit.unwrap_or(storm.max_minutes_to_cover);
+        let (x, y) = pos(i);
+        println!("\nStorm decision at {} ({x:.1}, {y:.1})", name(i));
+        let opts = route::options_from(&ctx, &inputs, x, y)?;
+        route::print_table(&decision::decide(&opts.candidates, &storm), &storm);
+        return Ok(());
+    }
+
+    // Four waypoints: open ground about a third of the way out, the Quela stop, the butte outcrop, the far point.
+    let by_label = |label: &str| main.iter().position(|w| w["label"] == label).ok_or_else(|| format!("no main waypoint labelled {label:?}"));
+    let picks = [
+        ("open ground", (main.len() as f64 / 3.0).round() as usize),
+        ("Quela drill site", by_label("Quela drill site")?),
+        ("butte outcrop", by_label("Butte outcrop")?),
+        ("far point", main.len() - 1),
+    ];
+    println!("\nChosen site by warning time (limit to cover = warning); storm {} min, multiplier {}\n", site.storm.storm_minutes, site.storm.dose_multiplier);
+    println!("  {:<22} {}", "waypoint", SWEEP_WARNINGS.iter().map(|w| format!("{:>16}", format!("{w} min"))).collect::<String>());
+    let mut rows = Vec::new();
+    for (what, i) in picks {
+        let (x, y) = pos(i);
+        let opts = route::options_from(&ctx, &inputs, x, y)?;
+        let mut line = format!("  {:<22}", format!("{} {}", name(i), what));
+        let mut results = Vec::new();
+        for warning in SWEEP_WARNINGS {
+            let mut storm = site.storm;
+            storm.lead_minutes = warning;
+            storm.max_minutes_to_cover = warning;
+            let d = decision::decide(&opts.candidates, &storm);
+            let c = &d.chosen.candidate;
+            let cell = match d.minutes_late {
+                Some(late) => format!("{} LATE {:.1}", c.id, late),
+                None => format!("{} {:.1}m", c.id, c.t),
+            };
+            line += &format!("{cell:>16}");
+            let mut chosen = serde_json::json!({
+                "id": c.id, "kind": c.kind.as_str(), "minutes": (c.t * 100.0).round() / 100.0,
+                "score": (d.chosen.score * 10.0).round() / 10.0, "late": d.minutes_late.is_some(),
+            });
+            if let Some(late) = d.minutes_late {
+                chosen["minutesLate"] = serde_json::json!((late * 100.0).round() / 100.0);
+            }
+            results.push(serde_json::json!({ "warningMinutes": warning, "limitMinutes": warning, "chosen": chosen }));
+        }
+        println!("{line}");
+        rows.push(serde_json::json!({
+            "waypoint": name(i), "mainIndex": i, "what": what, "label": main[i]["label"], "pos": { "x": x, "y": y }, "results": results,
+        }));
+    }
+    println!("\n  (each cell: chosen site and walking minutes, or LATE and minutes past the limit when nothing is reachable)");
+    let out = serde_json::json!({
+        "version": 1, "stormMinutes": site.storm.storm_minutes, "doseMultiplier": site.storm.dose_multiplier,
+        "noLinkPenalty": site.storm.no_link_penalty, "baseDoseFactor": site.base.dose_factor, "waypoints": rows,
+    });
+    let path = root.join("data/out/decision-sweep.json");
+    std::fs::write(&path, serde_json::to_string_pretty(&out).map_err(|e| e.to_string())? + "\n").map_err(|e| format!("cannot write {}: {}", path.display(), e))?;
+    println!("wrote {}", path.display());
+    Ok(())
 }
 
 fn layers_command(root: &Path) -> Result<(), String> {
@@ -392,7 +644,7 @@ fn point(root: &Path, x: f64, y: f64) -> Result<(), String> {
 }
 
 fn usage() -> String {
-    "usage: engine [--root <dir>] check\n       engine [--root <dir>] point <x> <y>   (local metres)\n       engine [--root <dir>] layers\n       engine [--root <dir>] base-candidates\n       engine [--root <dir>] plan [--stops \"x,y;x,y;...\" --out <dir>]".to_string()
+    "usage: engine [--root <dir>] check\n       engine [--root <dir>] point <x> <y>   (local metres)\n       engine [--root <dir>] layers\n       engine [--root <dir>] base-candidates\n       engine [--root <dir>] plan [--stops \"x,y;x,y;...\" --out <dir>]\n       engine [--root <dir>] decide <mainIndex> [--lead L] [--limit X]\n       engine [--root <dir>] decide --sweep".to_string()
 }
 
 fn run() -> Result<bool, String> {
@@ -408,6 +660,26 @@ fn run() -> Result<bool, String> {
         ["check"] => check(&root),
         ["layers"] => layers_command(&root).map(|_| true),
         ["base-candidates"] => base_candidates(&root).map(|_| true),
+        ["decide", rest @ ..] => {
+            let mut a = DecideArgs { index: None, lead: None, limit: None, sweep: false };
+            let mut it = rest.iter();
+            let num = |v: Option<&&str>| -> Result<f64, String> {
+                let v = v.ok_or_else(usage)?;
+                v.parse::<f64>().map_err(|_| format!("not a number: {v}"))
+            };
+            while let Some(&arg) = it.next() {
+                match arg {
+                    "--lead" => a.lead = Some(num(it.next())?),
+                    "--limit" => a.limit = Some(num(it.next())?),
+                    "--sweep" => a.sweep = true,
+                    other => a.index = Some(other.parse().map_err(|_| format!("main index must be a whole number: {other}"))?),
+                }
+            }
+            if a.sweep && (a.index.is_some() || a.lead.is_some() || a.limit.is_some()) {
+                return Err("--sweep takes no index, --lead or --limit".into());
+            }
+            decide_command(&root, a).map(|_| true)
+        }
         ["plan", rest @ ..] => {
             let mut stops = None;
             let mut out = None;

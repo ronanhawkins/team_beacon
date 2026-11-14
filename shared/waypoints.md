@@ -70,6 +70,49 @@ When a storm, panic or reroute request arrives at `main` index N, the relay swit
 
 The `skyline` above is shortened. Real files always have `skylineSamples` values.
 
+## Storm decision (optional additions)
+
+These fields come from the engine's storm decision (`docs/decision-model.md`). Files without them are still valid, and clients that do not use them can ignore them.
+
+- `shelter.id` on a waypoint: the id of the site chosen from that point: `"base"` or a shelter id from `data/out/shelters.json`.
+- `rerouteInfo` at the top level: maps a `main` index (as a string, like `reroutes`) to the decision made there.
+
+| Field | Type | Meaning |
+|---|---|---|
+| `chosen` | option, plus `dose`, `late` and `minutesLate` | The site the reroute goes to. `late` is true when no site could be reached within the limit and the nearest was taken; `minutesLate` is then how far over the limit it is |
+| `options` | array of options | Every candidate within 12 walking minutes: reachable ones by score, then the rest |
+| `base` | `{minutes, excludedByLimit}` | Walking minutes to the base, and whether the time limit ruled it out |
+
+Each option:
+
+| Field | Type | Meaning |
+|---|---|---|
+| `id` | string | `"base"` or a shelter id |
+| `kind` | string | `"shelter"` or `"base"` |
+| `minutes` | number | Walking minutes to the site |
+| `blocked` | number | Blocked-sky fraction at the site |
+| `baseLink` | boolean | Line of sight to the base mast from the site |
+| `reachable` | boolean | Walking minutes are within the limit to be under cover |
+| `score` | number | Modelled storm dose, raised by the no-link penalty when there is no base link. Lowest wins among reachable sites |
+
+Optional microgray fields, written when the engine has the measured Curiosity RAD storm (`data/cache/rad_storm.json`):
+
+| Field | Where | Type | Meaning |
+|---|---|---|---|
+| `doseMicroGray` | every waypoint | number | Dose so far in microgray: the same accumulated dose as `doseFraction`, times the measured quiet open-ground rate. Counts up |
+| `plannedDoseMicroGray` | each `rerouteInfo` entry | number | Dose on the planned route up to that main waypoint, microgray |
+| `stormDoseMicroGray` | each `rerouteInfo` entry | number | Modelled dose of the chosen site's choice (walking, waiting and the whole storm), microgray. The same as `chosen.dose` in microgray |
+
+```json
+"rerouteInfo": {
+  "30": {
+    "chosen": { "id": "s04", "kind": "shelter", "minutes": 4.52, "blocked": 0.254, "baseLink": true, "reachable": true, "score": 221.7, "dose": 221.7, "late": false },
+    "options": [ { "...": "same fields as above, without dose and late" } ],
+    "base": { "minutes": 9.73, "excludedByLimit": true }
+  }
+}
+```
+
 ## Blending
 
 Neighbouring waypoints should be close enough that the headset can blend one skyline into the next by interpolating each of the 72 values.
