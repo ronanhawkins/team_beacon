@@ -80,7 +80,18 @@ export function readState(raw, route, prev) {
     headingDeg: raw.headingDeg, shelterBearingDeg: raw.shelterBearingDeg, shelterMin: raw.minutesToShelter,
     openSky: raw.openSky, dose: raw.doseFraction, oxygen: raw.oxygenFraction,
     sunlit: raw.sunlit, baseLink: raw.baseLink, earthLink: raw.earthLink, earthDelayMin: raw.earthDelayMinutes,
+    // Proposed additions, not in shared/state.md yet (see README). Missing until the relay carries them.
+    heartRate: raw.heartRateBpm ?? null, wristBattery: raw.wristBatteryFraction ?? null,
   };
 }
 
 export const emptyState = () => readState({ route: 'main', waypointIndex: 0 }, { waypoints: [{}], reroutes: {} }, null);
+
+// Curiosity's real positions near the buttes, from the site file (data/site.json: routeNearButtes, in the
+// terrain mosaic's projection). Local metres are measured from the south-west corner of the near crop.
+export function readSite(site) {
+  const crop = site && site.nearCrop, track = site && site.routeNearButtes;
+  if (!crop || !Array.isArray(track) || track.length < 2) return null;
+  const pts = track.map((p) => ({ x: p.easting - crop.left, y: p.northing - crop.bottom, sol: p.sol }));
+  return { label: `Curiosity rover, sols ${pts[0].sol} to ${pts[pts.length - 1].sol}`, pts, source: 'NASA MSL waypoints (data/site.json)' };
+}

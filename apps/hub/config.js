@@ -17,7 +17,7 @@ export const CONFIG = {
   // Not in any contract yet, so set here.
   SITE_NAME: 'Murray Buttes, Gale crater',
   HOME_RADIUS_M: 320,           // how much ground the opening view shows around the terrain's parking spot when the route is fake
-  ASTRONAUT: { name: 'Astronaut 1', suit: 'EV1' },
+  ASTRONAUT: { name: 'Astronaut 1', suit: 'EV1' },   // only used when crew-data.js lists no crew
   START_LOCAL_TIME: '',          // Mars local time at waypoint 0 as 'HH:MM'. Empty hides the clock.
   BASE: null,                    // { x, y } in the local frame. null = work it out from the waypoints' base az and distance.
   MAX_SLOPE_DEG: 20,             // steepest ground a suited astronaut may be sent across when placing stops
@@ -53,6 +53,23 @@ export const CONFIG = {
       lo: 'At shelter', hi: 'Far', source: 'Walking time to the nearest shelter' },
   ],
   LAYERS_ON: ['exposure'],
+
+  // Site file (Ronan's data/site.json). The relay and a plain static server both serve it here.
+  // The hub takes Curiosity's real positions near the buttes from it, for the route history.
+  SITE: '/data/site.json',
+
+  // Storm and panic alarm: the beeps repeat for this many seconds, or until the emergency ends or it is silenced.
+  ALARM: { seconds: 20, everyMs: 1100 },
+
+  // Heart rate and wristband battery. `simulate` shows made-up values, labelled as simulated, until the relay state carries real ones.
+  VITALS: { simulate: true, hrHigh: 150, batteryLow: 0.2, historySeconds: 90 },
+
+  // Readiness check for the planned walk. All four are assumptions for the demo, not medical limits.
+  //   weeklyDose: dose allowed in seven days, in walk budgets (a doseFraction of 1 is one budget)
+  //   weeklyWalkMin: walking minutes allowed in seven days
+  //   minRestHours: rest wanted since the last walk
+  //   marginalAt: fraction of a limit at which the verdict becomes "marginal"
+  CREW_LIMITS: { weeklyDose: 3.0, weeklyWalkMin: 90, minRestHours: 12, marginalAt: 0.8 },
 
   PLAN_TIMEOUT_MS: 6000,         // how long to wait for a route after "Send to planner"
 };

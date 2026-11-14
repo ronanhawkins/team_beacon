@@ -2,17 +2,21 @@
 // Contract field names live in route.js (waypoints, state) and relay.js (events); paths and layer styling in config.js.
 import { CONFIG } from './config.js';
 import { loadTerrain, flatTerrain } from './terrain.js';
-import { readWaypoints, readState, emptyState } from './route.js';
+import { readWaypoints, readState, readSite, emptyState } from './route.js';
 import { connectRelay, events } from './relay.js';
 import { localRelay } from './local.js';
 import { createMap } from './map.js';
 import { drawRing } from './ring.js';
 import { drawOverlay } from './overlay.js';
+import { CREW } from './crew-data.js';
+import { buildWalks, weekStats, readiness, loadRecorded, saveRecorded, loadChoice, saveChoice } from './crew.js';
+import { createVitals } from './vitals.js';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const nn = (a, b) => (a != null ? a : b);
 const fmt = (n, d = 0) => (n == null || Number.isNaN(n) ? '--' : (+n).toFixed(d));
+const RAD = Math.PI / 180;
 const fmt1 = (n) => (n == null ? '--' : n < 10 ? (+n).toFixed(1) : String(Math.round(n)));
 const pct = (f) => (f == null ? '--' : String(Math.round(f * 100)));   // contracts carry fractions 0..1; the screen shows percent
 const hm = (min) => { const m = Math.max(0, Math.round(min || 0)); return `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}`; };
@@ -21,6 +25,7 @@ const ICON = {
   no: '<svg aria-hidden="true" viewBox="0 0 24 24" class="ic no"><path d="M6 6l12 12M18 6L6 18"/></svg>',
   warn: '<svg aria-hidden="true" viewBox="0 0 24 24" class="ic"><path d="M12 3L2 20h20L12 3z"/><path d="M12 10v5M12 18v.5"/></svg>',
   info: '<svg aria-hidden="true" viewBox="0 0 24 24" class="ic"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>',
+  heart: '<svg aria-hidden="true" viewBox="0 0 24 24" class="ic"><path d="M12 20s-7-4.6-7-10a4 4 0 0 1 7-2.4A4 4 0 0 1 19 10c0 5.4-7 10-7 10z"/></svg>',
 };
 
 const app = {
@@ -30,12 +35,17 @@ const app = {
   draft: [], draftDirty: false, placing: null, planPending: 0, planNote: '',
   focusStop: null, follow: false, log: [], sound: true, emergencyAt: 0, resetArmed: 0, warned: {},
   astro: { x: 0, y: 0, seg: 0, anim: null, wA: null, wB: null, f: 0 }, listKey: '', listIdx: 0,
+  crewId: null, crewSel: null, walks: [], recorded: [], rover: null, histSel: null, histAll: false, walk: null,
+  vitals: createVitals(CONFIG.VITALS), vit: { hr: null, battery: null }, hrHigh: false, battLow: false, alarm: null,
   u: 16,
 };
 window.hub = app; // handy in the browser console while integrating
 
 // ---------- derived values ----------
-const name = () => CONFIG.ASTRONAUT.name;
+const member = (id = app.crewId) => CREW.find((m) => m.id === id) || null;
+const name = () => (member() || CONFIG.ASTRONAUT).name;
+const suit = () => (member() || CONFIG.ASTRONAUT).suit;
+const onWalk = (st = app.state) => st.wp > 0 || !!st.reroute;
 const emergency = () => app.state.mode === 'storm' || app.state.storm || app.state.panic;
 function activeList() {
   const s = app.state, rr = s.reroute && s.reroute.waypoints.length ? s.reroute : null;
@@ -79,14 +89,22 @@ const clockAt = (min) => marsTime(min) || `${fmt(min)} min`;
 function log(text, level = '') { app.log.unshift({ at: hm(live().elapsedMin), text, level }); app.log.length = Math.min(app.log.length, 60); renderLog(); }
 let toastTimer;
 function toast(text) { const t = $('toast'); t.textContent = text; t.hidden = false; clearTimeout(toastTimer); toastTimer = setTimeout(() => { t.hidden = true; }, 3400); }
-let audio;
-function beep() {
+let audio, alarmTimer = 0, alarmEnd = 0;
+// One burst of beeps. Panic is higher and faster than storm so the two can be told apart by ear.
+function beep(kind) {
   if (!app.sound) return;
   try {
     audio = audio || new (window.AudioContext || window.webkitAudioContext)();
-    [0, 0.28, 0.56].forEach((d) => { const o = audio.createOscillator(), g = audio.createGain(); o.frequency.value = 880; g.gain.value = 0.12; o.connect(g); g.connect(audio.destination); o.start(audio.currentTime + d); o.stop(audio.currentTime + d + 0.16); });
+    const panic = kind === 'panic', at = panic ? [0, 0.17, 0.34, 0.51] : [0, 0.28, 0.56];
+    at.forEach((d) => { const o = audio.createOscillator(), g = audio.createGain(); o.frequency.value = panic ? 1175 : 880; g.gain.value = 0.12; o.connect(g); g.connect(audio.destination); o.start(audio.currentTime + d); o.stop(audio.currentTime + d + (panic ? 0.11 : 0.16)); });
   } catch { /* sound is optional */ }
 }
+// The alarm repeats the burst for CONFIG.ALARM.seconds, or until the emergency ends or someone silences it.
+function startAlarm(kind) {
+  clearInterval(alarmTimer); app.alarm = kind; alarmEnd = Date.now() + CONFIG.ALARM.seconds * 1000; beep(kind);
+  alarmTimer = setInterval(() => { if (!emergency() || Date.now() >= alarmEnd) stopAlarm(); else beep(kind); }, CONFIG.ALARM.everyMs);
+}
+function stopAlarm() { clearInterval(alarmTimer); alarmTimer = 0; if (app.alarm) { app.alarm = null; renderBanner(); } }
 function warnOnce(key, text) { if (!app.warned[key]) { app.warned[key] = 1; log(text, 'caution'); } }
 
 // ---------- incoming ----------
@@ -99,7 +117,7 @@ function setRoute(doc, announce) {
   resetDraft();
   if (app.planPending) { clearTimeout(app.planPending); app.planPending = 0; app.planNote = 'Route received.'; }
   if (announce) log(`Route loaded: ${fmt(route.totals.timeMin)} min, ${route.stops.length} science stop${route.stops.length === 1 ? '' : 's'}.`);
-  app.focusStop = null; syncAstro(true);
+  app.focusStop = null; rebuildWalks(); syncAstro(true);
 }
 function onState(raw) {
   const p = app.state, first = !app.gotState; app.gotState = true;
@@ -120,9 +138,11 @@ function onState(raw) {
     if (ns.reroute && L.atShelter && !(p.reroute && p.reroute.wp === ns.reroute.wp)) log('Reached shelter.');
     if (ns.mode === 'warning' && p.mode === 'nominal') log(ns.baseLink === false ? 'Warning: no line of sight to base.' : `Warning: ${fmt1(ns.shelterMin)} min from shelter.`, 'caution');
   }
-  const em = emergency();
-  if (em && !app.emergencyAt) { app.emergencyAt = Date.now(); beep(); app.mode = 'live'; frameEmergency(); }
-  if (!em) app.emergencyAt = 0;
+  const em = emergency(), newPanic = ns.panic && (first || !p.panic), newStorm = ns.storm && (first || !p.storm);
+  if (em && (newPanic || newStorm)) startAlarm(newPanic ? 'panic' : 'storm');
+  if (em && !app.emergencyAt) { app.emergencyAt = Date.now(); app.mode = 'live'; frameEmergency(); }
+  if (!em) { app.emergencyAt = 0; stopAlarm(); }
+  trackWalk(ns);
   if ((ns.wp > 0 || ns.reroute) && app.mode === 'plan' && !app.draftDirty) app.mode = 'live';
   if (!first && p.wp === 0 && !p.reroute && (ns.wp > 0 || ns.reroute) && app.fake.waypoints && !app.fake.terrain && !app.terrain.flat && !em) routeView(); // the walk has started: show it
   syncAstro(first); renderAll();
@@ -244,7 +264,7 @@ async function reloadRoute() {
 }
 
 // ---------- rendering ----------
-function renderAll() { renderHeader(); renderBanner(); renderLeft(); renderRight(); renderTimeline(); renderMirror(); }
+function renderAll() { renderHeader(); renderBanner(); renderLeft(); renderRight(); renderCrew(); renderTimeline(); renderMirror(); }
 function renderHeader() {
   const L = live(), local = app.link && app.link.kind === 'local', up = app.relayStatus === 'open';
   document.body.classList.toggle('emergency', emergency());
@@ -252,7 +272,8 @@ function renderHeader() {
   document.body.classList.toggle('stale', !!app.link && !local && !up);
   $('clock').textContent = hm(L.elapsedMin);
   const mt = marsTime(L.elapsedMin); $('marsClock').hidden = !mt; $('marsTime').textContent = mt;
-  $('modePlan').setAttribute('aria-pressed', app.mode === 'plan'); $('modeLive').setAttribute('aria-pressed', app.mode === 'live');
+  $('modePlan').setAttribute('aria-pressed', app.mode === 'plan'); $('modeLive').setAttribute('aria-pressed', app.mode === 'live'); $('modeCrew').setAttribute('aria-pressed', app.mode === 'crew');
+  document.body.classList.toggle('crew', app.mode === 'crew');
   const chip = (on, label) => `<span class="dev ${on ? 'on' : 'off'}">${on ? ICON.ok : ICON.no}${label}</span>`;
   const n = (role) => (app.clients || []).filter((c) => c.role === role).length;
   $('devices').innerHTML = local ? `<span class="dev local">${ICON.info}Local mode, no relay</span>`
@@ -268,12 +289,14 @@ function bannerModel() {
   if (emergency()) {
     return { level: 'emergency', icon: ICON.warn,
       html: `<b>${s.storm ? 'SOLAR STORM' : 'PANIC BUTTON'}</b><span class="act">${L.atShelter ? 'In shelter' : `Go to shelter · ${fmt1(L.shelterMin)} min away`}</span><span class="sub">${s.storm && s.panic ? 'Panic button also pressed. ' : s.panic ? `Pressed by ${esc(name())}. Reset clears it. ` : ''}<span id="emTimer"></span></span>`,
-      actions: s.storm ? [['endstorm', 'End storm']] : [] };
+      actions: [...(app.alarm && app.sound ? [['silence', 'Silence alarm']] : []), ...(s.storm ? [['endstorm', 'End storm']] : [])] };
   }
   if (app.link && !local && app.relayStatus !== 'open') return { level: 'caution', icon: ICON.warn, html: `<b>Relay offline</b><span class="sub">Reconnecting to ${esc(app.relayUrl)}. Values on screen may be out of date.</span>`, actions: [['local', 'Run locally without the relay']] };
   if (s.rerouteRequested) return { level: 'caution', icon: ICON.warn, html: `<b>${esc(name())} requested a reroute</b><span class="sub">${L.atShelter ? 'Now in shelter.' : `Heading to shelter · ${fmt1(L.shelterMin)} min away.`} Reset returns to the main route.</span>`, actions: [] };
   if (s.reroute) return { level: 'caution', icon: ICON.info, html: `<b>On the reroute</b><span class="sub">${L.atShelter ? 'In shelter.' : `${fmt1(L.shelterMin)} min to shelter.`} Reset returns to the main route.</span>`, actions: [] };
   if (s.mode === 'warning') return { level: 'caution', icon: ICON.warn, html: `<b>Warning</b><span class="sub">${L.baseLink === false ? 'No line of sight to base. ' : ''}${fmt1(L.shelterMin)} min from shelter.</span>`, actions: [] };
+  if (app.hrHigh) return { level: 'caution', icon: ICON.warn, html: `<b>High heart rate</b><span class="sub">${esc(name())} is at ${fmt(app.vit.hr)} bpm, above ${CONFIG.VITALS.hrHigh}. ${esc(doing())}.</span>`, actions: [] };
+  if (app.mode === 'crew') { const m = member(), v = m ? verdictFor(m) : null; return { level: 'ok', icon: ICON.info, html: `<b>Crew</b><span class="sub">${m ? `${esc(m.name)} is assigned to the planned walk: ${WORD[v.level].toLowerCase()}.` : 'No crew listed.'} Pick a name to see the profile and past walks.</span>`, actions: [] }; }
   if (app.mode === 'plan') return { level: 'ok', icon: ICON.info, html: `<b>Planning</b><span class="sub">Set the start, science stops and end on the map, then send them to the planner.</span>`, actions: [] };
   const si = stopInfo(), nx = si.next >= 0 ? app.route.stops[si.next] : null;
   return { level: 'ok', icon: ICON.ok, html: `<b>Nominal</b><span class="sub">${esc(doing())}${nx && si.at < 0 && nx.etaMin != null ? ` · arriving in ${fmt(Math.max(0, nx.etaMin - L.elapsedMin))} min` : ''}</span>`, actions: [] };
@@ -329,15 +352,23 @@ function renderLeft() {
     <div><dt>Oxygen used</dt><dd>${pct(t.oxygenUsed)}% of supply</dd></div>
     <div><dt>Radiation dose</dt><dd>${pct(t.dose)}% of budget</dd></div>
     <div><dt>Worst case to shelter</dt><dd>${fmt1(t.worstShelterMin)} min</dd></div>
-    <div><dt>Steepest leg</dt><dd class="${over ? 'over' : ''}">${over ? ICON.warn + ' ' : ''}${fmt(t.maxSlopeDeg)}° / ${CONFIG.MAX_SLOPE_DEG}° max</dd></div></dl>`;
+    <div><dt>Steepest leg</dt><dd class="${over ? 'over' : ''}">${over ? ICON.warn + ' ' : ''}${fmt(t.maxSlopeDeg)}° / ${CONFIG.MAX_SLOPE_DEG}° max</dd></div></dl>${briefCrew()}`;
+}
+// Who is assigned to the walk and whether they are fit for it. Opens the Crew screen.
+function briefCrew() {
+  const m = member(); if (!m) return '';
+  const v = verdictFor(m);
+  return `<div class="assignRow" data-act="open-crew" tabindex="0" title="${esc(v.reasons[0])}. Open the crew screen (C)"><span class="cname">${esc(m.name)}</span><span class="suit">${esc(m.suit)}</span><span class="verdict ${v.level}">${VICON[v.level]}${WORD[v.level]}</span></div>`;
 }
 function renderRight() {
   const L = live(), s = app.state, si = stopInfo(), em = emergency();
   const tk = (v, yes, no) => (v == null ? '' : `<span class="tk ${v ? 'yes' : 'nope'}">${v ? ICON.ok : ICON.no}${v ? yes : no}</span>`);
   const num = (label, val, unit, cls = '') => `<div class="num ${cls}"><span class="lbl">${label}</span><span class="val mono">${val}<small>${unit}</small></span></div>`;
-  $('astroPanel').innerHTML = `<div class="who"><span class="name">${esc(name())}</span><span class="suit">${esc(CONFIG.ASTRONAUT.suit)}</span><span class="doing">${esc(doing())}</span></div>
+  $('astroPanel').innerHTML = `<div class="who"><span class="name">${esc(name())}</span><span class="suit">${esc(suit())}</span><span class="doing">${esc(doing())}</span></div>
     <div class="nums">${num('Oxygen left', pct(L.oxygen), '%')}${num('To shelter', fmt1(L.shelterMin), 'min', em ? 'hot' : '')}${num('Dose so far', pct(L.dose), '% of budget')}${num('Open sky', pct(L.openSky), '%')}</div>
-    <div class="ticks">${tk(L.baseLink, 'Base link', 'No base link')}${tk(L.earthLink, 'Earth link', 'No Earth link')}${tk(L.sunlit, 'In sunlight', 'In shadow')}${s.earthDelayMin != null ? `<span class="tk">Earth delay ${fmt(s.earthDelayMin)} min</span>` : ''}</div>`;
+    <div class="ticks">${tk(L.baseLink, 'Base link', 'No base link')}${tk(L.earthLink, 'Earth link', 'No Earth link')}${tk(L.sunlit, 'In sunlight', 'In shadow')}${s.earthDelayMin != null ? `<span class="tk">Earth delay ${fmt(s.earthDelayMin)} min</span>` : ''}</div>
+    <div id="vitals" class="vitals"></div>`;
+  renderVitals();
   const i = app.focusStop != null ? app.focusStop : si.at >= 0 ? si.at : si.next, st = i >= 0 ? app.route.stops[i] : null;
   if (!st) $('stopPanel').innerHTML = `<h2>Science stop</h2><p class="note">${app.route.stops.length ? 'All science stops visited.' : 'No science stops on this route. Add them in Plan mode.'}</p>`;
   else {
@@ -355,6 +386,127 @@ function renderRight() {
     <div class="big mono">${fmt1(L.shelterMin)}</div><div class="cap">min to shelter</div>
     <div class="bar" title="Oxygen"><i style="width:${Math.max(0, Math.min(1, L.oxygen || 0)) * 100}%"></i></div><div class="bar dose" title="Dose"><i style="width:${Math.max(0, Math.min(1, L.dose || 0)) * 100}%"></i></div>`;
 }
+// ---------- heart rate and wristband battery ----------
+function effort() { // 0 to 1 from the slope of the leg being walked
+  const a = activeList(), w = a.list[a.idx], n = a.list[a.idx + 1]; if (!w || !n || w.z == null || n.z == null) return 0;
+  const d = Math.hypot(n.x - w.x, n.y - w.y); return d > 0.5 ? Math.min(1, Math.atan(Math.abs(n.z - w.z) / d) / RAD / 20) : 0;
+}
+function tickVitals() {
+  const L = live(), walking = onWalk() && !L.atShelter && !stopInfo().last;
+  const v = app.vit = app.vitals.step({ heartRate: app.state.heartRate, battery: app.state.wristBattery }, { walking, effort: effort(), emergency: emergency() });
+  const W = app.walk; if (W && v.hr != null) { W.hrSum += v.hr; W.hrN++; W.hrPeak = Math.max(W.hrPeak, v.hr); }
+  const high = v.hr != null && v.hr > CONFIG.VITALS.hrHigh, low = v.battery != null && v.battery < CONFIG.VITALS.batteryLow;
+  if (high && !app.hrHigh) log(`High heart rate: ${name()} at ${fmt(v.hr)} bpm.`, 'caution');
+  if (low && !app.battLow) log(`Wristband battery low: ${pct(v.battery)}%.`, 'caution');
+  const changed = high !== app.hrHigh || low !== app.battLow; app.hrHigh = high; app.battLow = low;
+  renderVitals(); if (changed) { renderBanner(); renderCrew(); }
+}
+function renderVitals() {
+  const el = $('vitals'); if (!el) return;
+  const v = app.vit, h = app.vitals.hist, sim = (on) => (on ? '<em class="sim">simulated</em>' : '');
+  const lo = 50, hi = 190, pts = h.map((b, i) => `${(i / Math.max(1, CONFIG.VITALS.historySeconds - 1) * 100).toFixed(1)},${(30 - (Math.max(lo, Math.min(hi, b)) - lo) / (hi - lo) * 30).toFixed(1)}`).join(' ');
+  const lim = (30 - (CONFIG.VITALS.hrHigh - lo) / (hi - lo) * 30).toFixed(1), b = v.battery;
+  el.innerHTML = `<div class="vit ${app.hrHigh ? 'warn' : ''}"><span class="lbl">${ICON.heart} Heart rate</span>
+      <div class="vrow"><span class="val mono">${v.hr == null ? '--' : fmt(v.hr)}<small>bpm</small></span>
+        <svg class="spark" viewBox="0 0 100 30" preserveAspectRatio="none" aria-hidden="true"><line x1="0" x2="100" y1="${lim}" y2="${lim}" class="limit"/><polyline points="${pts}"/></svg></div>
+      <span class="vnote">${sim(v.hrSim)}${v.hr == null ? 'No wristband data yet' : app.hrHigh ? `${ICON.warn} Above ${CONFIG.VITALS.hrHigh} bpm` : `Alert above ${CONFIG.VITALS.hrHigh}`}</span></div>
+    <div class="vit ${app.battLow ? 'warn' : ''}"><span class="lbl">Wristband battery</span>
+      <div class="vrow"><span class="val mono">${b == null ? '--' : pct(b)}<small>%</small></span>
+        <div class="batt"><i style="width:${Math.max(0, Math.min(1, b || 0)) * 100}%"></i></div></div>
+      <span class="vnote">${sim(v.batterySim)}${b == null ? 'No wristband data yet' : app.battLow ? `${ICON.warn} Low, below ${pct(CONFIG.VITALS.batteryLow)}%` : `Alert below ${pct(CONFIG.VITALS.batteryLow)}%`}</span></div>`;
+}
+
+// ---------- crew readiness and route history ----------
+const WORD = { fit: 'Fit', marginal: 'Marginal', no: 'Not fit' }, VICON = { fit: ICON.ok, marginal: ICON.warn, no: ICON.no };
+const COND = { fit: 'Fit', fatigued: 'Fatigued', injured: 'Injured', ill: 'Ill' };
+const km = (m) => (m >= 1000 ? (m / 1000).toFixed(2) + ' km' : fmt(m) + ' m');
+const ago = (at) => { const h = (Date.now() - at) / 36e5; return h < 1 ? `${Math.max(1, Math.round(h * 60))} min ago` : h < 24 ? `${Math.round(h)} h ago` : `${Math.round(h / 24)} sol${Math.round(h / 24) === 1 ? '' : 's'} ago`; };
+function rebuildWalks() { if (app.route) app.walks = buildWalks(CREW, app.route, app.recorded, app.rover, Date.now()); }
+function verdictFor(m) {
+  const t = app.route.totals, st = weekStats(app.walks, m.id, Date.now());
+  return { st, ...readiness(m, st, { minutes: t.timeMin, dose: t.dose }, CONFIG.CREW_LIMITS, Date.now(), { batteryLow: m.id === app.crewId && app.battLow }) };
+}
+function historyList() { return app.walks.filter((k) => app.histAll || k.kind === 'rover' || k.who === app.crewSel); }
+// What the map draws: every listed walk faintly while the Crew screen is open, and the picked walk in any mode.
+function historyForMap() {
+  const list = app.mode === 'crew' ? historyList() : app.walks.filter((k) => k.id === app.histSel);
+  return list.map((k) => ({ pts: k.pts, kind: k.kind, marks: k.marks, sel: k.id === app.histSel, title: k.who ? (member(k.who) || {}).suit || '' : '' }));
+}
+function renderCrew() {
+  if (!$('crewPanel')) return;
+  if (!CREW.length) { $('crewPanel').innerHTML = '<h2>Crew readiness</h2><p class="note">No crew listed. Add people in crew-data.js.</p>'; $('profilePanel').innerHTML = ''; $('historyPanel').innerHTML = ''; return; }
+  const L = CONFIG.CREW_LIMITS, bar = (now, after) => `<div class="meter ${after > 1 ? 'over' : after > L.marginalAt ? 'near' : ''}"><i style="width:${Math.min(100, now * 100)}%"></i><b style="left:${Math.min(100, now * 100)}%;width:${Math.max(0, Math.min(100, after * 100) - Math.min(100, now * 100))}%"></b></div>`;
+  $('crewPanel').innerHTML = `<h2>Crew readiness <span class="hint">for the planned walk</span></h2><ul class="crew">${CREW.map((m) => {
+    const v = verdictFor(m);
+    return `<li class="${m.id === app.crewSel ? 'sel' : ''}" data-act="crew" data-id="${esc(m.id)}" tabindex="0">
+      <div class="c1"><span class="cname">${esc(m.name)}</span><span class="suit">${esc(m.suit)}</span>${m.id === app.crewId ? '<span class="assigned">On this walk</span>' : ''}</div>
+      <div class="c2"><span class="verdict ${v.level}">${VICON[v.level]}${WORD[v.level]}</span><span class="why">${esc(v.reasons[0])}</span></div></li>`;
+  }).join('')}</ul><p class="note">Sample crew. Walk figures come from the engine's route.</p>`;
+
+  const m = member(app.crewSel) || CREW[0], v = verdictFor(m), st = v.st, t = app.route.totals, assigned = m.id === app.crewId;
+  $('profilePanel').innerHTML = `<div class="who"><span class="name">${esc(m.name)}</span><span class="suit">${esc(m.suit)}</span><span class="doing">${esc(m.role || '')}</span></div>
+    <div class="vbox ${v.level}"><b>${VICON[v.level]}${WORD[v.level]} for this walk</b><span class="planned">${fmt(t.timeMin)} min · ${km(t.distanceM)} · dose ${pct(t.dose)}%</span><ul>${v.reasons.map((r) => `<li>${esc(r)}</li>`).join('')}</ul></div>
+    <p class="cond"><b>Condition: ${COND[m.condition] || esc(m.condition)}.</b> ${esc(m.note || '')}</p>
+    <dl class="pstats">
+      <div><dt>Walks this week</dt><dd>${st.walks}</dd></div>
+      <div><dt>Last walk</dt><dd>${st.lastAt != null ? ago(st.lastAt) : 'None logged'}</dd></div>
+      <div><dt>Walk time this week</dt><dd>${hm(st.minutes)} h</dd></div>
+      <div><dt>Distance this week</dt><dd>${km(st.distanceM)}</dd></div></dl>
+    <div class="lim"><span class="lbl">Weekly dose</span><span class="mono">${pct(v.doseNow)}% now · ${pct(v.doseAfter)}% after this walk</span>${bar(v.doseNow, v.doseAfter)}</div>
+    <div class="lim"><span class="lbl">Weekly walk time</span><span class="mono">${fmt(st.minutes)} of ${L.weeklyWalkMin} min · ${fmt(st.minutes + (t.timeMin || 0))} after</span>${bar(v.timeNow, v.timeAfter)}</div>
+    <div class="tools"><button type="button" class="${assigned ? '' : 'primary'}" data-act="assign" ${assigned || onWalk() ? 'disabled' : ''}>${assigned ? 'Assigned to this walk' : onWalk() ? 'Walk in progress' : `Assign ${esc(m.name.split(' ')[0])} to this walk`}</button></div>`;
+
+  const list = historyList(), first = esc(m.name.split(' ')[0]), sel = app.walks.find((k) => k.id === app.histSel);
+  const tag = { sample: ['Sample log', 'Who walked and when is sample data. Path, distance, time and dose come from the engine route.'], recorded: ['Recorded', 'Recorded by this hub during a walk.'], rover: ['Real rover track', 'Curiosity positions from NASA MSL waypoints.'] };
+  $('historyPanel').innerHTML = `<h2>Route history <span class="seg"><button type="button" data-act="hist-mine" aria-pressed="${!app.histAll}">${first}</button><button type="button" data-act="hist-all" aria-pressed="${app.histAll}">Everyone</button></span></h2>
+    <ol class="hist">${list.map((k) => {
+      const who = k.who ? (member(k.who) || { suit: k.who }).suit : 'MSL';
+      return `<li class="${k.id === app.histSel ? 'sel' : ''}" data-act="walk" data-id="${esc(k.id)}" tabindex="0">
+        <div class="h1"><span class="hl">${esc(k.label)}</span><span class="tag ${k.kind}" title="${esc(tag[k.kind][1])}">${tag[k.kind][0]}</span></div>
+        <div class="h2 mono">${esc(who)} · ${k.at != null ? ago(k.at) + ' · ' : ''}${km(k.distanceM)}${k.minutes != null ? ` · ${fmt(k.minutes)} min · dose ${pct(k.dose)}%` : ''}</div>
+        <div class="h3">${k.kind === 'rover' ? esc(k.source) : `${ICON.heart} ${k.hrAvg != null ? `avg ${fmt(k.hrAvg)} · peak ${fmt(k.hrPeak)} bpm` : 'no heart rate'} · ${esc(k.outcome || '')}`}</div></li>`;
+    }).join('') || '<li class="none">No walks logged.</li>'}</ol>
+    ${sel ? `<div class="tools small"><button type="button" data-act="walk-plan">Use as plan</button><button type="button" data-act="walk-clear">Hide on map</button></div>` : '<p class="note">Pick a walk to show it on the map.</p>'}
+    ${app.recorded.length ? '<div class="tools small"><button type="button" data-act="hist-wipe">Clear recorded walks</button></div>' : ''}`;
+  const row = document.querySelector('.hist li.sel'); if (row && document.body.classList.contains('crew')) row.scrollIntoView({ block: 'nearest' });
+}
+function pickCrew(id) { app.crewSel = id; if (app.histSel && !historyList().some((k) => k.id === app.histSel)) app.histSel = null; renderAll(); }
+function assignCrew() {
+  if (onWalk()) return toast('A walk is in progress. Reset it before changing who walks.');
+  app.crewId = app.crewSel; saveChoice('crew', app.crewId); log(`${name()} assigned to the walk.`); renderAll();
+}
+function pickWalk(id) {
+  app.histSel = app.histSel === id ? null : id; const k = app.walks.find((x) => x.id === app.histSel);
+  if (k) app.map.frame(k.pts, 2.4, 420); renderAll();
+}
+// Start a new plan from a past walk: its start, its science stops (or its far point) and its end.
+function planFromWalk() {
+  const k = app.walks.find((x) => x.id === app.histSel); if (!k) return;
+  let far = k.pts[0], fd = -1; for (const p of k.pts) { const d = Math.hypot(p.x - k.pts[0].x, p.y - k.pts[0].y); if (d > fd) { fd = d; far = p; } }
+  const a = k.pts[0], b = k.pts[k.pts.length - 1], round = Math.hypot(a.x - b.x, a.y - b.y) < 2, mids = (k.stops && k.stops.length ? k.stops : round ? [far] : []).filter((p) => !round || p !== b);
+  app.draft = [{ x: a.x, y: a.y, kind: 'start' }, ...mids.map((p) => ({ x: p.x, y: p.y, kind: 'stop' })), { x: (round ? far : b).x, y: (round ? far : b).y, kind: 'end' }];
+  renumber(); app.draftDirty = true; app.planNote = 'Loaded from a past walk. Not sent yet.'; app.mode = 'plan'; renderAll();
+}
+// Records the walk in progress so it shows in the route history afterwards.
+function trackWalk(ns) {
+  if (!app.walk && onWalk(ns)) app.walk = { at: Date.now(), who: app.crewId, hrSum: 0, hrN: 0, hrPeak: 0, outcome: '', sheltered: false, snap: null };
+  const W = app.walk; if (!W) return;
+  const save = (outcome) => {
+    W.outcome = outcome;
+    const rec = { id: 'r' + W.at, who: W.who, at: W.at, ...W.snap, hrAvg: W.hrN ? Math.round(W.hrSum / W.hrN) : null, hrPeak: W.hrN ? W.hrPeak : null, outcome };
+    app.recorded = [rec, ...app.recorded.filter((r) => r.id !== rec.id)]; saveRecorded(app.recorded); rebuildWalks(); log(`Walk saved to route history: ${outcome.toLowerCase()}.`);
+  };
+  if (onWalk(ns)) {
+    const L = live(), w = app.route.waypoints, rr = ns.reroute;
+    const pts = [...w.slice(0, ns.wp + 1), ...(rr ? rr.waypoints.slice(0, rr.wp + 1) : [])].map(({ x, y }) => ({ x, y }));
+    let d = 0; for (let i = 1; i < pts.length; i++) d += Math.hypot(pts[i].x - pts[i - 1].x, pts[i].y - pts[i - 1].y);
+    W.snap = { label: `${w[0].label || 'Start'} to ${L.w.label || (rr ? 'shelter' : 'waypoint ' + ns.wp)}`, distanceM: d, minutes: L.elapsedMin, dose: L.dose ?? 0, pts };
+    const done = !rr && stopInfo().last, inShelter = !!rr && L.atShelter; if (inShelter) W.sheltered = true;
+    const outcome = done ? (W.sheltered ? 'Completed after sheltering' : 'Completed') : inShelter ? (ns.panic ? 'Sheltered after panic button' : ns.storm ? 'Sheltered from storm' : 'Sheltered on reroute') : '';
+    if (outcome && outcome !== W.outcome) save(outcome);
+  } else { if (!W.outcome && W.snap) save('Ended early'); app.walk = null; }
+}
+
 function renderMirror() { drawRing($('ring'), ringData(), { emergency: emergency() }); }
 function renderTimeline() {
   const r = app.route, L = live(), tot = Math.max(0.1, r.totals.timeMin || 0.1), p = (m) => Math.max(0, Math.min(100, m / tot * 100));
@@ -368,7 +520,7 @@ function renderLog() {
 }
 
 // ---------- input ----------
-function setMode(m) { app.mode = m; if (m === 'live') app.placing = null; renderAll(); }
+function setMode(m) { app.mode = m; if (m !== 'plan') app.placing = null; if (m === 'crew' && !app.crewSel) app.crewSel = app.crewId; renderAll(); }
 function toggleLayer(i) { const l = app.layers[i]; if (!l) return; app.layersOn.has(l.id) ? app.layersOn.delete(l.id) : app.layersOn.add(l.id); syncLayers(); }
 function focusStop(i) { app.focusStop = app.focusStop === i ? null : i; const st = app.route.stops[i]; if (app.focusStop != null && st) app.map.flyTo({ x: st.x, y: st.y, dist: Math.min(app.map.cam.dist, 420) }); renderAll(); }
 function act(a, el) {
@@ -382,6 +534,16 @@ function act(a, el) {
     case 'focus': focusStop(+el.dataset.i); break;
     case 'endstorm': if (app.state.storm) command('storm'); break;
     case 'local': startLocal(); break;
+    case 'silence': stopAlarm(); break;
+    case 'open-crew': setMode('crew'); break;
+    case 'crew': pickCrew(el.dataset.id); break;
+    case 'assign': assignCrew(); break;
+    case 'walk': pickWalk(el.dataset.id); break;
+    case 'walk-plan': planFromWalk(); break;
+    case 'walk-clear': app.histSel = null; renderAll(); break;
+    case 'hist-mine': app.histAll = false; pickCrew(app.crewSel); break;
+    case 'hist-all': app.histAll = true; renderAll(); break;
+    case 'hist-wipe': app.recorded = []; saveRecorded([]); rebuildWalks(); app.histSel = null; renderAll(); break;
   }
 }
 function wireInput() {
@@ -390,10 +552,10 @@ function wireInput() {
     const a = e.target.closest('[data-act]'); if (a) return act(a.dataset.act, a);
   });
   document.addEventListener('change', (e) => { if (e.target.dataset.layer != null) toggleLayer(+e.target.dataset.layer); });
-  $('modePlan').onclick = () => setMode('plan'); $('modeLive').onclick = () => setMode('live');
+  $('modePlan').onclick = () => setMode('plan'); $('modeLive').onclick = () => setMode('live'); $('modeCrew').onclick = () => setMode('crew');
   $('viewFit').onclick = routeView; $('viewTop').onclick = () => app.map.view('top');
   $('viewFollow').onclick = () => { app.follow = !app.follow; if (app.follow) app.map.flyTo({ x: app.astro.x, y: app.astro.y }); renderHeader(); };
-  $('soundBtn').onclick = () => { app.sound = !app.sound; renderHeader(); };
+  $('soundBtn').onclick = () => { app.sound = !app.sound; if (!app.sound) stopAlarm(); renderHeader(); renderBanner(); };
   document.addEventListener('keydown', (e) => {
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     const k = e.key.length === 1 ? e.key.toLowerCase() : e.key;
@@ -402,12 +564,18 @@ function wireInput() {
     const keys = { ArrowRight: () => command(e.shiftKey ? 'nextstop' : 'next'), ' ': () => command('next'), ArrowLeft: () => command('back'), n: () => command('nextstop'),
       s: () => command('storm'), p: () => command('panic'), r: () => command('reset'),
       t: () => app.map.view('top'), f: routeView, g: () => $('viewFollow').click(), m: () => $('soundBtn').click(),
-      h: () => document.body.classList.toggle('noPresenter'), Escape: () => { app.placing = null; app.focusStop = null; renderAll(); } };
+      c: () => setMode(app.mode === 'crew' ? 'live' : 'crew'),
+      h: () => document.body.classList.toggle('noPresenter'), Escape: () => { app.placing = null; app.focusStop = null; app.histSel = null; renderAll(); } };
     if (/^[1-9]$/.test(k)) { toggleLayer(+k - 1); return e.preventDefault(); }
     if (keys[k]) { keys[k](); e.preventDefault(); }
   });
   app.map.onClick = ({ sx, sy, world }) => {
     if (app.placing) return world ? placeAt(world) : toast('Click on the terrain.');
+    if (app.mode === 'crew') { // a click near a past walk picks it
+      let hit = null, hd = 0.9 * app.u;
+      for (const k of historyList()) for (const p of k.pts) { const q = app.map.project(p.x, p.y); const d = Math.hypot(q.x - sx, q.y - sy); if (q.ok && d < hd && k.id !== app.histSel) { hd = d; hit = k.id; } }
+      if (hit) return pickWalk(hit);
+    }
     let best = -1, bd = 1.6 * app.u;
     app.route.stops.forEach((st, i) => { const p = app.map.project(st.x, st.y); const d = Math.hypot(p.x - sx, p.y - sy); if (p.ok && d < bd) { bd = d; best = i; } });
     if (best >= 0) focusStop(best);
@@ -489,18 +657,22 @@ async function boot() {
       if (l.id === 'slope') { const c = document.createElement('canvas'); c.width = im.width; c.height = im.height; const g = c.getContext('2d', { willReadFrequently: true }); g.drawImage(im, 0, 0); app.slope = { data: g.getImageData(0, 0, im.width, im.height).data, w: im.width, h: im.height, min, max, mpp: meta.metresPerPixel }; }
     });
   }
+  // Crew: who is assigned (kept between visits), walks recorded earlier on this laptop, and the rover's real track.
+  app.crewId = (member(loadChoice('crew')) || CREW.find((m) => m.condition === 'fit') || CREW[0] || {}).id || null; app.crewSel = app.crewId;
+  app.recorded = loadRecorded(); app.rover = forceFake ? null : readSite(await getJSON(CONFIG.SITE).catch(() => null));
   setUnit(); window.addEventListener('resize', setUnit);
   setRoute(doc, false); renderLayers(); renderAll();
   app.map.onDraw = (g, now) => {
     const moving = tickAstro(now); if (moving) renderMirror();
     const L = live();
-    drawOverlay(g, app.map, { u: app.u, parking: app.terrain.parking, route: app.route, state: app.state, base: app.route.base, shelters: app.route.shelters, astro: app.astro, live: L, headingDeg: L.headingDeg, emergency: emergency(), mode: app.mode, draft: app.draft, draftDirty: app.draftDirty, focusStop: app.focusStop, name: name() }, now);
+    drawOverlay(g, app.map, { u: app.u, parking: app.terrain.parking, route: app.route, state: app.state, base: app.route.base, shelters: app.route.shelters, astro: app.astro, live: L, headingDeg: L.headingDeg, emergency: emergency(), mode: app.mode, draft: app.draft, draftDirty: app.draftDirty, focusStop: app.focusStop, name: name(), history: historyForMap() }, now);
   };
   wireInput(); renderLog();
   log(`Route loaded: ${fmt(app.route.totals.timeMin)} min, ${app.route.stops.length} science stop${app.route.stops.length === 1 ? '' : 's'}.`);
   if (note) log(note.trim(), 'caution');
   startRelay();
   setInterval(tick, 500);
+  tickVitals(); setInterval(tickVitals, 1000);
   routeView();
 }
 function setUnit() { app.u = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16; }

@@ -151,3 +151,65 @@ body.noPresenter #presenter { display: none; } body.noPresenter footer { grid-te
 
 #fatal { position: fixed; inset: 0; background: var(--bg); padding: 3rem; z-index: 10; } #fatal h1 { margin-top: 0; } #fatal code { font-family: var(--mono); color: var(--amber); }
 [hidden] { display: none !important; }
+
+/* heart rate and wristband battery (inside the astronaut panel) */
+h2 .hint { text-transform: none; letter-spacing: 0; font-weight: 400; }
+.suit { font-size: 0.75rem; color: var(--muted); border: 1px solid var(--line2); border-radius: 0.3rem; padding: 0 0.35rem; white-space: nowrap; }
+.vitals { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.5rem; margin-top: 0.6rem; padding-top: 0.6rem; border-top: 1px solid var(--line); }
+.vit { display: flex; flex-direction: column; gap: 0.15rem; padding: 0.45rem 0.55rem; background: var(--panel2); border: 1px solid var(--line); border-radius: 0.4rem; min-width: 0; }
+.vit .lbl { display: flex; align-items: center; gap: 0.3rem; white-space: nowrap; }
+.vit .lbl .ic { stroke: var(--blue); }
+.vrow { display: flex; align-items: center; gap: 0.5rem; }
+.vit .val { flex: none; font-size: 1.7rem; font-weight: 600; line-height: 1.1; } .vit small { font-size: 0.78rem; font-weight: 500; color: var(--muted); margin-left: 0.25rem; }
+.vit .vnote { font-size: 0.7rem; color: var(--muted); display: flex; align-items: center; gap: 0.25rem; }
+.vit.warn { background: var(--amberbg); border-color: var(--amberline); } .vit.warn .vnote, .vit.warn .lbl { color: #ffe3ad; } .vit.warn .lbl .ic { stroke: var(--amber); }
+.sim { font-style: normal; font-size: 0.64rem; color: var(--amber); border: 1px solid var(--amberline); border-radius: 99rem; padding: 0 0.35rem; }
+.spark { flex: 1; min-width: 0; height: 1.7rem; display: block; }
+.spark polyline { fill: none; stroke: var(--blue); stroke-width: 1.6; vector-effect: non-scaling-stroke; stroke-linejoin: round; }
+.spark .limit { stroke: var(--amber); stroke-width: 1; stroke-dasharray: 3 3; vector-effect: non-scaling-stroke; opacity: 0.7; }
+.vit.warn .spark polyline { stroke: var(--amber); }
+.batt { flex: 1; height: 0.6rem; background: #2a303a; border-radius: 99rem; overflow: hidden; } .batt i { display: block; height: 100%; background: var(--green); border-radius: 99rem; transition: width 0.6s; }
+.vit.warn .batt i { background: var(--amber); }
+.stale .vit .val, .stale .spark, .stale .batt { opacity: 0.45; }
+
+/* Crew screen: the roster replaces the route on the left, the profile and route history replace the live panels on the right */
+#crewPanel, #profilePanel, #historyPanel { display: none; }
+body.crew #crewPanel, body.crew #profilePanel { display: block; }
+body.crew #historyPanel { display: flex; flex-direction: column; flex: 1 1 auto; min-height: 11rem; }
+body.crew #routePanel, body.crew #briefPanel, body.crew #astroPanel, body.crew #stopPanel, body.crew #mirrorPanel { display: none; }
+ul { list-style: none; margin: 0; padding: 0; }
+.crew li { padding: 0.5rem 0.55rem; margin: 0 -0.2rem; border-top: 1px solid var(--line); border-left: 0.2rem solid transparent; cursor: pointer; }
+.crew li:hover { background: var(--panel2); } .crew li.sel { background: var(--panel2); border-left-color: var(--blue); }
+.c1 { display: flex; align-items: center; gap: 0.4rem; min-width: 0; } .cname { font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.assigned { margin-left: auto; font-size: 0.66rem; color: var(--blue); border: 1px solid var(--blue); border-radius: 99rem; padding: 0 0.4rem; white-space: nowrap; }
+.c2 { display: flex; align-items: baseline; gap: 0.5rem; margin-top: 0.25rem; }
+.verdict { display: inline-flex; align-items: center; gap: 0.25rem; font-size: 0.8rem; font-weight: 700; white-space: nowrap; flex: none; }
+.verdict.fit { color: var(--green); } .verdict.marginal { color: var(--amber); } .verdict.no { color: #0e1116; background: var(--amber); border-radius: 0.3rem; padding: 0 0.35rem; }
+.verdict .ic { stroke: currentColor; }
+.why { font-size: 0.76rem; color: var(--muted); line-height: 1.25; }
+.vbox { border: 1px solid var(--line2); border-left-width: 0.3rem; border-radius: 0.4rem; padding: 0.5rem 0.65rem; margin-bottom: 0.55rem; background: var(--panel2); }
+.vbox b { display: flex; align-items: center; gap: 0.35rem; font-size: 1.05rem; } .vbox .ic { stroke: currentColor; }
+.vbox.fit { border-color: var(--green); } .vbox.fit b { color: var(--green); }
+.vbox.marginal, .vbox.no { border-color: var(--amber); } .vbox.marginal b, .vbox.no b { color: var(--amber); } .vbox.no { background: var(--amberbg); }
+.vbox .planned { display: block; font-size: 0.74rem; color: var(--muted); margin: 0.1rem 0 0.3rem; }
+.vbox ul { font-size: 0.84rem; color: #c9d1db; } .vbox li { padding-left: 0.8rem; position: relative; line-height: 1.35; } .vbox li::before { content: ''; position: absolute; left: 0.1rem; top: 0.55em; width: 0.3rem; height: 0.3rem; border-radius: 50%; background: currentColor; }
+.cond { margin: 0 0 0.55rem; font-size: 0.84rem; color: #c9d1db; } .cond b { color: var(--text); }
+.pstats { margin-bottom: 0.6rem; }
+.lim { display: grid; grid-template-columns: auto 1fr; align-items: baseline; gap: 0.1rem 0.6rem; margin-bottom: 0.55rem; } .lim .mono { font-size: 0.76rem; text-align: right; color: #c9d1db; }
+.meter { grid-column: 1 / -1; position: relative; height: 0.55rem; background: #2a303a; border-radius: 99rem; overflow: hidden; }
+.meter i { position: absolute; left: 0; top: 0; bottom: 0; background: var(--blue); }
+.meter b { position: absolute; top: 0; bottom: 0; background: repeating-linear-gradient(135deg, var(--blue) 0 0.2rem, #2f5d8f 0.2rem 0.4rem); }
+.meter.near b, .meter.over b { background: repeating-linear-gradient(135deg, var(--amber) 0 0.2rem, #8a6414 0.2rem 0.4rem); }
+.seg { display: inline-flex; gap: 0.2rem; } .seg button { min-height: 1.6rem; padding: 0 0.55rem; font-size: 0.72rem; text-transform: none; letter-spacing: 0; }
+#historyPanel h2 { align-items: center; }
+.hist { flex: 1 1 auto; min-height: 5rem; overflow-y: auto; scrollbar-width: thin; margin-bottom: 0.5rem; }
+.hist li { padding: 0.4rem 0.5rem; border-top: 1px solid var(--line); border-left: 0.2rem solid transparent; cursor: pointer; } .hist li.none { cursor: default; color: var(--muted); font-size: 0.85rem; }
+.hist li[data-act]:hover { background: var(--panel2); } .hist li.sel { background: var(--panel2); border-left-color: #c4a8ff; }
+.h1 { display: flex; align-items: baseline; gap: 0.5rem; } .hl { flex: 1; min-width: 0; font-size: 0.9rem; font-weight: 600; }
+.hist .tag { flex: none; font-size: 0.64rem; border: 1px solid var(--line2); border-radius: 99rem; padding: 0 0.4rem; color: var(--muted); white-space: nowrap; }
+.hist .tag.rover { color: var(--green); border-color: var(--green); } .hist .tag.recorded { color: var(--blue); border-color: var(--blue); }
+.h2 { font-size: 0.74rem; color: #c9d1db; margin-top: 0.1rem; } .h3 { font-size: 0.72rem; color: var(--muted); display: flex; align-items: center; gap: 0.25rem; }
+
+/* who is walking, in the briefing */
+.assignRow { display: flex; align-items: center; gap: 0.45rem; margin-top: 0.6rem; padding-top: 0.55rem; border-top: 1px solid var(--line); font-size: 0.88rem; cursor: pointer; }
+.assignRow:hover .cname { text-decoration: underline; } .assignRow .verdict { margin-left: auto; }

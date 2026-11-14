@@ -1,6 +1,6 @@
 // Everything drawn on top of the terrain: routes, shelters, stops, base, the astronaut.
 // Drawn in 2D so lines stay thick and labels stay readable on a projector.
-const BLUE = '#5aa9ff', AMBER = '#f5a623', RED = '#ff5a52', INK = '#0b0e13';
+const BLUE = '#5aa9ff', AMBER = '#f5a623', RED = '#ff5a52', INK = '#0b0e13', PAST = '#c4a8ff';
 
 export function drawOverlay(g, map, v, now) {
   const u = v.u, P = (p, lift) => map.project(p.x, p.y, lift);
@@ -34,6 +34,9 @@ export function drawOverlay(g, map, v, now) {
     if (isTarget || (isNear && clear)) pill(s, isTarget ? 'Shelter' : `Shelter ${fmt(live.shelterMin)} min`, { dy: 1.5, bold: isTarget });
   }
 
+  // past walks (route history): faint lines under the route
+  for (const h of v.history || []) if (!h.sel) stroke(h.pts, PAST, 2.2, h.kind === 'rover' ? [2, 6] : [], 0.5);
+
   // main route: walked part solid, rest dashed
   const here = { x: astro.x, y: astro.y };
   if (rr) {
@@ -53,6 +56,14 @@ export function drawOverlay(g, map, v, now) {
   if (v.mode === 'plan' && v.draftDirty) {
     stroke(v.draft, '#ffffff', 2, [4, 7]);
     v.draft.forEach((p, i) => { const s = P(p); if (!s.ok) return; g.beginPath(); g.arc(s.x, s.y, 0.5 * u, 0, 7); g.fillStyle = INK; g.fill(); g.strokeStyle = '#ffffff'; g.lineWidth = 0.14 * u; g.stroke(); pill(s, p.kind === 'stop' ? p.name : p.kind === 'start' ? 'Start' : 'End', { bold: false }); });
+  }
+
+  // the past walk picked in the route history, over the route so it can be told apart
+  for (const h of v.history || []) if (h.sel) {
+    stroke(h.pts, PAST, 3.6, h.kind === 'rover' ? [2, 7] : []);
+    for (const m of h.marks || []) { const s = P(m); if (!s.ok) continue; g.beginPath(); g.arc(s.x, s.y, 0.34 * u, 0, 7); g.fillStyle = PAST; g.fill(); g.lineWidth = 0.12 * u; g.strokeStyle = INK; g.stroke(); if (m.sol != null) pill(s, 'Sol ' + m.sol, { dy: -1.2, bold: false, color: PAST }); }
+    let far = h.pts[0], fd = -1; for (const p of h.pts) { const d = Math.hypot(p.x - h.pts[0].x, p.y - h.pts[0].y); if (d > fd) { fd = d; far = p; } }
+    const s = P(far); if (s.ok && !(h.marks || []).length) pill(s, h.title, { dy: 1.5, color: INK, bg: PAST });
   }
 
   // stops
