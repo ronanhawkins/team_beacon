@@ -2,7 +2,19 @@
 
 The supplied screenshots are the functional checklist. The user's later native Unity/USB requirement replaces their original browser/HTTPS/Three.js delivery instructions. The current export is the authority for numbers and shelter ids.
 
-**Current target: 0.19 Jezero.** The wearer explicitly switched from Murray Buttes to Jezero. Historical Gale reference values below remain evidence for earlier builds, not the current Jezero mission. The wearer resumed live testing after the earlier deferral.
+**Current target: 0.20 Jezero.** The wearer explicitly switched from Murray Buttes to Jezero. Historical Gale reference values below remain evidence for earlier builds, not the current Jezero mission. The wearer resumed live testing after the earlier deferral.
+
+## Version 0.20 base habitat and real arrival photographs
+
+The VR base is anchored to the exported Jezero base at **(1500, 1350)** in mission metres. A pressure module, solar racks, antenna and supply cases use **660 triangles in one coloured mesh**, plus the sign and simple collision boxes. The 3 m central arrival/reset apron stays clear. Everything is parented to the measured terrain and disappears in AR. This is illustrative habitation, not a real Mars structure or new shelter data.
+
+A compact photo appears above the right HUD column for 12 seconds at named arrivals. Three Forks uses **PIA25681**; the delta uses a cropped, enhanced-colour **PIA24921** panorama. These show the real areas, not a claimed exact camera pose. Base/end arrivals without a rover photo use an 80 m HiRISE crop and correctly positioned marker. All images are bundled offline, preserve their aspect ratio and include credits. Dense route samples do not trigger cards. VR requires arrival within 2.5 m; AR follows the selected presenter stop. Cards yield to emergencies, hide offline, do not repeat each frame, and can reappear after reset.
+
+**40 focused base/photo checks passed**, and five editor previews were rendered and visually inspected. Checks cover registration after calibration, the clear apron, AR hiding, the shader, packaged photos, arrival before/after relay acknowledgement, expiry, no repeated popups, remote-stop suppression, panorama selection, offline/emergency hiding, AR arrival, satellite fallback, reset and wrong-site rejection. The first preview caught Unity importing the new image assets as cubemaps; explicit 2D import with preserved aspect ratio fixed that before packaging. Existing storm, sprint and route suites were not rerun, as requested.
+
+Local preview evidence: `.local/arrival20-previews/`; focused log: `.local/unity-arrival20-preview.log`. No private-room recording or headset screenshot was made.
+
+The Android build succeeded and the copied APK matches its SHA-256. The Quest independently reports **0.20.0 / code 20**, installed at **23:37:14**. Live startup logs confirm the base at `(1500, 1350)` and the packaged HiRISE arrival card. The wearer entered VR and walked/sprinted; two sampled steady windows reported **72.0 fps / p95 13.9 ms**. USB mission forwarding is active. These are startup observations, not a repeated end-to-end route test. Local device evidence: `.local/quest20-live-check.log`.
 
 ## Version 0.19 storm alarm and hold-to-stop
 

@@ -18,8 +18,8 @@ namespace Beacon
         readonly TMP_Text[] readingCaptions=new TMP_Text[5];
         static readonly string[] Captions={"SHELTER","BASE","SUNLIGHT","OXYGEN","DOSE USED"};
         static readonly string[] LastCaptions={"SHELTER","LAST BASE","LAST SUN","LAST O2","LAST DOSE"};
-        TMP_Text openSky,skyCaption,science,scienceCaption,alert,viewMode,nextDistance;
-        RectTransform sciencePanel;
+        TMP_Text openSky,skyCaption,alert,viewMode,nextDistance;
+        public WaypointPhotoCard ArrivalPhoto {get;private set;}
         RectTransform feedbackPanel;
         TMP_Text feedback;
         CompassGraphic compass;
@@ -62,10 +62,8 @@ namespace Beacon
             var sky=Surface("Open sky",-26,2,250,96,.32f);
             skyCaption=Text(sky,"OPEN SKY",0,29,230,24,19,Muted);
             openSky=Text(sky,"--%",0,-11,230,65,46,Mint);
-            sciencePanel=Surface("Science stop",26,11,280,80,.34f);
-            BeaconUi.Backing(sciencePanel,280,80,new Color(.025f,.04f,.055f,.42f));
-            scienceCaption=Text(sciencePanel,"SCIENCE STOP",0,24,258,22,18,Muted);
-            science=Text(sciencePanel,"",0,-12,258,48,28,White);
+            ArrivalPhoto=new WaypointPhotoCard(Surface("Arrival photo",28,13,300,252,.34f),font);
+            relay.SimulationReset+=ResetArrivalPhoto;
 
             var tape=Surface("Lowered compass",0,16,CompassWidth,88,.84f);
             BeaconUi.Backing(tape,CompassWidth,88,new Color(.025f,.04f,.055f,.32f));
@@ -112,9 +110,6 @@ namespace Beacon
             for(int i=0;i<readings.Length;i++)
             { readings[i].color=live ? White : Muted; readingCaptions[i].text=!live && s!=null ? LastCaptions[i] : Captions[i]; }
             if(live) { readings[1].color=s.baseLink ? Mint : Amber; readings[3].color=Mint; }
-            bool showScience=live && p.isScienceStop;
-            sciencePanel.gameObject.SetActive(showScience);
-            if(showScience) { scienceCaption.text="SCIENCE STOP"; science.text=p.Name; }
             waypoint.gameObject.SetActive(live && sel.Next!=null);
             waypointGraphic.color=s?.Emergency==true ? Red : sel?.Reroute==true ? Amber : new Color(.45f,.8f,1);
             bool emergency=s?.Emergency==true;
@@ -154,6 +149,7 @@ namespace Beacon
             bool walking=missionView.Immersive && missionView.vrScenery!=null && missionView.vrScenery.Active;
             var selection=relay.Selection;
             var navigationPosition=walking ? missionView.vrScenery.Position:selection?.Point.pos;
+            ArrivalPhoto.Tick(relay.State,selection,relay.Site,navigationPosition,walking,relay.Connected,Time.unscaledTime);
             int goal=relay.Connected ? (walking ? missionView.vrScenery.WaypointIndex : WalkNavigation.WaypointIndex(selection,navigationPosition)):-1;
             int target=relay.Connected ? (walking ? missionView.vrScenery.TargetIndex : WalkNavigation.TargetIndex(selection,navigationPosition)):-1;
             bool hasTarget=goal>=0 && target>=0;
@@ -195,6 +191,7 @@ namespace Beacon
                 readingCaptions[0].text=shelterNoticeCaption;readings[0].text=shelterNotice;readings[0].fontSize=24;
             }
         }
+        void ResetArrivalPhoto() => ArrivalPhoto?.Reset();
         void ShowFeedback(string text,float seconds=2.5f) { feedback.text=text; feedbackUntil=Time.unscaledTime+seconds; }
         void OnRecenter() => ShowFeedback("VIEW RECENTERED");
         void OnFeedback(string text) => ShowFeedback(text,4);
@@ -279,7 +276,7 @@ namespace Beacon
         void OnDestroy()
         {
             if(Application.isPlaying) OVRInput.SetControllerVibration(0,0,OVRInput.Controller.RTouch);
-            if(relay!=null) relay.Changed-=Refresh;
+            if(relay!=null) {relay.Changed-=Refresh;relay.SimulationReset-=ResetArrivalPhoto;}
             if(missionView!=null) missionView.Recentered-=OnRecenter;
             if(missionView!=null) missionView.ActionFeedback-=OnFeedback;
             if(sound!=null && sound.clip!=null) { if(Application.isPlaying) Destroy(sound.clip); else DestroyImmediate(sound.clip); }

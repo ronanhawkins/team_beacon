@@ -14,7 +14,7 @@ The laptop relay remains the authority. The app loads `/session.json` and that s
 - In AR and VR, the six stat readings have no dark backing boxes; the text retains its outline. The obsolete B-hold progress bar is removed.
 - The compass sits 16 degrees above forward gaze. Its arrow follows the next unpassed route point, while the number shows direct distance to the next named mission stop, falling back to the route endpoint after the final stop or the chosen shelter on a diversion. AR measures from the current exported route point, and VR from the wearer's actual virtual position. The watch remains the detailed turn navigator; there is no route line or mini-map.
 - VR also shows one beacon at that same destination's measured terrain position: a tapered light column, a small ground ring and an outlined distance label. It stays anchored as the wearer moves, turns amber for a shelter diversion and warm orange during a storm. Arrival hides it until the next mission stop is acknowledged; it disappears at the final destination and while offline. AR keeps the compass cue without placing Mars geometry into the room.
-- Open-sky percentage is prominent on the left. A named science-stop card appears above the right column. The HUD plane remains 1.2 m forward.
+- Open-sky percentage is prominent on the left. A small arrival-photo card appears above the right column for 12 seconds at named stops, base and the endpoint. In VR it requires arrival within 2.5 m; AR follows the presenter. Real rover photographs cover Three Forks and the delta area; other named arrivals show their actual HiRISE satellite location. The card preserves photo aspect ratio, avoids repeated popups and hides during emergencies. The HUD plane remains 1.2 m forward.
 - The ring uses the current waypoint's 72 skyline samples, with faint warm shading above the horizon in AR and N/E/S/W labels. The floating contour line is removed in both AR and VR, and the VR scenery has no artificial blocked-sky fill. There is no flat horizontal baseline or fill over the ground. Sample heights blend as the route advances. North is calibrated once and remains fixed across route changes and head turns; explicit left-stick recentering can recalibrate it.
 - Sun and Earth markers use supplied azimuth, elevation and visibility. Earth includes the relay's delay. Base includes its supplied distance and dims on loss of contact. Shelter includes the supplied walking minutes and pulses during emergencies. Base and shelter destination markers disappear at arrival; the side stat still says “In shelter”. These markers describe the mission view, not furniture.
 - Warning mode shows an amber border and reason. Storm mode shows a red border, “Solar storm, take cover”, five seconds of beeps and a pulsing shelter marker. The alarm plays once when a live solar storm starts; repeated updates and reconnecting to the same storm do not replay it. Ending the storm or resetting stops the sound early. Arrival says “In shelter” and keeps the shelter skyline and active storm warning.
@@ -82,7 +82,7 @@ Install the official scrcpy Windows 5.0.1 release under `.local/scrcpy/`. For lo
 
 ## Verified demo
 
-Version **0.19.0 / code 19** adds a five-second pulsed solar-storm alarm and a one-second B hold to stop an active storm. It keeps A reset and completed-beacon behaviour. The launcher updates older relays to support storm-stop commands during walking. See [acceptance evidence](ACCEPTANCE.md).
+Version **0.20.0 / code 20** adds a lightweight habitat at the exported Jezero base and offline arrival photographs. The base includes a pressure module, solar racks, an antenna and supply cases; a clear central apron remains available for arrival and reset. It appears only in VR and follows terrain calibration. The habitat is illustrative scenery, not a real structure or new shelter-planner input. Storm controls and navigation are unchanged. See [acceptance evidence](ACCEPTANCE.md).
 
 Version **0.18.0 / code 18** maps a single right B press to storm and a single right A press to a confirmed simulation reset, including VR position. It also keeps reached final beacons completed when walking away, fixing the backward arrow reported after arrival. The launcher detects and restarts an older local relay to enable command acknowledgements. See [acceptance evidence](ACCEPTANCE.md).
 
@@ -121,6 +121,10 @@ The 0.3.0 development APK replaces the dashboard with the small corner readouts 
 The 0.2.0 development APK was built and installed on Quest 3 over USB on 14 November 2026. The wearer confirmed room passthrough with the HUD, and the laptop USB mirror. On-device logs confirmed main waypoint 9, storm reroute 9, the next shelter-route waypoint, and reset to main waypoint 0. The Unity checks passed for canonical fixtures and all 31 exported shelter routes; the relay's 16 Node tests and 9 fixture checks also passed.
 
 Keep the headset on during the live demonstration: taking it off can pause Unity and temporarily disconnect mission data. It reconnects when the app resumes. Use the laptop hub or `/debug` presenter controls for Next, Storm and Reset. Reset before handing the headset to the next wearer. The current scene shows the Mars route as a HUD demonstration; it does not guide walking around room obstacles.
+
+## Arrival photo assets
+
+[Photo provenance and mapping](Assets/Resources/WaypointPhotos/README.md). NASA photographs are bundled in the APK; no image download is needed on the Quest. `BeaconArrivalPreview.Render` checks the new base placement, clear apron, AR hiding, correct arrival photographs, expiry, reset and emergency behaviour, and writes local editor previews.
 
 ## Credits
 

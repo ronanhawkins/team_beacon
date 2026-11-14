@@ -1,0 +1,25 @@
+{
+  "site": "jezero",
+  "west": 1136,
+  "south": 1228,
+  "extent": 600,
+  "photos": [
+    {
+      "waypoint": "m03",
+      "x": 1478.1,
+      "y": 1308.5,
+      "resource": "PIA25681",
+      "caption": "Three Forks · rover photo",
+      "credit": "NASA/JPL-Caltech/MSSS"
+    },
+    {
+      "waypoint": "m37",
+      "x": 1358.3,
+      "y": 1662.7,
+      "resource": "PIA24921",
+      "crop": [0.49, 0.27, 0.43, 0.70],
+      "caption": "Delta area · enhanced colour",
+      "credit": "NASA/JPL-Caltech/ASU/MSSS"
+    }
+  ]
+}
