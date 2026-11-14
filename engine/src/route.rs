@@ -49,6 +49,8 @@ pub struct PlanInputs<'a> {
     pub dose_rate_ugy_h: Option<f64>,
     /// DONKI forecasts for the briefing (space.rs), when known.
     pub space_weather: Option<Value>,
+    /// REMS conditions for the briefing (rems.rs), when known.
+    pub conditions: Option<Value>,
     pub stops: Vec<Stop>,
 }
 
@@ -569,6 +571,9 @@ pub fn run(inp: &PlanInputs, out_dir: &Path) -> Result<(), String> {
     }
     if let Some(sw) = &inp.space_weather {
         briefing["spaceWeather"] = sw.clone();
+    }
+    if let Some(c) = &inp.conditions {
+        briefing["conditions"] = c.clone();
     }
 
     // Write files.

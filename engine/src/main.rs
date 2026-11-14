@@ -18,6 +18,7 @@
 mod decision;
 mod layers;
 mod planner;
+mod rems;
 mod route;
 mod sight;
 mod skyline;
@@ -37,6 +38,7 @@ const LAYERS_DIR: &str = "data/out/layers";
 const SITE_JSON: &str = "data/site.json";
 const RAD_CACHE: &str = "data/cache/rad_storm.json";
 const DONKI_CACHE: &str = "data/cache/donki_mars.json";
+const REMS_CACHE: &str = "data/cache/rems.json";
 
 // Settings matching referenceCheck.method in data/site.json.
 const EYE_HEIGHT_M: f64 = 1.0;
@@ -56,6 +58,7 @@ const PROOF_MAX_DIST_M: f64 = 700.0;
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct Site {
+    parking_spot: ParkingSpot,
     near_crop: NearCrop,
     reference_check: ReferenceCheck,
     paper_target: PaperTarget,
@@ -71,6 +74,14 @@ struct Site {
     /// The briefing's spaceWeather, from data/cache/donki_mars.json when present.
     #[serde(skip)]
     space_weather: Option<serde_json::Value>,
+    /// The briefing's conditions and a sunset check line, from data/cache/rems.json when present.
+    #[serde(skip)]
+    conditions: Option<(serde_json::Value, String)>,
+}
+
+#[derive(Deserialize)]
+struct ParkingSpot {
+    lon: f64,
 }
 
 /// The fields of data/cache/rad_storm.json (tools/fetch_rad.py) that the engine uses.
@@ -172,6 +183,7 @@ fn load_site(root: &Path) -> Result<Site, String> {
         site.storm.dose_multiplier = rad.mean_multiplier_above;
     }
     site.space_weather = load_space_weather(root, &site);
+    site.conditions = load_conditions(root, &site);
     Ok(site)
 }
 
@@ -183,6 +195,18 @@ fn load_space_weather(root: &Path, site: &Site) -> Option<serde_json::Value> {
         Ok(v) => Some(v),
         Err(e) => {
             eprintln!("warning: cannot read {DONKI_CACHE} ({e}); the briefing has no spaceWeather");
+            None
+        }
+    }
+}
+
+/// REMS conditions for the briefing, or None (with a warning if the file is there but unreadable).
+fn load_conditions(root: &Path, site: &Site) -> Option<(serde_json::Value, String)> {
+    let text = std::fs::read_to_string(root.join(REMS_CACHE)).ok()?;
+    match serde_json::from_str::<rems::Cache>(&text).map_err(|e| e.to_string()).and_then(|c| rems::briefing(&c, &site.sky.time_u_t, site.parking_spot.lon)) {
+        Ok(v) => Some(v),
+        Err(e) => {
+            eprintln!("warning: cannot read {REMS_CACHE} ({e}); the briefing has no conditions");
             None
         }
     }
@@ -442,6 +466,9 @@ fn plan_command(root: &Path, stops_arg: Option<&str>, out: Option<&str>) -> Resu
         return Err("a plan needs at least two stops".into());
     }
     let out_dir = out.map_or_else(|| root.join("data/out"), PathBuf::from);
+    if let Some((_, line)) = &site.conditions {
+        println!("{line}\n");
+    }
     let inputs = plan_inputs(&site, &grid, &far72, &far360, stops);
     route::run(&inputs, &out_dir)
 }
@@ -460,6 +487,7 @@ fn plan_inputs<'a>(site: &Site, grid: &'a terrain::Grid, far72: &'a [f32], far36
         base_dose_factor: site.base.dose_factor,
         dose_rate_ugy_h: site.rad.as_ref().map(|r| r.baseline_rate),
         space_weather: site.space_weather.clone(),
+        conditions: site.conditions.as_ref().map(|c| c.0.clone()),
         stops,
     }
 }

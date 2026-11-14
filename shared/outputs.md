@@ -41,3 +41,17 @@ Added when the engine has the DONKI forecasts (`data/cache/donki_mars.json`):
 | `spaceWeather.searched` | string | Dates of the forecasts searched |
 | `spaceWeather.may2024` | string | One line on the forecasts for the May 2024 storm |
 | `spaceWeather.source`, `windowHours` | | Where the data came from, and the window |
+
+Added when the engine has the REMS weather feed (`data/cache/rems.json`). Values are from the latest sol in the feed, which may be weeks before the sky time (`daysBeforeSkyTime`). The feed is for outreach use only (`disclaimer`). Missing values are null.
+
+| Field | Type | Meaning |
+|---|---|---|
+| `conditions.sol`, `earthDate`, `daysBeforeSkyTime` | | Which sol the values are from |
+| `conditions.minAirTempC`, `maxAirTempC` | number | Air temperature, degrees C |
+| `conditions.minGroundTempC`, `maxGroundTempC` | number | Ground temperature, degrees C |
+| `conditions.pressurePa` | number | Air pressure, pascals |
+| `conditions.uvIndex`, `opacity`, `season` | string | As the feed gives them (for example "Moderate", "Sunny", "Month 12") |
+| `conditions.sunrise`, `sunset` | string | Local mean solar time at the rover, "HH:MM" |
+| `conditions.ls` | number | Solar longitude of that sol, degrees |
+| `conditions.skyTimeLocal` | `{lmst, ltst, ls}` | The sky time as local mean and true solar time at the site, and its solar longitude (Mars24 algorithm) |
+| `conditions.source`, `disclaimer` | string | Where the data came from, and the feed's disclaimer |
