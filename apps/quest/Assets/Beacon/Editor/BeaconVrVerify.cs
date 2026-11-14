@@ -59,16 +59,30 @@ public static class BeaconVrVerify
             var prior=scenery.playerRoot.position;scenery.Step(Vector2.up,Vector2.zero,0,.02f);Physics.SyncTransforms();
             Check(Vector3.Distance(prior,scenery.playerRoot.position)<.3f,"stick movement has no teleport jumps");
         }
-        Check(Vector3.Distance(start,scenery.playerRoot.position)>1,"left stick produces continuous movement");
+        float walked=Vector3.ProjectOnPlane(scenery.playerRoot.position-start,Vector3.up).magnitude;
+        Check(walked>1,"left stick produces continuous movement");
         float yaw=rig.centerEyeAnchor.eulerAngles.y;scenery.Step(Vector2.zero,Vector2.right,0,.02f);
         Check(Mathf.Abs(Mathf.DeltaAngle(yaw,rig.centerEyeAnchor.eulerAngles.y)-.8f)<.01f,"right stick turns smoothly");
         Check(JsonConvert.SerializeObject(relay.State)==beforeState,"walking and turning leave the mission route unchanged");
         Check(view.NorthYaw==north && Vector3.Angle(view.SkyDirection(p.sun),sun)<.01f,"walking and turning preserve the measured Sun frame");
         Check(BeaconVrScenery.Stick(new Vector2(.1f,0))==Vector2.zero,"stick dead zone");
         Check(Mathf.Abs(BeaconVrScenery.Stick(Vector2.one).magnitude-1)<.001f,"diagonal speed normalization");
+        view.SetImmersive(false);view.SetImmersive(true);Physics.SyncTransforms();
+        for(int i=0;i<50;i++) {scenery.Step(Vector2.zero,Vector2.zero,0,.02f);Physics.SyncTransforms();}
+        start=scenery.playerRoot.position;
+        for(int i=0;i<100;i++)
+        {
+            var prior=scenery.playerRoot.position;scenery.Step(Vector2.up,Vector2.zero,1,.02f);Physics.SyncTransforms();
+            Check(Vector3.Distance(prior,scenery.playerRoot.position)<.3f,"sprint remains gradual and collision bounded");
+        }
+        Check(scenery.Sprinting && Vector3.ProjectOnPlane(scenery.playerRoot.position-start,Vector3.up).magnitude>walked*1.5f,"grip sprint traverses more ground than walking in the same time");
+        for(int i=0;i<50;i++) {scenery.Step(Vector2.zero,Vector2.zero,1,.02f);Physics.SyncTransforms();}
+        Check(!scenery.Sprinting && scenery.Speed<.1f,"release movement stops sprint even with grip held");
+        Check(JsonConvert.SerializeObject(relay.State)==beforeState,"sprinting never changes the mission route");
+        Check(terrain.cosmeticDetail!=null,"synthetic surface detail is bundled");
         view.SetImmersive(false);var arPosition=scenery.playerRoot.position;
         scenery.Step(Vector2.up,Vector2.right,1,.05f);
-        Check(!terrain.gameObject.activeSelf && !view.passthrough.hidden,"AR restores passthrough and hides VR terrain");
+        Check(!terrain.gameObject.activeSelf && !view.passthrough.hidden && !scenery.Sprinting,"AR restores passthrough and hides VR terrain / sprint");
         Check(arPosition==Vector3.zero && scenery.playerRoot.position==arPosition && scenery.playerRoot.rotation==Quaternion.identity,"AR restores the physical tracking frame and ignores sticks");
         Check(!ShaderUtil.ShaderHasError(terrain.surfaceShader),"photo shader compiles");
         Check(File.Exists("Assets/StreamingAssets/ThirdParty/AccessMars-LICENSE.txt"),"redistributed licence is included in APK assets");

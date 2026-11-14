@@ -46,22 +46,22 @@ namespace Beacon
         {
             if(root!=null) return;
             root=BeaconUi.Rect("Readable peripheral HUD",rig.centerEyeAnchor,0,0,1,1); root.localPosition=Vector3.zero;
-            var strip=Surface("Quiet mission line",0,-18,1000,74,1.1f);
-            BeaconUi.Backing(strip,1000,74,new Color(.025f,.04f,.055f,.58f));
             for(int i=0;i<5;i++)
             {
-                float x=(i-2)*200;
-                readingCaptions[i]=Text(strip,Captions[i],x,25,188,27,20,Muted);
-                readings[i]=Text(strip,"--",x,-11,188,48,36,White);
+                bool left=i>=3;float pitch=left ? (i==3 ? -7:-16) : 2-i*9;
+                var card=Surface("Side reading "+Captions[i],left ? -24:24,pitch,250,88,.32f);
+                BeaconUi.Backing(card,250,88,new Color(.025f,.04f,.055f,.44f));
+                readingCaptions[i]=Text(card,Captions[i],0,25,230,25,19,Muted);
+                readings[i]=Text(card,"--",0,-12,230,52,36,White);
             }
-            var sky=Surface("Open sky",-24,-6,210,102,.29f);
-            BeaconUi.Backing(sky,210,102,new Color(.025f,.04f,.055f,.40f));
-            skyCaption=Text(sky,"OPEN SKY",0,31,190,24,19,Muted);
-            openSky=Text(sky,"--%",0,-11,190,65,46,Mint);
-            sciencePanel=Surface("Science stop",24,-6,280,102,.36f);
-            BeaconUi.Backing(sciencePanel,280,102,new Color(.025f,.04f,.055f,.48f));
-            scienceCaption=Text(sciencePanel,"SCIENCE STOP",0,29,258,25,18,Muted);
-            science=Text(sciencePanel,"",0,-10,258,55,28,White);
+            var sky=Surface("Open sky",-24,2,250,96,.32f);
+            BeaconUi.Backing(sky,250,96,new Color(.025f,.04f,.055f,.40f));
+            skyCaption=Text(sky,"OPEN SKY",0,29,230,24,19,Muted);
+            openSky=Text(sky,"--%",0,-11,230,65,46,Mint);
+            sciencePanel=Surface("Science stop",24,11,280,80,.34f);
+            BeaconUi.Backing(sciencePanel,280,80,new Color(.025f,.04f,.055f,.42f));
+            scienceCaption=Text(sciencePanel,"SCIENCE STOP",0,24,258,22,18,Muted);
+            science=Text(sciencePanel,"",0,-12,258,48,28,White);
 
             var tape=Surface("Lowered compass",0,16,CompassWidth,88,.84f);
             BeaconUi.Backing(tape,CompassWidth,88,new Color(.025f,.04f,.055f,.32f));
@@ -87,11 +87,12 @@ namespace Beacon
             decision=Text(decisionPanel,"",0,0,1090,42,24,White);
             var source=Surface("Data credit",0,-26,1100,28,1.12f);
             credit=Text(source,"",0,0,1100,28,18,Muted);
-            feedbackPanel=Surface("Brief action feedback",0,-12.5f,520,54,.64f);
-            BeaconUi.Backing(feedbackPanel,520,54,new Color(.025f,.04f,.055f,.66f));
-            feedback=Text(feedbackPanel,"",0,3,500,42,26,White);
+            feedbackPanel=Surface("Brief action feedback",-24,-24,320,84,.38f);
+            BeaconUi.Backing(feedbackPanel,320,84,new Color(.025f,.04f,.055f,.55f));
+            feedback=Text(feedbackPanel,"",0,3,300,68,23,White);
+            feedback.textWrappingMode=TextWrappingModes.Normal;
             var progress=BeaconUi.Backing(feedbackPanel,0,4,Mint); holdBar=progress.rectTransform;
-            holdBar.pivot=new Vector2(0,.5f); holdBar.anchoredPosition=new Vector2(-240,-23);
+            holdBar.pivot=new Vector2(0,.5f); holdBar.anchoredPosition=new Vector2(-145,-36);
             sound=gameObject.AddComponent<AudioSource>(); sound.spatialBlend=0; sound.volume=.15f; sound.clip=Chime();
             relay.Changed+=Refresh; missionView.Recentered+=OnRecenter; Refresh(); Tick();
         }
@@ -131,7 +132,7 @@ namespace Beacon
         public void Tick()
         {
             if(root==null || missionView==null) return;
-            if(missionView.Immersive && !wasImmersive) ShowFeedback("STICKS · L WALK / R TURN",6);
+            if(missionView.Immersive && !wasImmersive) ShowFeedback("L WALK · R TURN\nHOLD LEFT GRIP: SPRINT",6);
             if(!missionView.Immersive && wasImmersive) ShowFeedback("AR · ROOM VIEW RESTORED");
             wasImmersive=missionView.Immersive;
             bool boundary=missionView.Immersive && missionView.vrScenery!=null && missionView.vrScenery.AtBoundary;
@@ -152,13 +153,15 @@ namespace Beacon
                 waypoint.localEulerAngles=new Vector3(0,0,Mathf.Abs(relative)>CompassHalfSpan ? -Mathf.Sign(relative)*90 : 0);
             }
             viewMode.text=missionView.Immersive ? "VR · X: AR" : "AR · X: VR";
-            credit.text=missionView.Immersive ? "Access Mars · NASA/JPL-Caltech + Google Creative Lab · Reference scenery" : MissionPresentation.Credit(relay.Site);
+            credit.text=missionView.Immersive ? "Access Mars · NASA/JPL-Caltech + Google · Synthetic surface detail" : MissionPresentation.Credit(relay.Site);
             if(alertGroup.gameObject.activeSelf) alertGroup.alpha=Time.unscaledTime<pulseUntil ? .88f+.12f*Mathf.Sin(Time.unscaledTime*5) : 1;
             if(requestPending && Time.unscaledTime>=requestDeadline) { requestPending=false; ShowFeedback("NO REPLY · TRY B AGAIN"); }
             bool holding=requestHeld>0 && !requestSent;
-            feedbackPanel.gameObject.SetActive(holding || Time.unscaledTime<feedbackUntil);
+            bool sprinting=missionView.Immersive && missionView.vrScenery!=null && missionView.vrScenery.Sprinting;
+            feedbackPanel.gameObject.SetActive(holding || Time.unscaledTime<feedbackUntil || sprinting);
             holdBar.gameObject.SetActive(holding);
-            if(holding) { feedback.text="HOLD B · REQUEST SHELTER"; holdBar.sizeDelta=new Vector2(480*Mathf.Clamp01(requestHeld),4); }
+            if(holding) { feedback.text="HOLD B\nREQUEST SHELTER"; holdBar.sizeDelta=new Vector2(290*Mathf.Clamp01(requestHeld),4); }
+            else if(sprinting && Time.unscaledTime>=feedbackUntil) feedback.text="SPRINT";
         }
         void ShowFeedback(string text,float seconds=2.5f) { feedback.text=text; feedbackUntil=Time.unscaledTime+seconds; }
         void OnRecenter() => ShowFeedback("VIEW RECENTERED");

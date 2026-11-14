@@ -15,14 +15,14 @@ These assets have been converted for a native Unity application:
 - `terrain.bytes` packs positions, normals, texture coordinates and indices. `terrain.json` describes every mesh, source commit and source-file hash. Downloaded files are checked against Git blob hashes before conversion.
 - JPEG file bytes are unchanged. Unity imports them with mipmaps, anisotropic filtering, and ASTC 6×6 compression up to 2048 pixels on Quest.
 - There are **158,096 visible triangles**: 127,952 in the photographed central terrain and 30,144 in the distant background. The original 1,320-triangle simplified proxy is retained in the packed data for provenance but is not rendered or used for walking; collision follows the photographed terrain meshes.
-- The model covers a roughly 128 m square of nearby terrain, with a coarser distant background. Walking stays inside the reconstruction. Missing/low-resolution photography is retained faithfully; it is not generated or filled with invented surface detail.
-- Native unlit rendering preserves the photographed lighting. A little distance haze connects the far background to Beacon's illustrative sky. Moving particles are absent.
+- The model covers a roughly 128 m square of nearby terrain, with a coarser distant background. Walking stays inside the reconstruction. Original missing/low-resolution photography is retained unchanged in the source JPEGs.
+- Native rendering starts from the photographed lighting. Version 0.10 adds a separately generated, explicitly cosmetic material for grey areas and subtle near-surface detail; see [the asset and generation prompt](../MarsCosmeticDetail.md). It is not NASA imagery or recovered survey data. Geometry, collision and all mission values remain original. A little distance haze connects the far background to Beacon's illustrative sky. Moving particles are absent.
 
 The full licence and a modification/attribution notice are also included in the APK's `StreamingAssets/ThirdParty/` directory.
 
 ## AR first and visual alignment
 
-Beacon starts in AR passthrough. The model is entirely hidden and the movement controller disabled in AR. X enables the model only for VR; X again restores the real-room tracking frame. Left stick walks, right stick turns continuously, and the right index trigger increases walking speed. These controls never advance or reroute the mission. B remains the existing shelter request.
+Beacon starts in AR passthrough. The model is entirely hidden and the movement controller disabled in AR. X enables the model only for VR; X again restores the real-room tracking frame. Left stick walks, right stick turns continuously, and holding left grip (or the right index trigger) sprints. These controls never advance or reroute the mission. B remains the existing shelter request.
 
 The initial model viewpoint is `(12.25, ground, -4.39)` in the converted model: 8 m toward the butte from Access Mars's original starting point. The model is rotated 257.8° relative to calibrated north. This is a **visual alignment**, putting the prominent M12-side butte beneath the Quela waypoint ring's northwest high side (peak sample 330°). The rendered crest is about 25° high at a 1.65 m eye height, versus the data's 29° peak; the outline is not an exact match. Native renders with/without the ring were inspected alongside NASA's [M12/Quela reference photograph](https://science.nasa.gov/resource/curiosity-self-portrait-at-murray-buttes/).
 

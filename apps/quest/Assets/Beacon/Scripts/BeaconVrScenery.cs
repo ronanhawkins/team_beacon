@@ -12,10 +12,11 @@ namespace Beacon
         public Vector2 sourceStart=new Vector2(12.25f,-4.39f);
         // Visual registration to the Quela waypoint, not a geodetic transform.
         public float alignmentYaw=257.8f;
-        public float walkSpeed=1.4f,fastSpeed=3,turnSpeed=40;
+        public float walkSpeed=1.4f,fastSpeed=4.5f,turnSpeed=40;
         public bool Active { get; private set; }
         public float Speed { get; private set; }
         public bool AtBoundary { get; private set; }
+        public bool Sprinting { get; private set; }
         CharacterController body;
         Vector3 velocity;
         float falling,lastNorth,diagnosticAt;
@@ -32,7 +33,7 @@ namespace Beacon
         public void SetActive(bool active)
         {
             Create();if(Active==active) return;
-            body.enabled=false;Active=active;velocity=Vector3.zero;falling=0;Speed=0;
+            body.enabled=false;Active=active;velocity=Vector3.zero;falling=0;Speed=0;Sprinting=false;AtBoundary=false;
             // Reset only when crossing AR/VR modes. Stick locomotion never
             // teleports, advances a waypoint, or sends a route-change event.
             playerRoot.SetLocalPositionAndRotation(Vector3.zero,Quaternion.identity);
@@ -61,15 +62,16 @@ namespace Beacon
         }
         void Update()
         {
-            if(!Active || !Application.isFocused) {velocity=Vector3.zero;Speed=0;return;}
+            if(!Active || !Application.isFocused) {velocity=Vector3.zero;Speed=0;Sprinting=false;return;}
             Step(OVRInput.Get(OVRInput.Axis2D.PrimaryThumbstick,OVRInput.Controller.LTouch),
                 OVRInput.Get(OVRInput.Axis2D.PrimaryThumbstick,OVRInput.Controller.RTouch),
-                OVRInput.Get(OVRInput.Axis1D.PrimaryIndexTrigger,OVRInput.Controller.RTouch),Time.deltaTime);
+                Mathf.Max(OVRInput.Get(OVRInput.Axis1D.PrimaryHandTrigger,OVRInput.Controller.LTouch),
+                    OVRInput.Get(OVRInput.Axis1D.PrimaryIndexTrigger,OVRInput.Controller.RTouch)),Time.deltaTime);
             if(Time.unscaledTime>=diagnosticAt)
             {
                 diagnosticAt=Time.unscaledTime+5;
                 var p=terrain.transform.InverseTransformPoint(rig.centerEyeAnchor.position);
-                Debug.Log($"BEACON_VR_MOVE: x={p.x:F2} z={p.z:F2} speed={Speed:F2} grounded={body.isGrounded} edge={AtBoundary}");
+                Debug.Log($"BEACON_VR_MOVE: x={p.x:F2} z={p.z:F2} speed={Speed:F2} sprint={Sprinting} grounded={body.isGrounded} edge={AtBoundary}");
             }
         }
         public void Step(Vector2 move,Vector2 turn,float boost,float dt)
@@ -82,7 +84,8 @@ namespace Beacon
             UpdateCapsule();
             var forward=Vector3.ProjectOnPlane(eye.forward,Vector3.up).normalized;
             if(forward.sqrMagnitude<.1f) forward=playerRoot.forward;
-            var wanted=(forward*move.y+Vector3.Cross(Vector3.up,forward)*move.x)*(boost>.6f ? fastSpeed:walkSpeed);
+            Sprinting=boost>.6f && move.sqrMagnitude>.01f;
+            var wanted=(forward*move.y+Vector3.Cross(Vector3.up,forward)*move.x)*(Sprinting ? fastSpeed:walkSpeed);
             velocity=Vector3.MoveTowards(velocity,wanted,8*dt);
             var displacement=velocity*dt;var destination=eye.position+displacement;
             AtBoundary=!terrain.InSurvey(destination) || !terrain.GroundAt(destination,out _);
@@ -92,6 +95,6 @@ namespace Beacon
             var before=playerRoot.position;body.Move(displacement+Vector3.up*falling*dt);
             Speed=Vector3.ProjectOnPlane(playerRoot.position-before,Vector3.up).magnitude/dt;
         }
-        void OnApplicationPause(bool paused) {if(paused) {velocity=Vector3.zero;falling=0;Speed=0;}}
+        void OnApplicationPause(bool paused) {if(paused) {velocity=Vector3.zero;falling=0;Speed=0;Sprinting=false;}}
     }
 }

@@ -12,3 +12,8 @@ geometry repacked for Unity. Original JPEG files are unchanged; their in-app
 textures are compressed for Quest. Added native rendering, walking collision,
 distance haze and a visual orientation to the mission ring. This orientation is
 reference scenery, not a georegistration to the mission route. No endorsement is implied.
+
+Beacon 0.10 adds a separate AI-generated illustrative surface texture in its
+shader: neutral grey photography receives warm cosmetic fill and nearby
+surfaces receive fine detail. This is not NASA imagery or recovered survey data.
+Original photographs, mesh vertices, collision and mission data are unchanged.

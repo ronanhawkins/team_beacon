@@ -29,7 +29,7 @@ public static class BeaconMissionPreview
         var site=JsonConvert.DeserializeObject<MissionSite>(siteJson); double delay=(double)JObject.Parse(siteJson)["earthDelayMinutes"];
         var camera=new GameObject("Acceptance preview camera").AddComponent<Camera>();
         camera.clearFlags=CameraClearFlags.SolidColor; camera.backgroundColor=new Color(.25f,.27f,.29f,1);
-        camera.nearClipPlane=.05f; camera.farClipPlane=100; camera.fieldOfView=90; camera.stereoTargetEye=StereoTargetEyeMask.None;
+        camera.nearClipPlane=.05f; camera.farClipPlane=5000; camera.fieldOfView=90; camera.stereoTargetEye=StereoTargetEyeMask.None;
         var target=new RenderTexture(1600,1000,24,RenderTextureFormat.ARGB32); target.Create(); camera.targetTexture=target;
         void Capture(string name,int index,bool storm=false,bool vr=false,bool lookAtButte=false,bool offline=false,bool recenter=false,bool calibrate=true,float gaze=0)
         {
@@ -58,12 +58,16 @@ public static class BeaconMissionPreview
             throw new Exception("Head turn / route step rotated the calibrated Sun");
         var skyMesh=view.transform.Find("Waypoint skyline ring/72-sample blocked sky").GetComponent<MeshFilter>().sharedMesh;
         for(int i=0;i<72;i++)
-            if(skyMesh.vertices[i*6].y<-.001f || skyMesh.colors[i*6+4].a!=0)
-                throw new Exception("Skyline masks the ground or draws a horizontal baseline");
+            if(skyMesh.vertices[i*6].y<-.001f || skyMesh.colors[i*6+4].a!=0 || skyMesh.colors[i*6+2].a!=0 || skyMesh.colors[i*6+3].a!=0)
+                throw new Exception("Skyline masks the ground or draws a baseline / contour");
+        var hudRoot=rig.centerEyeAnchor.Find("Readable peripheral HUD");
+        if(hudRoot.Find("Quiet mission line")!=null) throw new Exception("Old bottom reading strip remains");
+        foreach(string caption in new[]{"SHELTER","BASE","SUNLIGHT","OXYGEN","DOSE USED"})
+            if(Mathf.Abs(hudRoot.Find("Side reading "+caption).localPosition.x)<.35f) throw new Exception("Mission reading is not at the side");
         var atmosphereRoot=atmosphere.transform.Find("Mars atmosphere effects");
         if(atmosphereRoot.GetComponentsInChildren<MeshRenderer>(true).Length!=1)
             throw new Exception("Moving dust geometry was not removed");
-        Debug.Log("BEACON_VISUAL_REGRESSIONS_PASSED: fixed Sun, unchanged north, clear ground, no baseline, no particles");
+        Debug.Log("BEACON_VISUAL_REGRESSIONS_PASSED: side readings, no contour, fixed Sun, unchanged north, clear ground, no baseline, no particles");
         Capture("m19-science",19); Capture("m19-northwest",19,lookAtButte:true);
         Capture("m25-warning",25); Capture("m30-storm",0,storm:true);
         Capture("shelter-arrival",doc.reroutes["30"].Count-1,storm:true); Capture("vr-fallback",19,vr:true);

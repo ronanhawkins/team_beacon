@@ -26,9 +26,10 @@ public static class BeaconVrPreview
         camera.backgroundColor=new Color(.35f,.35f,.35f);camera.nearClipPlane=.05f;camera.farClipPlane=5000;
         camera.fieldOfView=90;camera.stereoTargetEye=StereoTargetEyeMask.None;
         var target=new RenderTexture(1600,1000,24,RenderTextureFormat.ARGB32);target.Create();camera.targetTexture=target;
-        void Capture(string name,float azimuth,bool showHud=true,bool ar=false)
+        void Capture(string name,float azimuth,bool showHud=true,bool ar=false,bool cosmetic=true)
         {
             view.SetImmersive(!ar);rig.centerEyeAnchor.rotation=Quaternion.Euler(-5,view.NorthYaw+azimuth,0);
+            view.vrScenery.terrain.SetCosmeticEnabled(cosmetic);
             view.Tick(10);atmosphere.UpdateSun();hud.Refresh();hud.Tick();
             foreach(var canvas in rig.centerEyeAnchor.GetComponentsInChildren<Canvas>(true)) canvas.enabled=showHud;
             view.transform.Find("Waypoint skyline ring").gameObject.SetActive(showHud);
@@ -38,6 +39,7 @@ public static class BeaconVrPreview
             image.ReadPixels(new Rect(0,0,1600,1000),0,0);image.Apply();File.WriteAllBytes(Path.Combine(folder,name+".png"),image.EncodeToPNG());UnityEngine.Object.DestroyImmediate(image);
         }
         Capture("m12-reference",330,false);Capture("m12-ring-alignment",330);Capture("east-reference",90,false);Capture("south-reference",180,false);
+        Capture("east-original",90,false,cosmetic:false);Capture("east-cosmetic",90,false);
         Capture("quela-ar-ring",330,true,true);
         RenderTexture.active=null;camera.targetTexture=null;target.Release();UnityEngine.Object.DestroyImmediate(target);
         if(ShaderUtil.ShaderHasError(view.vrScenery.terrain.surfaceShader)) throw new Exception("Access Mars shader failed");

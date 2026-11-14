@@ -4,11 +4,11 @@ The supplied screenshots are the functional checklist. The user's later native U
 
 | Item | Implementation / evidence |
 | --- | --- |
-| Readable, less peripheral HUD | Compass lowered 27° → 16°; core readings enlarged and moved to a lower strip; open sky/science at ±24° rather than corner dashboards. Wearer fit confirmation remains necessary. |
+| Readable, less peripheral HUD | Compass at 16°; 0.10 moves the bottom readings to two columns at ±24°, with brief feedback below the left column. Wearer fit confirmation remains necessary for the new arrangement. |
 | AR and VR fallback | Starts in Quest passthrough. Left X switches to the Access Mars Murray Buttes 3D scenery and warm sky, then back to the room. The terrain and walking controller are disabled in AR. |
-| 72-sample skyline, N/E/S/W, smooth transitions | Native dynamic mesh from the exact selected waypoint; smooth sample interpolation and stable calibrated north. Warm faint contour, no blue baseline, no ground fill. Y hides the ring in AR. |
+| 72-sample skyline, N/E/S/W, smooth transitions | Native dynamic mesh from the exact selected waypoint; smooth sample interpolation and stable calibrated north. 0.10 removes the contour in both modes, retains faint AR shading, and removes the VR fill. No blue baseline or ground fill. Y hides the ring in AR. |
 | Sun/Earth/base/shelter markers | Supplied azimuths/elevations in a fixed frame; visibility and base-link dimming; Earth delay and base distance; shelter minutes. Base/shelter markers hide at arrival. No local sky calculation. |
-| Main readings | Open sky from `openSky`; lower line includes shelter time, base link, sunlight, oxygen and dose. Fractions displayed as percentages. |
+| Main readings | Open sky from `openSky`; left column adds oxygen and dose; right column shows shelter, base link and sunlight. Fractions displayed as percentages. |
 | Modes and arrival | Nominal calm, warning amber with reason, storm red border/chime/pulsing shelter, arrival “In shelter” with active storm retained. |
 | Route and decision | Exact `route`, `waypointIndex`, `rerouteFrom`; decision reason from `rerouteInfo`. No locally chosen shelter or independently running countdown. |
 | Science stop and next waypoint | Named science card; one waypoint arrow on the compass, preserving the user's compass-only navigation preference. |
@@ -18,6 +18,16 @@ The supplied screenshots are the functional checklist. The user's later native U
 | Laptop/projector | USB mirror previously confirmed by wearer. Physical HDMI projector rehearsal still needs the actual projector. |
 | Full recording and frame rate | Completed on 0.5: 31 main points, all 13 S03 diversion points, arrival and reset. USB recording 85.54 s; Unity reported mean 72.0 fps, p95 13.9 ms throughout sampled windows, including storm and recording. These measure app-frame pacing. |
 | Ground-level 3D scenery in VR | Access Mars's real glTF/Draco model and 64 photo tiles, converted offline to 158,096 visible triangles. Apache 2.0 licence/attribution bundled. Continuous sticks move only the viewpoint; no mission events. Older panorama remains in source; real DEM remains available in `data/out/terrain/`. |
+
+## Version 0.10 verification
+
+Installed **0.10.0 / code 10** over USB and independently confirmed it with the device package manager. The update removes the bright skyline contour in both modes, keeps only faint blocked-sky shading in AR, moves the five lower readings into side columns alongside Open Sky, and moves transient control feedback below the left column. Holding the left grip (or right index trigger) while moving sprints at up to 4.5 m/s; walking remains 1.4 m/s. AR ignores locomotion.
+
+**815 mission checks** and **1,734 VR checks** passed, including a timed walk-versus-sprint comparison, gradual collision-bounded movement, release-to-stop, no mission-state change and AR restoration. Seven VR comparison renders and eleven mission previews completed. Visual regressions check that the lower strip and contour are gone while all five readings remain at the sides, with fixed Sun/north, clear floor, no baseline and no particles. Calm, storm, offline emergency, AR and the updated VR view were visually inspected.
+
+The user explicitly requested invented cosmetic detail for poor photography. A generated material warms grey patches and provides subtle near-surface grain; the matched `east-original` / `east-cosmetic` renders were inspected. There are still 158,096 visible terrain triangles; original photo files, terrain shape, collision and the planner's data are unchanged. The new texture, generation prompt and limitations are documented in `Assets/Beacon/Art/MarsCosmeticDetail.md`. The APK's updated attribution notice was verified.
+
+The laptop mirror now defaults to a cropped, rotated left-eye view, retaining software H.264 decoding and the 30 fps cap. It reads reported dimensions, supports right-eye/full-stereo/manual crop alternatives and refuses to start a blank stream while the Quest is asleep. The headset was asleep at installation, so wearer confirmation of the new layout/sprint and the single-eye crop, plus updated live frame timings, remain pending. No 0.10 hardware performance claim is made yet.
 
 ## Version 0.9 verification
 
@@ -49,7 +59,7 @@ Installed over USB and independently confirmed as version 0.7.0 / code 7. **816 
 | m30 then storm | Reroute 30 → S03, initially 4.52 min; base 9.73 min and excluded by limit; base link retained at chosen shelter |
 | End of reroute 30 | “In shelter”, 0 remaining minutes, 74.6% open sky, base link retained |
 
-The screenshots' approximate base 95% and shelter S04 are older values. They are not hard-coded into the headset. “Initial” in the decision line distinguishes the original choice time from the changing remaining minutes in the main strip.
+The screenshots' approximate base 95% and shelter S04 are older values. They are not hard-coded into the headset. “Initial” in the decision line distinguishes the original choice time from the changing remaining minutes in the shelter card.
 
 Earlier 0.6 checks: **812 native checks** and ten successful Unity mission previews. The new offline-emergency and recenter screens were visually checked, alongside the storm view. Regression checks cover offline alert retention, startup, shelter arrival, panic versus solar-storm effects and offline request failure. The preceding upstream integration passed 16 Node tests, 9 fixture checks and the web build.
 

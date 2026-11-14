@@ -139,8 +139,10 @@ namespace Beacon
                 vertices[v+3]=Direction(az,el+.12f)*5.995f;
                 vertices[v+4]=Direction(az,-.055f)*5.99f; vertices[v+5]=Direction(az,.055f)*5.99f;
                 colours[v]=new Color(tone.r,tone.g,tone.b,0);
-                colours[v+1]=new Color(tone.r,tone.g,tone.b,.055f);
-                colours[v+2]=colours[v+3]=new Color(tone.r,tone.g,tone.b,.32f);
+                colours[v+1]=new Color(tone.r,tone.g,tone.b,Immersive ? 0 : .045f);
+                // Keep the measured AR shading, but never draw the unwanted
+                // floating contour over either the room or the VR landscape.
+                colours[v+2]=colours[v+3]=Color.clear;
                 colours[v+4]=colours[v+5]=Color.clear;
             }
             mesh.vertices=vertices; mesh.colors=colours;

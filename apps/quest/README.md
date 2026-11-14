@@ -10,10 +10,10 @@ The laptop relay remains the authority. The app loads `/session.json` and that s
 
 ## HUD
 
-- A readable lower strip shows minutes to shelter, base link, sunlight, oxygen and dose. It sits 18 degrees below forward gaze, with larger text than 0.3/0.4 and no far-corner readouts.
+- Two side columns at ±24 degrees leave the centre clear. Open sky, oxygen and dose sit on the left; shelter time, base link and sunlight sit on the right. The old bottom reading strip is removed. Brief controller/request feedback sits below the left column.
 - The compass is lowered from 27 to 16 degrees above forward gaze. One arrow marks the supplied direction of travel. The watch remains the detailed navigator; there is no route line or mini-map.
-- Open-sky percentage is prominent 24 degrees to the left. A named science-stop card appears at the same distance to the right. The HUD plane remains 1.2 m forward.
-- The ring uses the current waypoint's 72 skyline samples, with faint warm shading above the horizon, a soft sandstone contour and N/E/S/W labels. There is no flat horizontal baseline or fill over the ground. Sample heights blend as the route advances. North is calibrated once and remains fixed across route changes and head turns; explicit left-stick recentering can recalibrate it.
+- Open-sky percentage is prominent on the left. A named science-stop card appears above the right column. The HUD plane remains 1.2 m forward.
+- The ring uses the current waypoint's 72 skyline samples, with faint warm shading above the horizon in AR and N/E/S/W labels. The floating contour line is removed in both AR and VR, and the VR scenery has no artificial blocked-sky fill. There is no flat horizontal baseline or fill over the ground. Sample heights blend as the route advances. North is calibrated once and remains fixed across route changes and head turns; explicit left-stick recentering can recalibrate it.
 - Sun and Earth markers use supplied azimuth, elevation and visibility. Earth includes the relay's delay. Base includes its supplied distance and dims on loss of contact. Shelter includes the supplied walking minutes and pulses during emergencies. Base and shelter destination markers disappear at arrival; the lower status still says “In shelter”. These markers describe the mission view, not furniture.
 - Warning mode shows an amber border and reason. Storm mode shows a red border, “Solar storm, take cover”, chime and pulsing shelter marker. Arrival says “In shelter” and keeps the shelter skyline and active storm warning.
 - The lower explanation comes directly from `rerouteInfo`, including the initial chosen-route time and why base was excluded. Current remaining minutes always come from the relay; the headset does not run its own timer or planner.
@@ -29,12 +29,14 @@ Physical room movement and thumbsticks do not advance the Mars route. The presen
 | Right B, hold one second | Ask the relay for a shelter route |
 | Left stick direction | Continuous walking in VR; no action in AR |
 | Right stick left/right | Smooth turning in VR; no action in AR |
-| Right index trigger while moving | Faster walking in VR |
+| Hold left grip while moving (or right index trigger) | Sprint in VR, up to 4.5 m/s; release to return to 1.4 m/s walking |
 | Left X | Toggle AR passthrough / Murray Buttes 3D scenery |
 | Left Y | Show or hide the skyline ring in AR |
 | Left stick click | Smoothly recenter the mission's forward direction to the current gaze |
 
 VR uses the ground-level Murray Buttes model and photographs from [Access Mars](https://github.com/googlecreativelab/access-mars), with 158,096 visible terrain triangles, a warm sky and the calculated skyline overlay. X returns to AR. The model is reference scenery, visually oriented toward the Quela ring's high side; it is not georegistered to the live route. The ring and mission readings continue to use Ronan's data while stick movement only moves the viewpoint. See [model source, Apache 2.0 licence and conversion notes](Assets/Beacon/Art/AccessMars/README.md). The older PIA20840 panorama remains in the source archive but is disabled when this 3D scene is present.
+
+Version 0.10 adds [synthetic cosmetic surface detail](Assets/Beacon/Art/MarsCosmeticDetail.md) to the VR shader: grey patches receive warm ground colour/detail, while nearby textured ground receives subtle fine grain. This does not recover scientific data, add triangles, move the terrain, change collisions or feed the planner. The original NASA/Access Mars image files remain unchanged. The VR credit labels the synthetic detail.
 
 ## Mars atmosphere
 
@@ -66,9 +68,13 @@ Development builds allow HTTP for the local USB mission connection. Do not treat
 
 On the 0.9 live check, a mirror started while the Quest was asleep remained black/frozen. Restarting with H.264 software decoding restored the picture, confirmed by the wearer. The helper now uses `--hwdec=disabled`, retains the 1920-pixel / 30 fps cap, and accepts `-Diagnostics` to log received frame rates. Keep the headset awake, start Beacon, then open the mirror. The native app continues rendering at its own headset frame rate.
 
+The 0.10 mirror helper defaults to one eye. It reads the device's reported capture dimensions, crops the left half, and compensates for the Quest 3's angled eye view. `-Eye Right` selects the other eye, `-Eye Both` restores the full stereo capture, and `-Crop width:height:x:y -Angle degrees` provides a manual override. This affects only the laptop presentation. See the official scrcpy [crop and angle documentation](https://github.com/Genymobile/scrcpy/blob/v5.0.1/doc/video.md#crop). The default crop still needs confirmation on the connected headset.
+
 ## Verified demo
 
-Version **0.9.0** is installed on Quest 3 (version code 9). It adds the Access Mars ground-level model only in VR, continuous stick walking/turning and a visual alignment under the Quela ring's northwest high side. AR still starts in the real room; walking does not change mission state. **815 mission checks**, **1,630 VR checks**, **16 relay/client tests**, and the mission/VR preview renders passed. Source hashes and unchanged photographs were verified; the completed APK contains the Apache licence and modification/attribution notice. Installation was independently confirmed through the device package manager. The wearer subsequently confirmed AR, VR movement and the restored live laptop picture. Sampled live app windows ran at about 72 fps (p95 13.9 ms); the restarted mirror received about 30 fps. See [acceptance notes and alignment limits](ACCEPTANCE.md).
+Version **0.10.0 / code 10** is installed. It adds the side-column HUD, removes the floating contour, introduces grip sprint and blends synthetic cosmetic detail into the VR scenery. **815 mission checks**, **1,734 VR checks**, and the mission/VR previews passed. The laptop helper defaults to a single-eye crop. The Quest was asleep after installation; the new wearer check, mirror crop confirmation and frame-rate sampling remain pending. See [acceptance evidence](ACCEPTANCE.md).
+
+Version **0.9.0** was installed on Quest 3 (version code 9). It added the Access Mars ground-level model only in VR, continuous stick walking/turning and a visual alignment under the Quela ring's northwest high side. AR still starts in the real room; walking does not change mission state. **815 mission checks**, **1,630 VR checks**, **16 relay/client tests**, and the mission/VR preview renders passed. Source hashes and unchanged photographs were verified; the completed APK contains the Apache licence and modification/attribution notice. Installation was independently confirmed through the device package manager. The wearer subsequently confirmed AR, VR movement and the restored live laptop picture. Sampled live app windows ran at about 72 fps (p95 13.9 ms); the restarted mirror received about 30 fps. See [acceptance notes and alignment limits](ACCEPTANCE.md).
 
 Version **0.8.0** was installed on Quest 3 (version code 8). It removed native thumbstick waypoint stepping and the corresponding relay-sender method, retaining the B emergency request and presenter controls. All **815 native checks** passed and the Android build succeeded.
 

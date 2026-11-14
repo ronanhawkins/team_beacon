@@ -13,6 +13,7 @@ namespace Beacon
     {
         public TextAsset geometry,metadata;
         public Texture2D[] photographs;
+        public Texture2D cosmeticDetail;
         public Shader surfaceShader;
         public bool Ready { get; private set; }
         public int VisibleTriangles { get; private set; }
@@ -47,6 +48,8 @@ namespace Beacon
                 var tile=new GameObject("Access Mars "+name,typeof(MeshFilter),typeof(MeshRenderer));tile.transform.SetParent(transform,false);
                 tile.GetComponent<MeshFilter>().sharedMesh=mesh;
                 var material=new Material(surfaceShader);material.mainTexture=photographs[m];materials.Add(material);
+                material.SetTexture("_DetailTex",cosmeticDetail);
+                material.SetFloat("_Cosmetic",cosmeticDetail!=null ? 1:0);
                 var renderer=tile.GetComponent<MeshRenderer>();renderer.sharedMaterial=material;
                 renderer.shadowCastingMode=ShadowCastingMode.Off;renderer.receiveShadows=false;
                 renderer.lightProbeUsage=LightProbeUsage.Off;renderer.reflectionProbeUsage=ReflectionProbeUsage.Off;
@@ -71,6 +74,10 @@ namespace Beacon
         {
             var local=transform.InverseTransformPoint(position);
             return Mathf.Abs(local.x)<58 && Mathf.Abs(local.z)<58;
+        }
+        public void SetCosmeticEnabled(bool enabled)
+        {
+            foreach(var material in materials) material.SetFloat("_Cosmetic",enabled && cosmeticDetail!=null ? 1:0);
         }
         void OnDestroy()
         {
