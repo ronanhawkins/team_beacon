@@ -1,0 +1,91 @@
+{
+  "version": 1,
+  "site": "Murray Buttes, Gale crater. Quela drill site at the foot of Murray Butte 12",
+
+  "terrain": {
+    "file": "MSL_Gale_DEM_Mosaic_1m_v3.tif",
+    "url": "https://planetarymaps.usgs.gov/mosaic/Mars/MSL/MSL_Gale_DEM_Mosaic_1m_v3.tif",
+    "projection": "Equirectangular, sphere radius 3396190 m, centre longitude 0, standard parallel 0",
+    "metresPerDegree": 59274.697,
+    "originEasting": 8127993.492786,
+    "originNorthing": -244781.075189,
+    "metresPerPixel": 1.0,
+    "width": 32980,
+    "height": 57440,
+    "noData": -32767
+  },
+
+  "parkingSpot": {
+    "description": "Curiosity's position at the end of the sol 1455 drive. It stayed here until the sol 1468 drive, which covers the radiation paper's butte period (sols 1456 to 1467)",
+    "source": "https://mars.nasa.gov/mmgis-maps/MSL/Layers/json/MSL_waypoints.json (waypoint with sol 1455)",
+    "sol": 1455,
+    "lon": 137.353006,
+    "lat": -4.695202,
+    "easting": 8141557.908,
+    "northing": -278306.692,
+    "elevation": -4379.46,
+    "roverYawDeg": -72.08,
+    "mosaicCol": 13564.415,
+    "mosaicRow": 33525.617
+  },
+
+  "nearCrop": {
+    "description": "3 km square at full resolution, centred on the parking spot. Exact pixel window, so no resampling",
+    "srcwin": { "xoff": 12064, "yoff": 32026, "xsize": 3000, "ysize": 3000 },
+    "left": 8140057.492786,
+    "top": -276807.075189,
+    "right": 8143057.492786,
+    "bottom": -279807.075189,
+    "command": "gdal_translate -srcwin 12064 32026 3000 3000 -of ENVI -ot Float32 MSL_Gale_DEM_Mosaic_1m_v3.tif near.bin",
+    "parkingSpotInCrop": { "col": 1500.415, "row": 1499.617 },
+    "parkingSpotLocal": { "x": 1500.415, "y": 1500.383 }
+  },
+
+  "farCrop": {
+    "description": "Whole mosaic at 20 m per pixel, for the distant horizon",
+    "command": "gdal_translate -tr 20 20 -r average -of ENVI -ot Float32 MSL_Gale_DEM_Mosaic_1m_v3.tif far.bin"
+  },
+
+  "routeNearButtes": [
+    { "sol": 1446, "easting": 8141557.519, "northing": -278179.377, "elevation": -4388.82 },
+    { "sol": 1448, "easting": 8141565.143, "northing": -278245.700, "elevation": -4383.79 },
+    { "sol": 1452, "easting": 8141582.374, "northing": -278281.258, "elevation": -4378.84 },
+    { "sol": 1454, "easting": 8141565.719, "northing": -278317.721, "elevation": -4380.08 },
+    { "sol": 1455, "easting": 8141557.908, "northing": -278306.692, "elevation": -4379.46 },
+    { "sol": 1468, "easting": 8141600.055, "northing": -278369.892, "elevation": -4375.83 },
+    { "sol": 1469, "easting": 8141624.433, "northing": -278392.271, "elevation": -4374.38 },
+    { "sol": 1471, "easting": 8141650.196, "northing": -278417.532, "elevation": -4372.68 }
+  ],
+
+  "paperTarget": {
+    "source": "Ehresmann et al. 2021, Natural Radiation Shielding on Mars Measured With the MSL/RAD Instrument, JGR Planets",
+    "skyBlockedAtButte": 0.19,
+    "skyBlockedReference": 0.10,
+    "doseReduction": "about 4 to 5 percent"
+  },
+
+  "referenceCheck": {
+    "description": "Values from a quick independent script, for testing the engine against. Not from the paper",
+    "method": "Observer 1 m above the terrain. 360 azimuths. Marched in 0.5 m steps out to 280 m with bilinear sampling. Local terrain only, no distant horizon and no curvature. Blocked fraction is the mean of sin(skyline elevation), negative elevations counted as 0",
+    "blockedAtParkingSpot": 0.149,
+    "blockedWithin5mTowardsButte": "0.19 to 0.21 (5 m north and north-west of the spot)",
+    "blockedOpenGroundSol1468": 0.026,
+    "blockedSol1454": 0.086,
+    "blockedSol1446": 0.078,
+    "skylineAtParkingSpotDeg": {
+      "0": 25.1, "15": 17.3, "30": 4.9, "45": 2.7, "60": 1.9, "75": 3.1,
+      "90": 1.1, "105": 1.9, "120": 2.5, "135": 3.2, "150": 3.4, "165": 3.6,
+      "180": 2.6, "195": 1.7, "210": 1.6, "225": 2.2, "240": 2.6, "255": 2.1,
+      "270": 5.3, "285": 17.2, "300": 20.5, "315": 26.4, "330": 28.0, "345": 27.3
+    },
+    "terrainAtParkingSpot": -4379.529,
+    "butteTopAboveSpot": "about 8 to 9 m, 10 to 20 m to the north and north-west"
+  },
+
+  "notes": [
+    "The waypoint file's easting and northing are already in the terrain mosaic's projection. No conversion needed.",
+    "The terrain at the waypoint reads -4379.53 m against the waypoint's own -4379.46 m, so the route and the terrain line up with no offset.",
+    "There is a visible seam in the mosaic running roughly north to south about 80 m east of the route. Treat steep cells along it as an artefact.",
+    "Sun and Earth directions and the date for the demo are still to be added."
+  ]
+}
