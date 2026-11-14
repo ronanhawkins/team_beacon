@@ -7,12 +7,15 @@
 //!   engine base-candidates        base link coverage for each candidate base position
 //!   engine plan                   planner: shelters, main route, reroutes -> data/out/
 //!   engine plan --stops "x,y;x,y;..." --out <dir>   plan other stops (first is the start) into <dir>
+//!   engine decide <mainIndex> [--lead L] [--storm D] [--habitat-minutes H]   storm decision table
+//!   engine decide <mainIndex> --sweep   chosen site over lead and habitat return times
 //!
 //! Positions are local metres: x east, y north, origin at the crop's south-west
 //! outer corner (shared/conventions.md).
 //!
 //! Paths are relative to the repo root (the folder above engine/). Override with --root <dir>.
 
+mod decision;
 mod layers;
 mod planner;
 mod route;
@@ -57,6 +60,7 @@ struct Site {
     route_stops: Vec<RouteStop>,
     planner: planner::PlannerConfig,
     planner_bounds: planner::Bounds,
+    storm: decision::StormConfig,
 }
 
 #[derive(Deserialize)]
@@ -348,18 +352,99 @@ fn plan_command(root: &Path, stops_arg: Option<&str>, out: Option<&str>) -> Resu
         return Err("a plan needs at least two stops".into());
     }
     let out_dir = out.map_or_else(|| root.join("data/out"), PathBuf::from);
-    let inputs = route::PlanInputs {
-        near: &grid,
-        far72: &far72,
-        far360: &far360,
+    let inputs = plan_inputs(&site, &grid, &far72, &far360, stops);
+    route::run(&inputs, &out_dir)
+}
+
+fn plan_inputs<'a>(site: &Site, grid: &'a terrain::Grid, far72: &'a [f32], far360: &'a [f32], stops: Vec<route::Stop>) -> route::PlanInputs<'a> {
+    route::PlanInputs {
+        near: grid,
+        far72,
+        far360,
         sun: (site.sky.sun.az, site.sky.sun.el),
         earth: (site.sky.earth.az, site.sky.earth.el),
         base: layers::Base { x: site.base.x, y: site.base.y, mast_height_m: site.base.mast_height },
         bounds: site.planner_bounds,
         cfg: site.planner.clone(),
+        storm: site.storm,
         stops,
-    };
-    route::run(&inputs, &out_dir)
+    }
+}
+
+const SWEEP_LEADS: [f64; 5] = [0.0, 5.0, 15.0, 30.0, 60.0];
+const SWEEP_HABITAT: [f64; 5] = [30.0, 60.0, 90.0, 120.0, 150.0];
+
+struct DecideArgs {
+    index: usize,
+    lead: Option<f64>,
+    storm: Option<f64>,
+    habitat_minutes: Option<f64>,
+    sweep: bool,
+}
+
+/// Storm decision at one main waypoint of data/out/waypoints.json (run `engine plan` first).
+fn decide_command(root: &Path, a: DecideArgs) -> Result<(), String> {
+    let site = load_site(root)?;
+    let wp_path = root.join("data/out/waypoints.json");
+    let doc: serde_json::Value = serde_json::from_str(
+        &std::fs::read_to_string(&wp_path).map_err(|e| format!("cannot read {} (run engine plan first): {}", wp_path.display(), e))?,
+    )
+    .map_err(|e| format!("{}: {}", wp_path.display(), e))?;
+    let main = doc["main"].as_array().ok_or("waypoints.json has no main route")?;
+    let wp = main.get(a.index).ok_or_else(|| format!("main index {} is out of range (0..{})", a.index, main.len() - 1))?;
+    let (x, y) = (wp["pos"]["x"].as_f64().unwrap_or(f64::NAN), wp["pos"]["y"].as_f64().unwrap_or(f64::NAN));
+    let id = wp["id"].as_str().unwrap_or("?").to_string();
+
+    let grid = load_grid(root)?;
+    let far_grid = load_far(root)?;
+    let spot = &site.near_crop.parking_spot_local;
+    let far72 = far_at_parking(&grid, &far_grid, spot, skyline::FAST_DIRS)?;
+    let far360 = far_at_parking(&grid, &far_grid, spot, N_DIRS)?;
+    let inputs = plan_inputs(&site, &grid, &far72, &far360, Vec::new());
+    let ctx = route::prepare(&inputs)?;
+
+    let mut storm = site.storm;
+    storm.lead_minutes = a.lead.unwrap_or(storm.lead_minutes);
+    storm.storm_minutes = a.storm.unwrap_or(storm.storm_minutes);
+    storm.habitat.return_minutes = a.habitat_minutes.unwrap_or(storm.habitat.return_minutes);
+    println!("\nStorm decision at {id} ({x:.1}, {y:.1})");
+
+    if !a.sweep {
+        let opts = route::options_from(&ctx, &inputs, &storm, x, y)?;
+        route::print_table(&decision::rank(&opts.candidates, &storm), &storm);
+        return Ok(());
+    }
+
+    let mut rows = Vec::new();
+    println!("Chosen site by lead time (rows) and habitat return minutes (columns); storm {} min, multiplier {}\n", storm.storm_minutes, storm.dose_multiplier);
+    println!("  {:>9} {}", "lead \\ H", SWEEP_HABITAT.iter().map(|h| format!("{h:>16}")).collect::<String>());
+    for lead in SWEEP_LEADS {
+        let mut line = format!("  {lead:>9}");
+        for h in SWEEP_HABITAT {
+            let mut s = storm;
+            s.lead_minutes = lead;
+            s.habitat.return_minutes = h;
+            let opts = route::options_from(&ctx, &inputs, &s, x, y)?;
+            let best = &decision::rank(&opts.candidates, &s)[0];
+            line += &format!("{:>16}", format!("{} {:.0}", best.candidate.id, best.score));
+            rows.push(serde_json::json!({
+                "leadMinutes": lead, "habitatReturnMinutes": h,
+                "chosen": { "id": best.candidate.id, "kind": best.candidate.kind.as_str(), "minutes": (best.candidate.t * 100.0).round() / 100.0,
+                            "dose": (best.dose * 10.0).round() / 10.0, "score": (best.score * 10.0).round() / 10.0 },
+            }));
+        }
+        println!("{line}");
+    }
+    println!("\n  (each cell: chosen site and its score, in minutes at the open-ground dose rate)");
+    let out = serde_json::json!({
+        "version": 1, "waypoint": id, "mainIndex": a.index, "pos": { "x": x, "y": y },
+        "stormMinutes": storm.storm_minutes, "doseMultiplier": storm.dose_multiplier, "noLinkPenalty": storm.no_link_penalty,
+        "habitatDoseFactor": storm.habitat.dose_factor, "sweep": rows,
+    });
+    let path = root.join("data/out/decision-sweep.json");
+    std::fs::write(&path, serde_json::to_string_pretty(&out).map_err(|e| e.to_string())? + "\n").map_err(|e| format!("cannot write {}: {}", path.display(), e))?;
+    println!("wrote {}", path.display());
+    Ok(())
 }
 
 fn layers_command(root: &Path) -> Result<(), String> {
@@ -392,7 +477,7 @@ fn point(root: &Path, x: f64, y: f64) -> Result<(), String> {
 }
 
 fn usage() -> String {
-    "usage: engine [--root <dir>] check\n       engine [--root <dir>] point <x> <y>   (local metres)\n       engine [--root <dir>] layers\n       engine [--root <dir>] base-candidates\n       engine [--root <dir>] plan [--stops \"x,y;x,y;...\" --out <dir>]".to_string()
+    "usage: engine [--root <dir>] check\n       engine [--root <dir>] point <x> <y>   (local metres)\n       engine [--root <dir>] layers\n       engine [--root <dir>] base-candidates\n       engine [--root <dir>] plan [--stops \"x,y;x,y;...\" --out <dir>]\n       engine [--root <dir>] decide <mainIndex> [--lead L] [--storm D] [--habitat-minutes H] [--sweep]".to_string()
 }
 
 fn run() -> Result<bool, String> {
@@ -408,6 +493,30 @@ fn run() -> Result<bool, String> {
         ["check"] => check(&root),
         ["layers"] => layers_command(&root).map(|_| true),
         ["base-candidates"] => base_candidates(&root).map(|_| true),
+        ["decide", index, rest @ ..] => {
+            let mut a = DecideArgs {
+                index: index.parse().map_err(|_| format!("main index must be a whole number: {index}"))?,
+                lead: None,
+                storm: None,
+                habitat_minutes: None,
+                sweep: false,
+            };
+            let mut it = rest.iter();
+            let num = |v: Option<&&str>| -> Result<f64, String> {
+                let v = v.ok_or_else(usage)?;
+                v.parse::<f64>().map_err(|_| format!("not a number: {v}"))
+            };
+            while let Some(&flag) = it.next() {
+                match flag {
+                    "--lead" => a.lead = Some(num(it.next())?),
+                    "--storm" => a.storm = Some(num(it.next())?),
+                    "--habitat-minutes" => a.habitat_minutes = Some(num(it.next())?),
+                    "--sweep" => a.sweep = true,
+                    _ => return Err(usage()),
+                }
+            }
+            decide_command(&root, a).map(|_| true)
+        }
         ["plan", rest @ ..] => {
             let mut stops = None;
             let mut out = None;

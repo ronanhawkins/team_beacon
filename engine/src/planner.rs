@@ -32,7 +32,6 @@ pub struct PlannerConfig {
     pub waypoint_spacing: f64,
     pub open_blocked: f64,
     pub dose_shielding_factor: f64,
-    pub storm_dose_multiplier: f64,
     pub oxygen_minutes: f64,
 }
 
@@ -372,7 +371,6 @@ mod tests {
             waypoint_spacing: 15.0,
             open_blocked: 0.06,
             dose_shielding_factor: 0.5,
-            storm_dose_multiplier: 2.0,
             oxygen_minutes: 480.0,
         }
     }

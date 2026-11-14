@@ -124,7 +124,6 @@
     "waypointSpacing": 15,
     "openBlocked": 0.06,
     "doseShieldingFactor": 0.5,
-    "stormDoseMultiplier": 2,
     "oxygenMinutes": 480,
     "notes": {
       "walkSpeed": "Assumption: suited walking speed on flat ground, metres per second. Walking time per metre is (1 / walkSpeed) * (1 + (slope / 15)^2)",
@@ -135,9 +134,23 @@
       "waypointSpacing": "Assumption: metres between waypoints; every stop is always a waypoint",
       "openBlocked": "Assumption: blocked-sky fraction of open ground, where the relative dose rate is 1",
       "doseShieldingFactor": "Assumption: relative dose rate = 1 - doseShieldingFactor * (blocked - openBlocked), kept between 0.5 and 1.05. Calibrated to Curiosity's measurement that about 9 more points of blocked sky cut the dose by about 5 percent. Simulated, not a dose model",
-      "stormDoseMultiplier": "Assumption: dose rate multiplier on a reroute during a storm, starting from the dose at the main waypoint where the reroute began",
       "oxygenMinutes": "Assumption: minutes of oxygen at the start; oxygenFraction = 1 - minutes elapsed / oxygenMinutes",
       "doseBudget": "Simulated: doseFraction is accumulated rate * minutes divided by a budget of twice the planned main-route duration at rate 1, clamped to 0..1"
+    }
+  },
+
+  "storm": {
+    "leadMinutes": 5,
+    "stormMinutes": 120,
+    "doseMultiplier": 2,
+    "noLinkPenalty": 0.05,
+    "habitat": { "returnMinutes": 150, "doseFactor": 0.5 },
+    "notes": {
+      "leadMinutes": "Assumption: minutes of warning between the storm being declared and the storm arriving",
+      "stormMinutes": "Assumption: how long the storm lasts once it arrives, in minutes",
+      "doseMultiplier": "Assumption: dose rate during the storm relative to normal, applied to walking and sheltering once it arrives (and to reroute dose)",
+      "noLinkPenalty": "Assumption: a site without a base link scores this fraction worse (0.05 = 5 percent)",
+      "habitat": "Assumption: the shielded habitat is a long drive away; the \"Base\" on the map is a rover and relay mast with no shielding of its own. returnMinutes is walking to the base plus driving back; doseFactor is the habitat's dose rate relative to open ground"
     }
   },
 
