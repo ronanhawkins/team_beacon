@@ -6,7 +6,8 @@ namespace Beacon
     // Display formatting only: never select shelter, estimate dose or count down locally.
     public static class MissionPresentation
     {
-        public static string ShelterName(string id) => string.IsNullOrEmpty(id) ? "Shelter" : id == "base" ? "Base" : "Shelter " + id.ToUpperInvariant();
+        // A shelter's optional label ("Butte M12 shelter") when the engine gives one, else its id (s-<x>-<y>, from its position).
+        public static string ShelterName(string id, string label = null) => !string.IsNullOrEmpty(label) ? label : string.IsNullOrEmpty(id) ? "Shelter" : id == "base" ? "Base" : "Shelter " + id.ToUpperInvariant();
         public static string Warning(MissionState s) => !s.baseLink ? "BASE LINK LOST" : "SHELTER IS DISTANT";
         public static string Decision(MissionState state, RouteDocument doc)
         {
@@ -14,7 +15,7 @@ namespace Beacon
                 !doc.rerouteInfo.TryGetValue(state.rerouteFrom.Value.ToString(), out var info)) return "";
             var choice = info?.chosen;
             if (choice?.minutes == null || string.IsNullOrEmpty(choice.id) || double.IsNaN(choice.minutes.Value) || double.IsInfinity(choice.minutes.Value)) return "Shelter choice details unavailable";
-            string text = $"{ShelterName(choice.id)} · initial {choice.minutes:0.0} min";
+            string text = $"{ShelterName(choice.id, choice.label)} · initial {choice.minutes:0.0} min";
             if (choice.baseLink.HasValue) text += choice.baseLink.Value ? " · base link kept" : " · no base link";
             if (choice.late == true) text += " · nearest cover, beyond time limit";
             else if (info.@base?.minutes != null && info.@base.excludedByLimit == true) text += $". Base {info.@base.minutes:0.0} min, out of reach";

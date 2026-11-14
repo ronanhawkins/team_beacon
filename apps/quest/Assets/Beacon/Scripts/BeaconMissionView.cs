@@ -78,7 +78,7 @@ namespace Beacon
             var p=relay.Selection.Point; var s=relay.State;
             earthText=$"Earth · {s.earthDelayMinutes:0.#} min";
             baseText=$"Base · {p.@base.distance:0} m";
-            shelterText=p.isShelter ? "In shelter" : $"{MissionPresentation.ShelterName(p.shelter.id)} · {s.minutesToShelter:0.0} min";
+            shelterText=p.isShelter ? "In shelter" : $"{MissionPresentation.ShelterName(p.shelter.id, p.shelter.label)} · {s.minutesToShelter:0.0} min";
             string key=relay.State.route+":"+relay.State.rerouteFrom+":"+relay.Selection.Point.id;
             if(key!=pointKey)
             {

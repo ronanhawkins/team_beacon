@@ -6,10 +6,10 @@ using Newtonsoft.Json.Linq;
 namespace Beacon
 {
     [Serializable] public sealed class SitePosition { public double x, y, z; }
-    [Serializable] public sealed class Shelter { public string id; public double az, distance, minutes; }
+    [Serializable] public sealed class Shelter { public string id, label; public double az, distance, minutes; } // label: optional name (shared/waypoints.md)
     [Serializable] public sealed class SkyBody { public double az, el; public bool visible; }
     [Serializable] public sealed class BaseBeacon { public double az, distance; public bool visible; }
-    [Serializable] public sealed class DecisionOption { public string id, kind; public double? minutes, minutesLate; public bool? baseLink, late; }
+    [Serializable] public sealed class DecisionOption { public string id, kind, label; public double? minutes, minutesLate; public bool? baseLink, late; }
     [Serializable] public sealed class BaseDecision { public double? minutes; public bool? excludedByLimit; }
     [Serializable] public sealed class RerouteDecision { public DecisionOption chosen; public BaseDecision @base; }
     [Serializable] public sealed class SkyMetadata { public string timeUT, source; }
