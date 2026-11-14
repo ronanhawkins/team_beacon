@@ -118,6 +118,7 @@ def main():
         print("%s (%r): %d results, kept %s" % (q["stop"], q["query"], len(items), [k["nasa_id"] for k in kept]))
         for s in skipped:
             print("  skipped %s: %s" % (s["nasa_id"], s["why"]))
+    os.makedirs(os.path.dirname(CACHE), exist_ok=True)  # data/cache/<site>/ for a named site
     with open(CACHE, "w") as f:
         json.dump(out, f, indent=1)
         f.write("\n")

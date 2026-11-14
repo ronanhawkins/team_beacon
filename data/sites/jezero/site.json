@@ -1,0 +1,177 @@
+{
+  "version": 1,
+  "site": "Three Forks and the delta front, Jezero crater",
+  "terrain": {
+    "file": "JEZ_hirise_soc_006_DTM_MOLAtopography_DeltaGeoid_1m_Eqc_latTs0_lon0_blend40.tif",
+    "url": "https://planetarymaps.usgs.gov/mosaic/mars2020_trn/HiRISE/JEZ_hirise_soc_006_DTM_MOLAtopography_DeltaGeoid_1m_Eqc_latTs0_lon0_blend40.tif",
+    "image": "https://planetarymaps.usgs.gov/mosaic/mars2020_trn/HiRISE/JEZ_hirise_soc_006_orthoMosaic_25cm_Eqc_latTs0_lon0_first.tif",
+    "far": "https://planetarymaps.usgs.gov/mosaic/mars2020_trn/CTX/JEZ_ctx_B_soc_008_DTM_MOLAtopography_DeltaGeoid_20m_Eqc_latTs0_lon0.tif",
+    "mola": "https://planetarymaps.usgs.gov/mosaic/Mars_MGS_MOLA_DEM_mosaic_global_463m.tif (-srcwin 32300 8510 1296 1296)",
+    "waypoints": "https://mars.nasa.gov/mmgis-maps/M20/Layers/json/M20_waypoints.json",
+    "note": "The sources use equirectangular with standard parallel 0. Every crop is warped (bilinear) to standard parallel 18.4663, the projection of the waypoint file's easting and northing, so pixels are square metres on the ground. Built by tools/prepare-jezero.py"
+  },
+  "grid": {
+    "description": "The frame of the crops in data/raw/jezero (near.bin): local metres are measured from the crop's south-west corner (shared/conventions.md). The crop is 3000 m square, centred on C = the last sol 686 waypoint (Three Forks depot) + 150 m north, rounded to whole metres (easting 4352108, northing 1093968)",
+    "metresPerPixel": 1.0,
+    "southWestEasting": 4350608.0,
+    "southWestNorthing": 1092468.0,
+    "projection": "PROJCS[\"unknown\",GEOGCS[\"GCS_unknown\",DATUM[\"D_unknown\",SPHEROID[\"unknown\",3396190.0,0.0]],PRIMEM[\"Reference_meridian\",0.0],UNIT[\"Degree\",0.0174532925199433]],PROJECTION[\"Equidistant_Cylindrical\"],PARAMETER[\"False_Easting\",0.0],PARAMETER[\"False_Northing\",0.0],PARAMETER[\"Central_Meridian\",0.0],PARAMETER[\"Standard_Parallel_1\",18.4663],UNIT[\"Meter\",1.0]]"
+  },
+  "farFieldCentre": {
+    "x": 1500.0,
+    "y": 1500.0,
+    "note": "The crop centre C"
+  },
+  "layersRegion": {
+    "originX": 750.0,
+    "originY": 750.0,
+    "cells": 375,
+    "metresPerPixel": 4.0,
+    "note": "The central 1.5 km: x and y from 750 to 2250 m in 4 m cells"
+  },
+  "earthDelayMinutes": 10.95,
+  "sky": {
+    "timeUT": "2026-11-15 00:00",
+    "source": "JPL Horizons, airless apparent, site 77.40845 E, 18.453 N",
+    "sun": {
+      "az": 275.8,
+      "el": 12.0
+    },
+    "earth": {
+      "az": 281.9,
+      "el": 49.6
+    }
+  },
+  "base": {
+    "x": 1500.0,
+    "y": 1350.0,
+    "mastHeight": 10.0,
+    "doseFactor": 0.5,
+    "doseFactorNote": "Assumption: the base is a normal shielded habitat; its dose rate is this fraction of open ground",
+    "note": "At the last sol 686 waypoint, the Three Forks sample depot (Perseverance site 32, drive 1184)"
+  },
+  "routeStops": [
+    {
+      "id": "base",
+      "x": 1500.0,
+      "y": 1350.0,
+      "label": "Base, Three Forks"
+    },
+    {
+      "id": "sol658",
+      "x": 1478.1,
+      "y": 1308.5,
+      "label": "Three Forks sample depot",
+      "scienceStop": true
+    },
+    {
+      "id": "sol694",
+      "x": 1519.0,
+      "y": 1578.4,
+      "label": ""
+    },
+    {
+      "id": "sol706",
+      "x": 1514.0,
+      "y": 1637.3,
+      "label": ""
+    },
+    {
+      "id": "sol502",
+      "x": 1358.3,
+      "y": 1662.7,
+      "label": "Delta-front sample site",
+      "scienceStop": true
+    },
+    {
+      "id": "sol708",
+      "x": 1353.6,
+      "y": 1747.3,
+      "label": "Far point"
+    }
+  ],
+  "routeStopsNote": "Local metres from Perseverance waypoints (the last waypoint of each sol; sol 658 has two, drive 378 is used). sol694 and sol706 are pass-through points",
+  "openGroundStop": "base",
+  "openGroundStopNote": "Informational. The engine reads openGroundStop only inside a validation section, and this site has none (no ground truth). Open ground for the dose model is planner.openBlocked, copied from Gale",
+  "shelterLabels": [],
+  "stopImageQueries": [
+    {
+      "stop": "sol658",
+      "query": "Perseverance Three Forks sample depot",
+      "mustName": "Three Forks"
+    },
+    {
+      "stop": "sol502",
+      "query": "Perseverance delta front Jezero",
+      "mustName": "delta"
+    }
+  ],
+  "stopImageQueriesNote": "tools/fetch_stop_images.py: NASA Image and Video Library searches per routeStops id; a result is kept only if it names mustName",
+  "decisionSweep": [
+    {
+      "label": "Three Forks sample depot",
+      "what": "Three Forks depot"
+    },
+    {
+      "label": "Delta-front sample site",
+      "what": "delta-front site"
+    }
+  ],
+  "weatherNote": "No weather: the Perseverance MEDA feed (mars.nasa.gov rss api, category mars2020) returned 7 sols from April 2024 without temperatures, so the briefing has no conditions",
+  "plannerBounds": {
+    "xMin": 1103,
+    "xMax": 1769,
+    "yMin": 1058,
+    "yMax": 1998,
+    "note": "Local metres: the route stops' bounding box plus 250 m on every side, rounded outwards"
+  },
+  "planner": {
+    "walkSpeed": 0.8,
+    "maxSlopeDeg": 25,
+    "shelterExtraBlocked": 0.09,
+    "shelterMaxSlopeDeg": 15,
+    "minutesToShelterLimit": 5,
+    "waypointSpacing": 15,
+    "openBlocked": 0.075,
+    "doseShieldingFactor": 0.5,
+    "oxygenMinutes": 480,
+    "expectedShelterCount": [
+      4,
+      40
+    ],
+    "notes": {
+      "walkSpeed": "Assumption: suited walking speed on flat ground, metres per second. Walking time per metre is (1 / walkSpeed) * (1 + (slope / 15)^2)",
+      "maxSlopeDeg": "Assumption: ground steeper than this, in degrees, is impassable",
+      "shelterExtraBlocked": "Assumption: a shelter cell has a blocked-sky fraction of at least openBlocked + shelterExtraBlocked. Relative, so the shelter set does not depend on how much distant horizon the far field adds everywhere. Replaces shelterBlockedMin 0.15 (= 0.06 + 0.09)",
+      "shelterMaxSlopeDeg": "Assumption: a shelter cell is no steeper than this, in degrees",
+      "minutesToShelterLimit": "Assumption: more minutes than this to the nearest refuge counts as a warning (the relay's warning limit and a route penalty)",
+      "waypointSpacing": "Assumption: metres between waypoints; every stop is always a waypoint",
+      "openBlocked": "Blocked-sky fraction of open ground, where the relative dose rate is 1. Computed by engine check at sol1468 (near field to 700 m plus the far field with MOLA). Was 0.06 with far.bin alone; without data/raw/mola.bin the engine's own value would no longer match this one",
+      "doseShieldingFactor": "Assumption: relative dose rate = 1 - doseShieldingFactor * (blocked - openBlocked), kept between 0.5 and 1.05. Calibrated to Curiosity's measurement that about 9 more points of blocked sky cut the dose by about 5 percent. Simulated, not a dose model",
+      "oxygenMinutes": "Assumption: minutes of oxygen at the start; oxygenFraction = 1 - minutes elapsed / oxygenMinutes",
+      "expectedShelterCount": "Sanity range for the number of shelters found inside plannerBounds; engine plan stops outside it instead of retuning the thresholds. Set for Gale's bounds",
+      "doseBudget": "Simulated: doseFraction is accumulated rate * minutes (times the storm multiplier on reroutes) divided by a budget chosen so the largest doseFraction over the main route and every reroute is 0.9. briefing.json gives the budget in microgray when the RAD cache exists"
+    }
+  },
+  "storm": {
+    "leadMinutes": 5,
+    "stormMinutes": 240,
+    "doseMultiplier": 33.28,
+    "stormMinutesCap": 240,
+    "noLinkPenalty": 0.05,
+    "maxMinutesToCover": 5,
+    "notes": {
+      "leadMinutes": "Assumption: minutes of warning between the storm being declared and the storm arriving",
+      "stormMinutes": "Measured: minutes the 20 May 2024 storm stayed above 1.5 x the quiet dose rate at Curiosity (RAD detector E), capped at stormMinutesCap. Measured 2308.9 minutes (still just above at the end of sol 4191's file). The engine sets this from data/cache/rad_storm.json when it exists; was 120 (assumption)",
+      "doseMultiplier": "Measured: mean dose rate over the minutes the model simulates (the first stormMinutes = 240 after onset) as a multiple of the quiet rate (6.30 microgray per hour, RAD detector E, median of sol 4186). Over the whole 2308.9 minutes above 1.5 x the mean is 7.985; the peak was 351.4 (x 55.7). Applied to walking and sheltering once the storm arrives (and to reroute dose). The engine sets this from data/cache/rad_storm.json when it exists; was 2 (assumption)",
+      "stormMinutesCap": "Assumption: the longest storm the measured length may set, in minutes",
+      "source": "Curiosity RAD RDR, sols 4186, 4190 and 4191, via tools/fetch_rad.py; https://pds-ppi.igpp.ucla.edu/data/MSL-M-RAD-3-RDR-V1.0/DATA/SOL_04134_04257/",
+      "noLinkPenalty": "Assumption: a site without a base link scores this fraction worse (0.05 = 5 percent)",
+      "maxMinutesToCover": "Hard rule. The astronaut must be under cover within this many minutes of the warning, so they are not walking in the open when the storm arrives. Normally equal to leadMinutes"
+    }
+  },
+  "notes": [
+    "planner and storm are copied from Gale (data/site.json), including openBlocked 0.075 and the Curiosity RAD storm; they are not measured at Jezero",
+    "No validation section: engine check runs only the fast-against-precise self-check at the base"
+  ]
+}

@@ -1,0 +1,56 @@
+{
+  "version": 1,
+  "source": {
+    "dem": "https://planetarymaps.usgs.gov/mosaic/mars2020_trn/HiRISE/JEZ_hirise_soc_006_DTM_MOLAtopography_DeltaGeoid_1m_Eqc_latTs0_lon0_blend40.tif",
+    "colour": "https://planetarymaps.usgs.gov/mosaic/mars2020_trn/HiRISE/JEZ_hirise_soc_006_orthoMosaic_25cm_Eqc_latTs0_lon0_first.tif",
+    "credit": "NASA/JPL-Caltech/University of Arizona/USGS"
+  },
+  "demSourceWindow": [
+    4350608,
+    1092468,
+    3000,
+    3000
+  ],
+  "boundsProjectedMetres": [
+    4350608,
+    1092468,
+    4353608,
+    1095468
+  ],
+  "crsWkt": "PROJCS[\"unknown\",GEOGCS[\"GCS_unknown\",DATUM[\"D_unknown\",SPHEROID[\"unknown\",3396190.0,0.0]],PRIMEM[\"Reference_meridian\",0.0],UNIT[\"Degree\",0.0174532925199433]],PROJECTION[\"Equidistant_Cylindrical\"],PARAMETER[\"False_Easting\",0.0],PARAMETER[\"False_Northing\",0.0],PARAMETER[\"Central_Meridian\",0.0],PARAMETER[\"Standard_Parallel_1\",18.4663],UNIT[\"Meter\",1.0]]",
+  "originProjectedMetres": [
+    4350608,
+    1092468
+  ],
+  "localFrame": "x east, y north, z absolute terrain elevation; metres; origin southwest",
+  "parking": {
+    "x": 1500.0,
+    "y": 1500.0,
+    "z": -2543.35,
+    "source": "Crop centre C: the last Perseverance sol 686 waypoint (Three Forks depot) + 150 m north, NASA M20 waypoint record"
+  },
+  "heightGrid": {
+    "file": "height_750.bin",
+    "width": 750,
+    "height": 750,
+    "metresPerPixel": 4,
+    "dtype": "little-endian Float32",
+    "headerBytes": 0,
+    "row0": "north",
+    "samplePosition": "x = (column + 0.5) * 4; y = 3000 - (row + 0.5) * 4; z = height",
+    "minimum": -2570.999267578125,
+    "maximum": -2433.760009765625
+  },
+  "textures": {
+    "hub": "jezero_4096.jpg",
+    "headset": "jezero_2048.jpg",
+    "row0": "north",
+    "coverage": "entire 3000 m square"
+  },
+  "rendering": {
+    "threeJsPosition": "[x, z - (-2543.35), -y]",
+    "textureUV": "[(column+0.5)/750, (row+0.5)/750]",
+    "note": "Height values are pixel-centre samples, 2 m inside the crop boundary, matching shared/conventions.md. Honour each asset resolution. The source mosaics were warped from standard parallel 0 to 18.4663 so pixels are square metres; demSourceWindow gives the crop in that projection (west, south, width, height)"
+  },
+  "optionalVrGrid": "Deferred until AR works end to end"
+}

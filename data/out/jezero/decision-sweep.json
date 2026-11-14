@@ -1,0 +1,304 @@
+{
+  "baseDoseFactor": 0.5,
+  "doseMultiplier": 33.28,
+  "noLinkPenalty": 0.05,
+  "stormMinutes": 240.0,
+  "version": 1,
+  "waypoints": [
+    {
+      "label": "",
+      "mainIndex": 15,
+      "pos": {
+        "x": 1486.0,
+        "y": 1483.58
+      },
+      "results": [
+        {
+          "chosen": {
+            "id": "base",
+            "kind": "base",
+            "label": "",
+            "late": true,
+            "minutes": 2.9,
+            "minutesLate": 2.9,
+            "score": 4041.9
+          },
+          "limitMinutes": 0.0,
+          "warningMinutes": 0.0
+        },
+        {
+          "chosen": {
+            "id": "base",
+            "kind": "base",
+            "label": "",
+            "late": true,
+            "minutes": 2.9,
+            "minutesLate": 0.9,
+            "score": 4010.6
+          },
+          "limitMinutes": 2.0,
+          "warningMinutes": 2.0
+        },
+        {
+          "chosen": {
+            "id": "base",
+            "kind": "base",
+            "label": "",
+            "late": false,
+            "minutes": 2.9,
+            "score": 3997.6
+          },
+          "limitMinutes": 5.0,
+          "warningMinutes": 5.0
+        },
+        {
+          "chosen": {
+            "id": "base",
+            "kind": "base",
+            "label": "",
+            "late": false,
+            "minutes": 2.9,
+            "score": 4000.1
+          },
+          "limitMinutes": 10.0,
+          "warningMinutes": 10.0
+        },
+        {
+          "chosen": {
+            "id": "base",
+            "kind": "base",
+            "label": "",
+            "late": false,
+            "minutes": 2.9,
+            "score": 4002.6
+          },
+          "limitMinutes": 15.0,
+          "warningMinutes": 15.0
+        }
+      ],
+      "waypoint": "m15",
+      "what": "open ground"
+    },
+    {
+      "label": "Three Forks sample depot",
+      "mainIndex": 3,
+      "pos": {
+        "x": 1478.1,
+        "y": 1308.5
+      },
+      "results": [
+        {
+          "chosen": {
+            "id": "base",
+            "kind": "base",
+            "label": "",
+            "late": true,
+            "minutes": 1.07,
+            "minutesLate": 1.07,
+            "score": 4011.4
+          },
+          "limitMinutes": 0.0,
+          "warningMinutes": 0.0
+        },
+        {
+          "chosen": {
+            "id": "base",
+            "kind": "base",
+            "label": "",
+            "late": false,
+            "minutes": 1.07,
+            "score": 3995.1
+          },
+          "limitMinutes": 2.0,
+          "warningMinutes": 2.0
+        },
+        {
+          "chosen": {
+            "id": "base",
+            "kind": "base",
+            "label": "",
+            "late": false,
+            "minutes": 1.07,
+            "score": 3996.6
+          },
+          "limitMinutes": 5.0,
+          "warningMinutes": 5.0
+        },
+        {
+          "chosen": {
+            "id": "base",
+            "kind": "base",
+            "label": "",
+            "late": false,
+            "minutes": 1.07,
+            "score": 3999.1
+          },
+          "limitMinutes": 10.0,
+          "warningMinutes": 10.0
+        },
+        {
+          "chosen": {
+            "id": "base",
+            "kind": "base",
+            "label": "",
+            "late": false,
+            "minutes": 1.07,
+            "score": 4001.6
+          },
+          "limitMinutes": 15.0,
+          "warningMinutes": 15.0
+        }
+      ],
+      "waypoint": "m03",
+      "what": "Three Forks depot"
+    },
+    {
+      "label": "Delta-front sample site",
+      "mainIndex": 37,
+      "pos": {
+        "x": 1358.3,
+        "y": 1662.7
+      },
+      "results": [
+        {
+          "chosen": {
+            "id": "s-1466-1757",
+            "kind": "shelter",
+            "label": "",
+            "late": true,
+            "minutes": 4.83,
+            "minutesLate": 4.83,
+            "score": 7601.5
+          },
+          "limitMinutes": 0.0,
+          "warningMinutes": 0.0
+        },
+        {
+          "chosen": {
+            "id": "s-1466-1757",
+            "kind": "shelter",
+            "label": "",
+            "late": true,
+            "minutes": 4.83,
+            "minutesLate": 2.83,
+            "score": 7600.3
+          },
+          "limitMinutes": 2.0,
+          "warningMinutes": 2.0
+        },
+        {
+          "chosen": {
+            "id": "s-1466-1757",
+            "kind": "shelter",
+            "label": "",
+            "late": false,
+            "minutes": 4.83,
+            "score": 7598.6
+          },
+          "limitMinutes": 5.0,
+          "warningMinutes": 5.0
+        },
+        {
+          "chosen": {
+            "id": "base",
+            "kind": "base",
+            "label": "",
+            "late": false,
+            "minutes": 8.66,
+            "score": 4002.9
+          },
+          "limitMinutes": 10.0,
+          "warningMinutes": 10.0
+        },
+        {
+          "chosen": {
+            "id": "base",
+            "kind": "base",
+            "label": "",
+            "late": false,
+            "minutes": 8.66,
+            "score": 4005.4
+          },
+          "limitMinutes": 15.0,
+          "warningMinutes": 15.0
+        }
+      ],
+      "waypoint": "m37",
+      "what": "delta-front site"
+    },
+    {
+      "label": "Far point",
+      "mainIndex": 43,
+      "pos": {
+        "x": 1353.6,
+        "y": 1747.3
+      },
+      "results": [
+        {
+          "chosen": {
+            "id": "s-1438-1769",
+            "kind": "shelter",
+            "label": "",
+            "late": true,
+            "minutes": 3.21,
+            "minutesLate": 3.21,
+            "score": 7620.6
+          },
+          "limitMinutes": 0.0,
+          "warningMinutes": 0.0
+        },
+        {
+          "chosen": {
+            "id": "s-1438-1769",
+            "kind": "shelter",
+            "label": "",
+            "late": true,
+            "minutes": 3.21,
+            "minutesLate": 1.21,
+            "score": 7619.5
+          },
+          "limitMinutes": 2.0,
+          "warningMinutes": 2.0
+        },
+        {
+          "chosen": {
+            "id": "s-1468-1765",
+            "kind": "shelter",
+            "label": "",
+            "late": false,
+            "minutes": 4.31,
+            "score": 7577.8
+          },
+          "limitMinutes": 5.0,
+          "warningMinutes": 5.0
+        },
+        {
+          "chosen": {
+            "id": "s-1482-1783",
+            "kind": "shelter",
+            "label": "",
+            "late": false,
+            "minutes": 5.49,
+            "score": 7517.2
+          },
+          "limitMinutes": 10.0,
+          "warningMinutes": 10.0
+        },
+        {
+          "chosen": {
+            "id": "base",
+            "kind": "base",
+            "label": "",
+            "late": false,
+            "minutes": 11.38,
+            "score": 4006.8
+          },
+          "limitMinutes": 15.0,
+          "warningMinutes": 15.0
+        }
+      ],
+      "waypoint": "m43",
+      "what": "far point"
+    }
+  ]
+}

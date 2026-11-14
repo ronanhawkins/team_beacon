@@ -1,0 +1,28 @@
+{
+  "version": 1,
+  "description": "Detail tile centred on the route, at full resolution. Same frame as terrain.json: local metres from the near crop's south-west corner",
+  "originLocal": {
+    "x": 1136,
+    "y": 1228
+  },
+  "sizeMetres": 600,
+  "heightGrid": {
+    "file": "detail_height_600.bin",
+    "width": 600,
+    "height": 600,
+    "metresPerPixel": 1,
+    "dtype": "little-endian Float32",
+    "headerBytes": 0,
+    "row0": "north",
+    "samplePosition": "x = 1136 + column + 0.5; y = 1828 - (row + 0.5); z = height",
+    "minimum": -2550.19970703125,
+    "maximum": -2472.482177734375
+  },
+  "texture": {
+    "file": "detail_2400.jpg",
+    "width": 2400,
+    "height": 2400,
+    "metresPerPixel": 0.25,
+    "row0": "north"
+  }
+}
