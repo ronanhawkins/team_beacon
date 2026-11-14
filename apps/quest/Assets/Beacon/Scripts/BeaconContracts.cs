@@ -6,13 +6,22 @@ using Newtonsoft.Json.Linq;
 namespace Beacon
 {
     [Serializable] public sealed class SitePosition { public double x, y, z; }
-    [Serializable] public sealed class Shelter { public double az, distance, minutes; }
+    [Serializable] public sealed class Shelter { public string id; public double az, distance, minutes; }
+    [Serializable] public sealed class SkyBody { public double az, el; public bool visible; }
+    [Serializable] public sealed class BaseBeacon { public double az, distance; public bool visible; }
+    [Serializable] public sealed class DecisionOption { public string id, kind; public double? minutes, minutesLate; public bool? baseLink, late; }
+    [Serializable] public sealed class BaseDecision { public double? minutes; public bool? excludedByLimit; }
+    [Serializable] public sealed class RerouteDecision { public DecisionOption chosen; public BaseDecision @base; }
+    [Serializable] public sealed class SkyMetadata { public string timeUT, source; }
+    [Serializable] public sealed class MissionSite { public SkyMetadata sky; }
     [Serializable] public sealed class Waypoint
     {
         public string id, label;
         public SitePosition pos;
         public double headingDeg, openSky, doseFraction, oxygenFraction;
         public double[] skyline;
+        public SkyBody sun, earth;
+        public BaseBeacon @base;
         public Shelter shelter;
         public bool isShelter, isScienceStop;
         public string Name => string.IsNullOrEmpty(label) ? (isShelter ? "Shelter" : "Waypoint") : label;
@@ -22,6 +31,7 @@ namespace Beacon
         public int version, skylineSamples;
         public List<Waypoint> main;
         public Dictionary<string, List<Waypoint>> reroutes;
+        public Dictionary<string, RerouteDecision> rerouteInfo;
     }
     [Serializable] public sealed class MissionState
     {
@@ -114,6 +124,9 @@ namespace Beacon
                     Require(p?.pos != null && p.shelter != null && !string.IsNullOrEmpty(p.id), "Incomplete waypoint");
                     Require(Finite(p.pos.x) && Finite(p.pos.y) && Finite(p.pos.z), "Invalid waypoint coordinates");
                     Require(p.skyline?.Length == 72 && Array.TrueForAll(p.skyline, Finite), "Invalid skyline");
+                    Require(p.sun != null && p.earth != null && p.@base != null, "Missing sky or base marker");
+                    Require(Finite(p.sun.az) && Finite(p.sun.el) && Math.Abs(p.sun.el) <= 90 && Finite(p.earth.az) && Finite(p.earth.el) && Math.Abs(p.earth.el) <= 90, "Invalid sky directions");
+                    Require(Finite(p.@base.az) && Finite(p.@base.distance) && p.@base.distance >= 0, "Invalid base marker");
                 }
             }
         }

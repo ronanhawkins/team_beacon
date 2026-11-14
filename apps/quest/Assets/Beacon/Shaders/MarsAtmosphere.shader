@@ -4,6 +4,8 @@ Shader "Beacon/Mars Atmosphere"
     {
         _Storm ("Storm strength", Range(0,1)) = 0
         _SunDirection ("Sun direction", Vector) = (0.7,0.25,0.7,0)
+        _SunVisibility ("Sun above skyline", Range(0,1)) = 1
+        _Immersive ("Opaque VR sky", Range(0,1)) = 0
     }
     SubShader
     {
@@ -19,7 +21,7 @@ Shader "Beacon/Mars Atmosphere"
             #include "UnityCG.cginc"
             struct appdata { float4 vertex : POSITION; UNITY_VERTEX_INPUT_INSTANCE_ID };
             struct v2f { float4 vertex : SV_POSITION; float3 direction : TEXCOORD0; UNITY_VERTEX_OUTPUT_STEREO };
-            float _Storm;
+            float _Storm, _SunVisibility, _Immersive;
             float4 _SunDirection;
             v2f vert(appdata v)
             {
@@ -44,13 +46,13 @@ Shader "Beacon/Mars Atmosphere"
                 // legible through the entire AR atmosphere, even during storms.
                 float opacity = upper * 0.42 + horizon * (0.10 + _Storm * 0.09);
                 float alignment = saturate(dot(direction, normalize(_SunDirection.xyz)));
-                float disc = smoothstep(0.999965, 0.999985, alignment);
-                float halo = pow(alignment, 420);
-                float aureole = pow(alignment, 45);
+                float disc = smoothstep(0.999965, 0.999985, alignment) * _SunVisibility;
+                float halo = pow(alignment, 420) * _SunVisibility;
+                float aureole = pow(alignment, 45) * _SunVisibility;
                 colour += float3(0.25,0.13,0.05) * aureole;
                 colour = lerp(colour, float3(1.0,0.84,0.57), saturate(disc + halo * 0.65));
                 opacity = saturate(opacity + (disc * 0.92 + halo * 0.30) * (1 - _Storm * 0.60));
-                return float4(colour, opacity);
+                return float4(colour, lerp(opacity,1,_Immersive));
             }
             ENDCG
         }

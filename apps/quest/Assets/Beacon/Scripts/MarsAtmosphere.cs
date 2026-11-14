@@ -10,15 +10,16 @@ namespace Beacon
     {
         public OVRCameraRig rig;
         public BeaconRelay relay;
+        public BeaconMissionView missionView;
         public Shader skyShader, dustShader;
         public bool effectsEnabled = true;
-        Transform eye, visuals, sky;
+        Transform eye, visuals, sky, dust;
         Material skyMaterial, dustMaterial;
         Mesh skyMesh, dustMesh;
         AudioSource wind;
         AudioClip windClip;
         float storm;
-        bool aligned, paused;
+        bool paused, immersive;
         public float StormStrength => storm;
 
         void Start() => CreateVisuals(rig.centerEyeAnchor);
@@ -33,11 +34,12 @@ namespace Beacon
             dustMaterial = new Material(dustShader) { name = "Airborne ochre dust" };
             skyMesh = MakeDome(); dustMesh = MakeDust();
             sky = Draw("Dusty sky, sun and horizon haze", skyMesh, skyMaterial);
-            Draw("Drifting sand and low red mist", dustMesh, dustMaterial);
+            dust=Draw("Drifting sand and low red mist", dustMesh, dustMaterial);
             SetSun(45);
             wind = gameObject.AddComponent<AudioSource>(); wind.loop = true; wind.spatialBlend = 0;
             wind.volume = .04f; windClip = MakeWind(); wind.clip = windClip;
             SetEffectsEnabled(effectsEnabled);
+            UpdateSun();
         }
         Transform Draw(string name, Mesh mesh, Material material)
         {
@@ -53,9 +55,25 @@ namespace Beacon
         {
             effectsEnabled = enabled;
             if (visuals == null) return;
-            visuals.gameObject.SetActive(enabled);
+            visuals.gameObject.SetActive(enabled || immersive);
+            dust.gameObject.SetActive(enabled);
             if (enabled && !paused) wind.Play(); else wind.Stop();
             Debug.Log("BEACON_ATMOSPHERE: " + (enabled ? "Mars AR" : "Clear passthrough"));
+        }
+        public void SetImmersive(bool enabled)
+        {
+            immersive=enabled;
+            if(visuals==null) return;
+            skyMaterial.SetFloat("_Immersive",enabled ? 1 : 0);
+            visuals.gameObject.SetActive(effectsEnabled || enabled);
+            dust.gameObject.SetActive(effectsEnabled);
+        }
+        public void UpdateSun()
+        {
+            if(skyMaterial==null || missionView==null) return;
+            bool available=relay!=null && relay.Connected && relay.Selection!=null;
+            skyMaterial.SetFloat("_SunVisibility",available && relay.Selection.Point.sun.visible && relay.State.sunlit ? 1 : 0);
+            if(available) skyMaterial.SetVector("_SunDirection",missionView.SkyDirection(relay.Selection.Point.sun));
         }
         public void SetStormStrength(float strength)
         {
@@ -74,12 +92,9 @@ namespace Beacon
             if (visuals == null) return;
             sky.position = eye.position;
             if (OVRInput.GetDown(OVRInput.Button.One, OVRInput.Controller.RTouch)) SetEffectsEnabled(!effectsEnabled);
-            if (!aligned && Time.timeSinceLevelLoad > 1 && OVRPlugin.GetNodeOrientationTracked(OVRPlugin.Node.EyeCenter))
-            {
-                SetSun(Mathf.Atan2(eye.forward.x, eye.forward.z) * Mathf.Rad2Deg + 45);
-                aligned = true;
-            }
-            // Panic alone does not invent weather. Offline data stops driving it.
+            UpdateSun();
+            // Illustrative effects follow the emergency display mode; offline
+            // data lets them fade back to calm. This is not a weather forecast.
             bool stormActive = relay != null && relay.Connected && (relay.State?.storm == true || relay.State?.mode == "storm");
             SetStormStrength(Mathf.MoveTowards(storm, stormActive ? 1 : 0, Time.unscaledDeltaTime / 4));
         }

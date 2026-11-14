@@ -65,6 +65,28 @@ public static class BeaconVerify
         var turn = Navigation.Upcoming(new MissionSelection(bend, 0, false));
         Check(turn.Title == "Turn right" && turn.Metres == 10, "navigation skips straight samples and measures distance to the turn");
         Check(UnityEditor.AssetDatabase.LoadAssetAtPath<UnityEngine.Object>("Assets/Beacon/Scenes/BeaconAR.unity") != null, "native scene exists");
+        Check(Math.Abs(exported.main[0].openSky-.924)<.001, "current exported base has 92.4 percent open sky, not the old screenshot value");
+        var quela=exported.main[19];
+        Check(quela.isScienceStop && quela.label=="Quela drill site" && !quela.sun.visible, "Quela science card and hidden Sun");
+        Check(Math.Abs(quela.openSky-.815)<.001, "Quela open sky uses exported fraction");
+        for(int i=25;i<=28;i++) Check(!exported.main[i].@base.visible, "outcrop base link loss");
+        var decisionState=new MissionState { route="reroute",rerouteFrom=30 };
+        string why=MissionPresentation.Decision(decisionState,exported);
+        Check(why.Contains("S03") && why.Contains("4.5 min") && why.Contains("9.7 min") && why.Contains("base link kept") && why.Contains("out of reach"), "far point explanation comes from current decision, not screenshot S04");
+        Check(MissionPresentation.Decision(decisionState,route)=="", "optional decision missing does not invent a reason");
+        var arrival=exported.reroutes["30"][exported.reroutes["30"].Count-1];
+        Check(arrival.isShelter && arrival.shelter.minutes==0 && arrival.@base.visible && Math.Abs(arrival.openSky-.746)<.001, "arrival uses sheltered skyline, zero minutes and retained base link");
+        Check((BeaconMissionView.Direction(90,0)-Vector3.right).magnitude<.001f, "ring east is clockwise from north");
+        Check((BeaconMissionView.Direction(0,90)-Vector3.up).magnitude<.001f, "sky marker elevation is above horizon");
+        Check(MissionPresentation.Warning(new MissionState { baseLink=false })=="BASE LINK LOST", "amber warning explains link loss");
+        var site=JsonConvert.DeserializeObject<MissionSite>(File.ReadAllText(Path.GetFullPath("../../data/site.json")));
+        Check(MissionPresentation.Credit(site).Contains("14 Nov 2026 19:40 UT"), "sky credit uses source time");
+        foreach(var graphicType in new[] {typeof(CompassGraphic),typeof(ArrowGraphic),typeof(HudBorderGraphic)})
+        {
+            var graphic=new GameObject("Renderer regression check",graphicType);
+            Check(graphic.GetComponent<CanvasRenderer>()!=null,"custom HUD graphic has the renderer required to draw: "+graphicType.Name);
+            UnityEngine.Object.DestroyImmediate(graphic);
+        }
         Debug.Log($"BEACON_CHECKS_PASSED: {checks}");
     }
 }

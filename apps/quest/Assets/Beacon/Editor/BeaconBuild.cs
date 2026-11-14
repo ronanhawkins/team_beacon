@@ -25,7 +25,7 @@ public static class BeaconBuild
         Directory.CreateDirectory("Assets/Beacon/Scenes"); Directory.CreateDirectory("Assets/XR");
         PlayerSettings.companyName = "Team Beacon"; PlayerSettings.productName = "Beacon AR";
         PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, "com.teambeacon.ar");
-        PlayerSettings.bundleVersion = "0.4.0"; PlayerSettings.Android.bundleVersionCode = 4;
+        PlayerSettings.bundleVersion = "0.5.0"; PlayerSettings.Android.bundleVersionCode = 5;
         PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android, ScriptingImplementation.IL2CPP);
         PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64;
         PlayerSettings.Android.minSdkVersion = AndroidSdkVersions.AndroidApiLevel32;
@@ -94,8 +94,15 @@ public static class BeaconBuild
         passthrough.textureOpacity = 1; passthrough.edgeRenderingEnabled = false;
         RenderSettings.skybox = null;
         var app = new GameObject("Beacon mission"); var relay = app.AddComponent<BeaconRelay>();
+        app.AddComponent<BeaconPerformance>();
         var hud = app.AddComponent<BeaconHud>(); hud.rig = rig; hud.relay = relay; hud.font = font;
+        var missionView=app.AddComponent<BeaconMissionView>(); missionView.rig=rig; missionView.relay=relay; missionView.font=font;
+        missionView.passthrough=passthrough;
+        missionView.skylineShader=AssetDatabase.LoadAssetAtPath<Shader>("Assets/Beacon/Shaders/Skyline.shader");
+        if(missionView.skylineShader==null) throw new Exception("Skyline shader is missing");
+        hud.missionView=missionView;
         var atmosphere = app.AddComponent<MarsAtmosphere>(); atmosphere.rig = rig; atmosphere.relay = relay;
+        atmosphere.missionView=missionView; missionView.atmosphere=atmosphere;
         atmosphere.skyShader = AssetDatabase.LoadAssetAtPath<Shader>("Assets/Beacon/Shaders/MarsAtmosphere.shader");
         atmosphere.dustShader = AssetDatabase.LoadAssetAtPath<Shader>("Assets/Beacon/Shaders/MarsDust.shader");
         if (atmosphere.skyShader == null || atmosphere.dustShader == null) throw new Exception("Mars atmosphere shaders are missing");

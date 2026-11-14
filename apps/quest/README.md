@@ -10,22 +10,33 @@ The laptop relay remains the authority. The app loads `/session.json` and that s
 
 ## HUD
 
-- Oxygen and base contact sit in the lower-left corner; dose budget used sits in the lower-right. Each small readout is around half the previous text's angular size.
-- A thin scrolling compass sits at the top, with cardinal directions and bearings. One arrow on the compass marks the next route waypoint. When its bearing is outside the visible tape, that same arrow points sideways at the tape edge. At the destination it disappears.
-- The helmet has no mini map, route line, turn card, distance label or central pointer. The watch is the main navigator.
-- The HUD plane is 1.2 m from the eye (previously 1.6 m), with much smaller elements positioned near the viewing edges. The centre stays clear.
-- Emergencies use a compact upper-right alert and a short chime. The alert gently pulses, stays at the edge and never expands across the centre. Arrival does not clear an active emergency.
-- Holding the right controller's B button for one second requests a shelter route.
+- A readable lower strip shows minutes to shelter, base link, sunlight, oxygen and dose. It sits 18 degrees below forward gaze, with larger text than 0.3/0.4 and no far-corner readouts.
+- The compass is lowered from 27 to 16 degrees above forward gaze. One arrow marks the supplied direction of travel. The watch remains the detailed navigator; there is no route line or mini-map.
+- Open-sky percentage is prominent 24 degrees to the left. A named science-stop card appears at the same distance to the right. The HUD plane remains 1.2 m forward.
+- The ring uses the current waypoint's 72 skyline samples, with translucent blocked sky, a contour and N/E/S/W labels. Sample heights and orientation blend smoothly as the presenter advances. Each new travel direction is aligned in front of the wearer, who can then look around naturally.
+- Sun and Earth markers use supplied azimuth, elevation and visibility. Earth includes the relay's delay. Base includes its supplied distance and dims on loss of contact. Shelter includes the supplied walking minutes and pulses during emergencies. These markers describe the mission view, not furniture.
+- Warning mode shows an amber border and reason. Storm mode shows a red border, “Solar storm, take cover”, chime and pulsing shelter marker. Arrival says “In shelter” and keeps the shelter skyline and active storm warning.
+- The lower explanation comes directly from `rerouteInfo`, including the initial chosen-route time and why base was excluded. Current remaining minutes always come from the relay; the headset does not run its own timer or planner.
+- Data credit uses the site file's JPL Horizons time. Missing decision or metadata fields are not fabricated.
 
-Entering the app establishes an illustrative room north after tracking starts. Physical room movement does not advance the Mars route. The presenter uses the hub's Next/Storm/Reset controls. A surveyed lecture-hall route and persistent spatial anchors are a separate next step; the current Mars coordinates must not be treated as a room-scale walking path.
+Physical room movement and controller sticks do not advance the Mars route. The presenter uses the hub's Next/Storm/Reset controls. A surveyed lecture-hall route and persistent spatial anchors are a separate next step.
+
+| Controller | Action |
+| --- | --- |
+| Right A | Toggle Mars atmosphere / clear passthrough |
+| Right B, hold one second | Ask the relay for a shelter route |
+| Left X | Toggle AR passthrough / VR fallback |
+| Left Y | Show or hide the skyline ring in AR |
+
+VR fallback uses an opaque dusty sky and the same data-driven skyline filled as a solid silhouette. X returns to AR. It is a fallback scene; the full textured terrain/panorama remains a later enhancement. The ring is always present in VR.
 
 ## Mars atmosphere
 
 The native AR view starts with a translucent ochre sky, a small low sun and halo, low red mist and wind-blown sand. The room remains visible. Press **A on the right controller** to switch between Mars effects and clear passthrough; the HUD and live mission continue in both modes. **B held for one second** still requests shelter.
 
-A live storm gradually thickens the dust and strengthens a quiet wind loop over four seconds. Panic without a storm does not change the weather. Disconnected mission data lets the effect return to calm. The effect has two mesh draws (184 dust billboards and a small sky dome), no post-processing, and excludes particles close to the face. It never adds a route line or centre navigation panel.
+Emergency display mode gradually thickens the illustrative dust and strengthens a quiet wind loop over four seconds, including a panic-triggered emergency. Disconnected mission data lets the effect return to calm. The effect has two mesh draws (184 dust billboards and a small sky dome), no post-processing, and excludes particles close to the face. It never adds a route line or centre navigation panel.
 
-This is an artistic atmosphere over room passthrough, not a scanned room, Mars terrain, or an astronomically computed Sun position. Sun direction is fixed relative to the initial room heading. The real terrain assets remain in `data/out/terrain/` for the separate immersive scene. Shader stereo handling follows [Unity's single-pass instancing guidance](https://docs.unity.com/en-us/engine/6000.3/manual/xr/graphics/stereo-rendering/single-pass-instancing).
+The dust and wind are artistic effects. The Sun now follows the waypoint's JPL Horizons direction and disappears behind the supplied skyline when `sun.visible` is false; its ring marker remains dimmed. The real terrain assets remain in `data/out/terrain/` for a later textured immersive scene. Shader stereo handling follows [Unity's single-pass instancing guidance](https://docs.unity.com/en-us/engine/6000.3/manual/xr/graphics/stereo-rendering/single-pass-instancing).
 
 ## Build and install
 
@@ -46,6 +57,10 @@ Development builds allow HTTP for the local USB mission connection. Do not treat
 `Mirror Quest USB.cmd` opens a read-only USB mirror using [the official scrcpy Windows release](https://github.com/Genymobile/scrcpy/blob/master/doc/windows.md). This laptop has version 5.0.1 in `.local/scrcpy/scrcpy-win64-v5.0.1/`; the download is excluded from Git. Connect the laptop to the projector over HDMI. No Meta casting sign-in is involved. The captured view depends on the Quest compositor; check the view with the app running before a presentation. The mirror does not capture microphone audio.
 
 ## Verified demo
+
+The 0.5.0 update merges main through `32564e3` and follows its current exports. The screenshot checklist's older values changed: base is 92.4% open sky, and the far-point choice is S03 (4.52 minutes), rather than S04. Quela is 81.5% with the Sun hidden; m25–m28 lose base contact; shelter arrival is 74.6% with base contact retained. See [acceptance checklist](ACCEPTANCE.md) for evidence and outstanding hardware checks. `Beacon → Render mission acceptance previews` renders all these states against neutral grey, not a camera image.
+
+Version 0.5.0 passed 805 native checks, seven visual previews, 16 relay/client tests and nine fixture checks, and was installed over USB. The laptop relay now serves the updated export. The headset was asleep after installation, so the final wearer check, frame-rate run and recording are still pending.
 
 The 0.4.0 atmosphere build passed all 611 Unity checks and compiled both shaders for Android/Vulkan on 14 November 2026. Calm and storm materials were rendered and visually checked in Unity against a neutral background; these are material previews, not headset captures. The APK was then installed and launched on Quest 3 over USB. Device logs confirmed atmosphere startup, live mission data, a six-second storm test, the next shelter-route point and reset to calm, with no matching runtime exceptions. The USB mirror was reopened. Wearer confirmation of the final effect strength and A-button toggle is still needed. `Beacon → Render atmosphere preview` recreates the previews under `.local/`.
 

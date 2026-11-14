@@ -1,4 +1,4 @@
-param([string]$Serial = '', [string]$Crop = '')
+param([string]$Serial = '', [string]$Crop = '', [string]$Record = '', [int]$Seconds = 0)
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path -Parent $PSScriptRoot
 $adb = Join-Path $repo '.local\platform-tools\adb.exe'
@@ -10,5 +10,11 @@ if ($Serial -notin $devices) { throw 'Quest USB debugging is not connected.' }
 $env:ADB = $adb
 $arguments = @('--serial', $Serial, '--no-control', '--no-audio', '--max-size=1920', '--max-fps=30', '--window-title=Beacon Quest Demo')
 if ($Crop) { if ($Crop -notmatch '^\d+:\d+:\d+:\d+$') { throw 'Crop must be width:height:x:y' }; $arguments += ('--crop=' + $Crop) }
+if ($Record) {
+    $recordPath = [IO.Path]::GetFullPath($Record)
+    if (Test-Path -LiteralPath $recordPath) { throw 'Recording already exists. Choose a new filename.' }
+    $arguments += ('--record=' + $recordPath)
+}
+if ($Seconds -gt 0) { $arguments += ('--time-limit=' + $Seconds) }
 & $mirror @arguments
 if ($LASTEXITCODE -ne 0) { throw 'USB mirroring stopped with an error.' }
