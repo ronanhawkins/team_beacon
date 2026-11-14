@@ -16,7 +16,7 @@
         <div class="eyebrow">MARS / MURRAY BUTTES</div>
         <h1>Know your<br>next move.</h1>
         <p class="intro">Read the skyline. Find your shelter.<br>Stay connected on the surface.</p>
-        <div class="section-label">CURRENT WAYPOINT <span id="waypoint-number">01 / 04</span></div>
+        <div class="section-label"><span id="route-kind">PLANNED WALK</span><span id="waypoint-number">—</span></div>
         <h2 id="waypoint-name">Loading route…</h2>
         <div id="route-stops" class="route-stops" aria-label="Route progress"></div>
         <div class="sky-stat"><strong id="open-sky">—</strong><span>%<br>OPEN SKY</span><svg viewBox="0 0 70 45" aria-hidden="true"><path d="M5 40a30 30 0 0 1 60 0"/><path d="m5 40 12-10 8 4 12-21 12 11 8-3 8 19" class="mini-sky"/></svg></div>
@@ -32,19 +32,19 @@
         <div class="view-label"><span class="tiny-dot"></span> SKYLINE VIEW <span id="view-mode">DESKTOP PREVIEW</span></div>
         <div id="scene" role="img" aria-label="Interactive 360 degree skyline; drag to look around" tabindex="0"></div>
         <div class="view-reticle" aria-hidden="true">+</div>
-        <div class="scene-legend"><span><i class="legend-sun"></i>Sun</span><span><i class="legend-earth"></i>Earth</span><span><i class="legend-base"></i>Base</span><span><i class="legend-shelter"></i>Shelter</span></div>
+        <div class="scene-legend"><span><i class="legend-sun"></i>Sun</span><span><i class="legend-earth"></i>Earth</span><span><i class="legend-base"></i>Base bearing</span><span><i class="legend-shelter"></i>Shelter bearing</span><span id="sunlight">—</span></div>
         <div class="view-hint">DRAG TO LOOK AROUND <span>•</span> AR USES YOUR ROOM AS THE BACKGROUND</div>
         <div class="metrics">
           <article><span>TO SHELTER</span><div><strong id="shelter-time">—</strong><small>min</small></div><span class="metric-note">Nearest designated shelter</span></article>
-          <article><span>EARTH CONTACT</span><div><strong id="contact">—</strong><i id="contact-dot" class="tiny-dot"></i></div><span class="metric-note">Line of sight</span></article>
+          <article><span>BASE CONTACT</span><div><strong id="contact">—</strong><i id="contact-dot" class="tiny-dot"></i></div><span class="metric-note" id="earth-contact">Earth —</span></article>
           <article><span>OXYGEN</span><div><strong id="oxygen">—</strong><small>%</small></div><div class="meter"><span id="oxygen-bar"></span></div></article>
-          <article><span>ACCUMULATED DOSE</span><div><strong id="dose">—</strong><small>µSv</small></div><span class="metric-note">Demo telemetry</span></article>
+          <article><span>DOSE BUDGET USED</span><div><strong id="dose">—</strong><small>%</small></div><span class="metric-note">Fraction of walk budget</span></article>
         </div>
       </section>
     </section>
     <footer class="controls">
       <div class="control-label"><span class="eyebrow">REHEARSAL CONTROLS</span><span id="control-help">Synced across local browser tabs</span></div>
-      <div class="control-buttons"><button id="play-tour" hidden>Play headset tour</button><button data-action="back" aria-label="Previous waypoint">← Back</button><button data-action="next">Next waypoint →</button><span class="divider"></span><button data-action="storm" id="storm-button" aria-pressed="false">◉ Trigger storm</button><button data-action="panic" class="panic">Demo shelter jump</button><button data-action="reset" class="reset">Reset</button></div>
+      <div class="control-buttons"><button id="play-tour" hidden>Play headset tour</button><button data-action="back" aria-label="Previous waypoint">← Back</button><button data-action="next">Next waypoint →</button><span class="divider"></span><button data-action="storm" id="storm-button" aria-pressed="false">◉ Trigger storm</button><button data-action="requestReroute" class="panic">Request shelter route</button><button data-action="reset" class="reset">Reset</button></div>
     </footer>
     <div class="data-note" id="data-note">SIMULATED MISSION · Skyline, directions and telemetry are illustrative. Real terrain and relay integration pending.</div>
     <div id="message" role="status" hidden></div>

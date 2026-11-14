@@ -28,17 +28,17 @@ Sources: [device setup](https://developers.meta.com/vr/documentation/android-app
 4. Confirm passthrough is visible around the ring and the HUD is readable with both eyes.
 5. Rotate through a full turn: N/E/S/W and the markers should remain in site directions. Trigger realigns north. No walking/teleport locomotion is needed.
 6. On the laptop, advance waypoints. The ring should blend over about 0.9 seconds while status values change immediately.
-7. Trigger storm: verify the red border and pulsing shelter marker. Use **Demo shelter jump**: the fake shelter shows 0.0 minutes and blocked Earth contact.
+7. At the fourth main waypoint, trigger storm: verify the red border and pulsing shelter marker. The route switches to a three-point shelter path. Advance twice: the shelter shows 0.0 minutes and blocked Earth contact. Refresh during the reroute and verify the same skyline returns.
 8. Reset and exit/re-enter AR, then try VR. Confirm exiting restores the desktop preview.
 9. Disconnect the relay/server: the display should warn of stale values, then recover when reconnected.
 10. Record readability, comfort and frame-rate issues before adding large real-terrain assets.
 
 ## What to coordinate next
 
-Ronan: confirm `shared/CONTRACT.md`; provide exact DTM and orthoimage products, source CRS, crop bounds, parking point, date and Sun/Earth directions; supply the relay URL and real waypoints.
+Ronan: the headset now reads your `shared/fake/` fixtures and v1 contracts directly. Supply the relay endpoint and real `data/out/waypoints.json`; consider adding `rerouteFromIndex` to every reroute snapshot for reconnects. See `apps/headset/README.md`. The team's exact crop is prepared under `data/out/terrain/`; date and real Sun/Earth directions still come from the engine/site definition.
 
-Ronn: agree the terrain origin and axes in the GLB's `.metadata.json`. Use the same bounds. The mesh is a visual asset, not an engine input.
+Ronn: `data/out/terrain/README.md` explains the committed height grid, both textures, coordinate conversion and optional `shared/terrain.js` mesh loader. Keep the 1 m raw crop for the engine; the 4 m grid is a visual asset.
 
 Joel: use the same relay snapshot and units so phone and headset agree.
 
-The missing agreed data is the reason real terrain is pending. Do not independently choose a different crop and call it matched.
+AR requires no terrain assets. Keep the real terrain and synthetic route distinction visible until the engine exports matched real waypoints.

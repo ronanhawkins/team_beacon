@@ -1,6 +1,15 @@
 # Data sources and provenance
 
-No NASA terrain is included in the current synthetic headset demo. Raw downloads and generated terrain assets are ignored by Git.
+Real terrain assets for the team's agreed crop are now in `data/out/terrain/` and committed for the hub. The AR ring still uses the synthetic waypoint fixture and requires no raster downloads. Only raw downloads are ignored by Git.
+
+## Agreed terrain crop
+
+- DEM: `https://planetarymaps.usgs.gov/mosaic/Mars/MSL/MSL_Gale_DEM_Mosaic_1m_v3.tif`; source window `[12064, 32026, 3000, 3000]`, at 1 m/pixel.
+- Colour: `https://asc-pds-services.s3.us-west-2.amazonaws.com/mosaic/Mars/MSL/MSL_Gale_HiRISE-LRGB_78quads_sharp_cog.tif`.
+- Bounds (xmin, ymin, xmax, ymax): `[8140057.492786, -279807.075189, 8143057.492786, -276807.075189]` in the Mars equirectangular metre CRS.
+- Derived files: 750-square averaged Float32 height grid, 4096- and 2048-square JPEG colour textures, all covering the same 3 km square. Metadata and instructions are in `data/out/terrain/`.
+- The team specifies the crop centre as parking position, with height -4379.5 m. This is not independently verified as Curiosity's measurement location.
+- Reproduction: `python tools/prepare-buttes.py`. Rasterio uses GDAL for raster reads/resampling; original 1 m data remains `data/raw/near.tif`.
 
 ## Candidate panorama
 
@@ -19,7 +28,7 @@ No NASA terrain is included in the current synthetic headset demo. Raw downloads
 
 An observation showing Murray Buttes is not sufficient: choose a DTM whose footprint covers the agreed parking point and crop, plus a corresponding **orthoimage**. A browse image, hillshade, unrectified image or unrelated Gale Crater DTM is not a substitute. The team must agree planetary CRS and elevation units. HiRISE's `.IMG` terrain is a PDS raster, not a disk image.
 
-After agreement, save original files under `data/raw/`, record product URLs/IDs and crop in `data/site.json`, and retain the full-resolution height data for the engine. `tools/export-terrain.py` produces a compact visual GLB with the image aligned to identical bounds, metre coordinates and provenance metadata.
+The agreed mosaic crop above is the current handoff; do not substitute a separate DTM footprint. The generic `tools/export-terrain.py` remains available for future projected DTM/ortho pairs. Its GLB metadata explicitly records its own centred render origin; do not assume it uses the raw-grid southwest origin.
 
 ## Scientific checks still pending
 

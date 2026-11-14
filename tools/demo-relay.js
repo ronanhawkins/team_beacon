@@ -4,15 +4,16 @@ import { validateRoute, validateState, reduceDemoState } from '../shared/model.j
 
 export function demoRelay() {
   function attach(server) {
-    const route = validateRoute(JSON.parse(readFileSync(new URL('../shared/fake-waypoints.json', import.meta.url))));
-    const initial = validateState(JSON.parse(readFileSync(new URL('../shared/fake-state.json', import.meta.url))), route);
-    let state = { ...initial, updatedAt: new Date().toISOString() };
+    const route = validateRoute(JSON.parse(readFileSync(new URL('../shared/fake/waypoints.json', import.meta.url))));
+    const initial = validateState(JSON.parse(readFileSync(new URL('../shared/fake/state.json', import.meta.url))), route);
+    let state = { ...initial };
     const wss = new WebSocketServer({ noServer: true, maxPayload: 4096 });
     function upgrade(request, socket, head) {
       if (request.url?.split('?')[0] !== '/relay') return;
       // Same-origin browser clients only. This is a development simulator, not the ESP relay.
       const origin = request.headers.origin;
-      if (origin && new URL(origin).host !== request.headers.host) { socket.destroy(); return; }
+      try { if (origin && new URL(origin).host !== request.headers.host) { socket.destroy(); return; } }
+      catch { socket.destroy(); return; }
       wss.handleUpgrade(request, socket, head, ws => wss.emit('connection', ws));
     }
     server.httpServer.on('upgrade', upgrade);
@@ -22,9 +23,12 @@ export function demoRelay() {
       ws.on('error', () => {});
       ws.on('message', bytes => {
         try {
-          const command = JSON.parse(bytes.toString());
-          if (command.type !== 'command' || !['next', 'back', 'storm', 'panic', 'reset'].includes(command.action)) throw new Error('Unsupported demo command');
-          state = reduceDemoState(state, command, route, initial);
+          const event = JSON.parse(bytes.toString());
+          if (!event || typeof event.type !== 'string') throw new Error('Expected a typed event');
+          if (event.type === 'hello') { send(ws); return; }
+          const next = reduceDemoState(state, event, route, initial);
+          if (next === state) return;
+          state = validateState(next, route);
           for (const client of wss.clients) if (client.readyState === 1) send(client);
         } catch (error) { ws.send(JSON.stringify({ type: 'error', message: error.message })); }
       });
