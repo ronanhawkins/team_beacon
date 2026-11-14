@@ -1,12 +1,85 @@
 <!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Beacon Hub</title>
+<meta charset="utf-8">
+<title>Beacon Hub</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" href="data:,">
+<link rel="stylesheet" href="./style.css">
 </head>
 <body>
-  <h1>Beacon Hub</h1>
-  <script type="module" src="./main.js"></script>
+<div id="app">
+  <header id="bar">
+    <div class="brand"><strong>Beacon Hub</strong><span id="siteName"></span><span id="realChip" class="chip real" hidden>Real Mars terrain</span><span id="synthChip" class="chip" hidden>Fake data</span></div>
+    <div class="modes" role="group" aria-label="Mode">
+      <button id="modePlan" type="button">Plan</button>
+      <button id="modeLive" type="button">Live</button>
+    </div>
+    <div class="spacer"></div>
+    <div class="clock"><span class="lbl">Walk clock</span><span id="clock" class="mono">0:00</span></div>
+    <div class="clock" id="marsClock" hidden><span class="lbl">Mars local time</span><span id="marsTime" class="mono"></span></div>
+    <div id="devices" class="devices" aria-label="Connected devices"></div>
+    <button id="soundBtn" type="button" class="ghost" title="M">Sound on</button>
+  </header>
+
+  <div id="banner" class="banner" role="status" aria-live="polite">
+    <span id="bannerIcon" aria-hidden="true"></span>
+    <div id="bannerText"></div>
+    <div id="bannerActions"></div>
+  </div>
+
+  <main>
+    <aside id="left">
+      <section class="panel" id="layersPanel"></section>
+      <section class="panel" id="routePanel"></section>
+      <section class="panel" id="briefPanel"></section>
+    </aside>
+
+    <section id="mapWrap" aria-label="3D map">
+      <canvas id="gl"></canvas>
+      <canvas id="ov"></canvas>
+      <div class="mapTools">
+        <button id="viewFit" type="button" title="F">3D view</button>
+        <button id="viewTop" type="button" title="T">Top view</button>
+        <button id="viewFollow" type="button" title="G" aria-pressed="false">Follow</button>
+      </div>
+      <div id="mapHint" class="mapHint" hidden></div>
+      <div id="toast" class="toast" role="alert" hidden></div>
+      <div class="mapHelp">Drag to rotate · Shift-drag to move · Scroll to zoom</div>
+    </section>
+
+    <aside id="right">
+      <section class="panel" id="astroPanel"></section>
+      <section class="panel" id="stopPanel"></section>
+      <section class="panel" id="mirrorPanel">
+        <h2 id="mirrorTitle">What the astronaut sees</h2>
+        <div class="mirrors">
+          <figure><canvas id="ring" aria-label="Helmet skyline ring"></canvas><figcaption>Helmet</figcaption>
+            <div class="ringKey"><span><i class="k sun"></i>Sun</span><span><i class="k earth"></i>Earth</span><span><i class="k base"></i>Base</span><span><i class="k shel"></i>Shelter</span></div></figure>
+          <figure><div id="wrist" class="wrist"></div><figcaption>Wrist</figcaption></figure>
+        </div>
+        <div id="hudLine" class="hudLine mono"></div>
+      </section>
+    </aside>
+  </main>
+
+  <footer>
+    <section class="panel" id="timelinePanel"></section>
+    <section class="panel" id="logPanel"><h2>Event log</h2><ol id="log"></ol></section>
+    <section class="panel" id="presenter">
+      <h2>Presenter <span class="hint">H hides</span></h2>
+      <div class="pbtns">
+        <button type="button" data-cmd="back">Back <kbd>&larr;</kbd></button>
+        <button type="button" data-cmd="next" class="primary">Next <kbd>&rarr;</kbd></button>
+        <button type="button" data-cmd="nextstop">Next stop <kbd>N</kbd></button>
+        <button type="button" data-cmd="storm" class="danger" id="stormBtn">Storm <kbd>S</kbd></button>
+        <button type="button" data-cmd="panic" class="danger">Panic <kbd>P</kbd></button>
+        <button type="button" data-cmd="reset">Reset <kbd>R</kbd></button>
+      </div>
+    </section>
+  </footer>
+</div>
+<div id="fatal" hidden></div>
+<script type="module" src="./main.js"></script>
 </body>
 </html>
