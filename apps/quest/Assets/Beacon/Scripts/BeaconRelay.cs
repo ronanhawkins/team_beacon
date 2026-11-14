@@ -38,6 +38,7 @@ namespace Beacon
         {
             State=state; Document=document; Site=site; Selection=Contracts.Select(state,document); Connected=true; Changed?.Invoke();
         }
+        public void PreviewOffline() { Connected=false; Selection=null; Changed?.Invoke(); }
 #endif
         async Task Run(CancellationToken cancel)
         {
@@ -114,12 +115,12 @@ namespace Beacon
             try { await ws.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(text)), WebSocketMessageType.Text, true, cancel); }
             finally { sendLock.Release(); }
         }
-        public async void RequestShelter()
+        public async Task<bool> RequestShelter()
         {
             var ws = socket;
-            if (!Connected || ws?.State != WebSocketState.Open) return;
-            try { await SendText(ws, "{\"type\":\"requestReroute\"}", lifetime.Token); }
-            catch (Exception error) { Debug.LogWarning("Shelter request failed: " + error.Message); }
+            if (!Connected || ws?.State != WebSocketState.Open) return false;
+            try { await SendText(ws, "{\"type\":\"requestReroute\"}", lifetime.Token); return true; }
+            catch (Exception error) { Debug.LogWarning("Shelter request failed: " + error.Message); return false; }
         }
     }
 }

@@ -1,6 +1,7 @@
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
+using System.Threading.Tasks;
 
 namespace Beacon
 {
@@ -14,17 +15,21 @@ namespace Beacon
         static readonly Color White=new Color(.94f,.97f,1), Muted=new Color(.67f,.75f,.80f), Mint=new Color(.55f,.94f,.79f), Amber=new Color(1,.77f,.38f), Red=new Color(1,.48f,.40f);
         RectTransform root,waypoint;
         readonly TMP_Text[] bearings=new TMP_Text[24], readings=new TMP_Text[5];
+        readonly TMP_Text[] readingCaptions=new TMP_Text[5];
+        static readonly string[] Captions={"SHELTER","BASE","SUNLIGHT","OXYGEN","DOSE USED"};
+        static readonly string[] LastCaptions={"SHELTER","LAST BASE","LAST SUN","LAST O2","LAST DOSE"};
         TMP_Text openSky,skyCaption,science,scienceCaption,alert,decision,credit,viewMode;
         RectTransform sciencePanel,decisionPanel;
+        RectTransform feedbackPanel,holdBar;
+        TMP_Text feedback;
         CompassGraphic compass;
         ArrowGraphic waypointGraphic;
         HudBorderGraphic border;
         CanvasGroup alertGroup;
         Image alertBacking;
         AudioSource sound;
-        string alertKey="";
-        float pulseUntil,requestHeld;
-        bool requestSent;
+        float pulseUntil,requestHeld,feedbackUntil,requestDeadline;
+        bool requestSent,requestPending,wasEmergency;
 
         RectTransform Surface(string name,float yaw,float pitch,float width,float height,float metres)
         {
@@ -41,11 +46,10 @@ namespace Beacon
             root=BeaconUi.Rect("Readable peripheral HUD",rig.centerEyeAnchor,0,0,1,1); root.localPosition=Vector3.zero;
             var strip=Surface("Quiet mission line",0,-18,1000,74,1.1f);
             BeaconUi.Backing(strip,1000,74,new Color(.025f,.04f,.055f,.58f));
-            string[] captions={"SHELTER","BASE","SUNLIGHT","OXYGEN","DOSE USED"};
             for(int i=0;i<5;i++)
             {
                 float x=(i-2)*200;
-                Text(strip,captions[i],x,25,188,27,20,Muted);
+                readingCaptions[i]=Text(strip,Captions[i],x,25,188,27,20,Muted);
                 readings[i]=Text(strip,"--",x,-11,188,48,36,White);
             }
             var sky=Surface("Open sky",-24,-6,210,102,.29f);
@@ -81,8 +85,13 @@ namespace Beacon
             decision=Text(decisionPanel,"",0,0,1090,42,24,White);
             var source=Surface("Data credit",0,-26,1100,28,1.12f);
             credit=Text(source,"",0,0,1100,28,18,Muted);
+            feedbackPanel=Surface("Brief action feedback",0,-12.5f,520,54,.64f);
+            BeaconUi.Backing(feedbackPanel,520,54,new Color(.025f,.04f,.055f,.66f));
+            feedback=Text(feedbackPanel,"",0,3,500,42,26,White);
+            var progress=BeaconUi.Backing(feedbackPanel,0,4,Mint); holdBar=progress.rectTransform;
+            holdBar.pivot=new Vector2(0,.5f); holdBar.anchoredPosition=new Vector2(-240,-23);
             sound=gameObject.AddComponent<AudioSource>(); sound.spatialBlend=0; sound.volume=.15f; sound.clip=Chime();
-            relay.Changed+=Refresh; Refresh(); Tick();
+            relay.Changed+=Refresh; missionView.Recentered+=OnRecenter; Refresh(); Tick();
         }
         public void Refresh()
         {
@@ -90,36 +99,32 @@ namespace Beacon
             var s=relay.State; var sel=relay.Selection; bool live=relay.Connected && sel!=null;
             var p=sel?.Point;
             openSky.text=s==null ? "--%" : $"{s.openSky*100:0.0}<size=65%>%</size>";
-            openSky.color=live ? Mint : Muted; skyCaption.text=live ? "OPEN SKY" : "LAST DATA";
+            openSky.color=live ? Mint : Muted; skyCaption.text=live ? "OPEN SKY" : s==null ? "WAITING" : "LAST DATA";
             readings[0].text=!live ? "--" : p.isShelter ? "IN SHELTER" : $"{s.minutesToShelter:0.0} min";
             readings[0].fontSize=live && p.isShelter ? 28 : 36;
             readings[1].text=s==null ? "--" : s.baseLink ? "LINK OK" : "LINK LOST";
             readings[2].text=s==null ? "--" : s.sunlit ? "SUNLIT" : "SHADE";
             readings[3].text=s==null ? "--" : $"{s.oxygenFraction*100:0}%";
             readings[4].text=s==null ? "--" : $"{s.doseFraction*100:0.0}%";
-            for(int i=0;i<readings.Length;i++) readings[i].color=live ? White : Muted;
+            for(int i=0;i<readings.Length;i++)
+            { readings[i].color=live ? White : Muted; readingCaptions[i].text=!live && s!=null ? LastCaptions[i] : Captions[i]; }
             if(live) { readings[1].color=s.baseLink ? Mint : Amber; readings[3].color=Mint; }
             bool showScience=live && p.isScienceStop;
             sciencePanel.gameObject.SetActive(showScience);
             if(showScience) { scienceCaption.text="SCIENCE STOP"; science.text=p.Name; }
             waypoint.gameObject.SetActive(live && sel.Next!=null);
             waypointGraphic.color=s?.Emergency==true ? Red : sel?.Reroute==true ? Amber : new Color(.45f,.8f,1);
-            string key="",title="";
             bool emergency=s?.Emergency==true;
-            if(!live && s!=null) { key="offline"; title="DATA OFFLINE · CHECK USB"; }
-            else if(emergency)
-            {
-                key="emergency:"+s.panic+":"+p.isShelter;
-                title=p.isShelter ? "IN SHELTER · HOLD POSITION" : s.panic ? "EMERGENCY · SEEK SHELTER" : "SOLAR STORM, TAKE COVER";
-            }
-            else if(s?.mode=="warning") { key="warning"; title=MissionPresentation.Warning(s); }
-            if(key!=alertKey) { pulseUntil=emergency ? Time.unscaledTime+3 : 0; if(emergency) sound.Play(); alertKey=key; }
-            alertGroup.gameObject.SetActive(key!=""); alert.text=title;
+            string title=MissionPresentation.Alert(s,live,p?.isShelter==true);
+            if(emergency && !wasEmergency) { pulseUntil=Time.unscaledTime+3; sound.Play(); }
+            wasEmergency=emergency;
+            alertGroup.gameObject.SetActive(title!=""); alert.text=title;
             alertBacking.color=emergency ? new Color(.26f,.035f,.025f,.8f) : new Color(.16f,.11f,.025f,.8f);
-            border.gameObject.SetActive(live && s.mode!="nominal"); border.color=emergency ? new Color(1,.18f,.10f,.58f) : new Color(1,.65f,.15f,.35f);
+            border.gameObject.SetActive(MissionPresentation.AlertBorder(s,live)); border.color=emergency ? new Color(1,.18f,.10f,.58f) : new Color(1,.65f,.15f,.35f);
             decision.text=live ? MissionPresentation.Decision(s,relay.Document) : "";
             decisionPanel.gameObject.SetActive(!string.IsNullOrEmpty(decision.text));
             credit.text=MissionPresentation.Credit(relay.Site);
+            if(requestPending && live && s.route=="reroute") { requestPending=false; ShowFeedback("SHELTER ROUTE ACTIVE"); }
         }
         public void Tick()
         {
@@ -140,15 +145,43 @@ namespace Beacon
             }
             viewMode.text=missionView.Immersive ? "VR · X: AR" : "AR · X: VR";
             if(alertGroup.gameObject.activeSelf) alertGroup.alpha=Time.unscaledTime<pulseUntil ? .88f+.12f*Mathf.Sin(Time.unscaledTime*5) : 1;
+            if(requestPending && Time.unscaledTime>=requestDeadline) { requestPending=false; ShowFeedback("NO REPLY · TRY B AGAIN"); }
+            bool holding=requestHeld>0 && !requestSent;
+            feedbackPanel.gameObject.SetActive(holding || Time.unscaledTime<feedbackUntil);
+            holdBar.gameObject.SetActive(holding);
+            if(holding) { feedback.text="HOLD B · REQUEST SHELTER"; holdBar.sizeDelta=new Vector2(480*Mathf.Clamp01(requestHeld),4); }
+        }
+        void ShowFeedback(string text,float seconds=2.5f) { feedback.text=text; feedbackUntil=Time.unscaledTime+seconds; }
+        void OnRecenter() => ShowFeedback("VIEW RECENTERED");
+        async Task RequestShelterWithFeedback()
+        {
+            if(!relay.Connected) { ShowFeedback("OFFLINE · CHECK USB"); return; }
+            if(requestPending) { ShowFeedback("WAITING FOR SHELTER ROUTE"); return; }
+            if(relay.Selection?.Point.isShelter==true) { ShowFeedback("ALREADY IN SHELTER"); return; }
+            if(relay.State?.route=="reroute") { ShowFeedback("SHELTER ROUTE ACTIVE"); return; }
+            requestPending=true; requestDeadline=Time.unscaledTime+5; ShowFeedback("REQUESTING SHELTER…",5);
+            bool sent=await relay.RequestShelter();
+            if(this==null) return;
+            if(!sent) { requestPending=false; ShowFeedback("REQUEST FAILED · TRY B AGAIN"); }
+            else if(requestPending) { requestDeadline=Time.unscaledTime+5; ShowFeedback("REQUEST SENT · WAITING FOR ROUTE",5); }
         }
         void LateUpdate()
         {
             Tick();
             if(OVRInput.Get(OVRInput.Button.Two,OVRInput.Controller.RTouch))
-            { requestHeld+=Time.unscaledDeltaTime; if(requestHeld>=1 && !requestSent) { relay.RequestShelter(); requestSent=true; } }
+            {
+                if(requestHeld==0) feedbackUntil=0;
+                requestHeld+=Time.unscaledDeltaTime;
+                if(requestHeld>=1 && !requestSent) { requestSent=true; _=RequestShelterWithFeedback(); }
+            }
             else { requestHeld=0; requestSent=false; }
         }
-        void OnDestroy() { if(relay!=null) relay.Changed-=Refresh; }
+        void OnDestroy()
+        {
+            if(relay!=null) relay.Changed-=Refresh;
+            if(missionView!=null) missionView.Recentered-=OnRecenter;
+            if(sound!=null && sound.clip!=null) { if(Application.isPlaying) Destroy(sound.clip); else DestroyImmediate(sound.clip); }
+        }
         static AudioClip Chime()
         {
             const int rate=24000; var clip=AudioClip.Create("Beacon alert",rate/3,1,rate,false); var samples=new float[rate/3];

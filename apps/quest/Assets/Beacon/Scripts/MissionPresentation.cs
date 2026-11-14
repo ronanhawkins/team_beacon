@@ -8,6 +8,14 @@ namespace Beacon
     {
         public static string ShelterName(string id) => string.IsNullOrEmpty(id) ? "Shelter" : id == "base" ? "Base" : "Shelter " + id.ToUpperInvariant();
         public static string Warning(MissionState s) => !s.baseLink ? "BASE LINK LOST" : "SHELTER IS DISTANT";
+        public static string Alert(MissionState s, bool connected, bool sheltered)
+        {
+            if(!connected) return s==null ? "CONNECTING TO MISSION" : s.Emergency ? "LAST ALERT · DATA OFFLINE" : "DATA OFFLINE · CHECK USB";
+            if(s?.Emergency==true) return sheltered ? "IN SHELTER · HOLD POSITION" : s.panic ? "EMERGENCY · SEEK SHELTER" : "SOLAR STORM, TAKE COVER";
+            return s?.mode=="warning" ? Warning(s) : "";
+        }
+        public static bool AlertBorder(MissionState s, bool connected) => s?.Emergency==true || (connected && s?.mode=="warning");
+        public static bool StormAtmosphere(MissionState s, bool connected) => connected && s?.storm==true;
         public static string Decision(MissionState state, RouteDocument doc)
         {
             if (state?.route != "reroute" || !state.rerouteFrom.HasValue || doc?.rerouteInfo == null ||

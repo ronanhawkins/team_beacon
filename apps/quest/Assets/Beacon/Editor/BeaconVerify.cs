@@ -79,6 +79,18 @@ public static class BeaconVerify
         Check((BeaconMissionView.Direction(90,0)-Vector3.right).magnitude<.001f, "ring east is clockwise from north");
         Check((BeaconMissionView.Direction(0,90)-Vector3.up).magnitude<.001f, "sky marker elevation is above horizon");
         Check(MissionPresentation.Warning(new MissionState { baseLink=false })=="BASE LINK LOST", "amber warning explains link loss");
+        Check(MissionPresentation.Alert(null,false,false)=="CONNECTING TO MISSION", "startup is distinct from stale mission data");
+        var calm=new MissionState {mode="nominal"};
+        var panic=new MissionState {mode="storm",panic=true};
+        var solar=new MissionState {mode="storm",storm=true};
+        Check(MissionPresentation.Alert(calm,false,false)=="DATA OFFLINE · CHECK USB" && !MissionPresentation.AlertBorder(calm,false), "offline calm does not imply emergency");
+        Check(MissionPresentation.Alert(solar,false,false)=="LAST ALERT · DATA OFFLINE" && MissionPresentation.AlertBorder(solar,false), "USB loss preserves last known emergency visibly");
+        Check(MissionPresentation.Alert(panic,true,false)=="EMERGENCY · SEEK SHELTER", "panic does not invent a solar storm");
+        Check(!MissionPresentation.StormAtmosphere(panic,true) && MissionPresentation.StormAtmosphere(solar,true) && !MissionPresentation.StormAtmosphere(solar,false), "weather effect requires live storm flag");
+        Check(MissionPresentation.Alert(solar,true,true)=="IN SHELTER · HOLD POSITION" && MissionPresentation.AlertBorder(solar,true), "arrival does not dismiss active emergency");
+        var disconnected=new GameObject("Offline shelter request check").AddComponent<BeaconRelay>();
+        Check(!disconnected.RequestShelter().GetAwaiter().GetResult(), "offline request reports failure instead of false confirmation");
+        UnityEngine.Object.DestroyImmediate(disconnected.gameObject);
         var site=JsonConvert.DeserializeObject<MissionSite>(File.ReadAllText(Path.GetFullPath("../../data/site.json")));
         Check(MissionPresentation.Credit(site).Contains("14 Nov 2026 19:40 UT"), "sky credit uses source time");
         foreach(var graphicType in new[] {typeof(CompassGraphic),typeof(ArrowGraphic),typeof(HudBorderGraphic)})

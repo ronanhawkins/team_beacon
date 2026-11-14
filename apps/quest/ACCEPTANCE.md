@@ -16,7 +16,7 @@ The supplied screenshots are the functional checklist. The user's later native U
 | Sources | Small credit from `data/site.json`: HiRISE/USGS, JPL Horizons and 14 Nov 2026 19:40 UT. |
 | Visual QA | Unity previews for base, Quela, northwest skyline, warning, storm, arrival and VR fallback. Preview caught missing CanvasRenderer on custom UI; fixed and covered by a regression check. |
 | Laptop/projector | USB mirror previously confirmed by wearer. Physical HDMI projector rehearsal still needs the actual projector. |
-| Full recording and frame rate | Pending final 0.5 headset run. Development build reports measured mean FPS and 95th percentile frame time to its log. |
+| Full recording and frame rate | Completed on 0.5: 31 main points, all 13 S03 diversion points, arrival and reset. USB recording 85.54 s; Unity reported mean 72.0 fps, p95 13.9 ms throughout sampled windows, including storm and recording. These measure app-frame pacing. |
 | Optional terrain or panorama in VR | Not included in the fallback; real downloaded terrain remains available in `data/out/terrain/`. |
 
 ## Current export checks
@@ -31,8 +31,12 @@ The supplied screenshots are the functional checklist. The user's later native U
 
 The screenshots' approximate base 95% and shelter S04 are older values. They are not hard-coded into the headset. “Initial” in the decision line distinguishes the original choice time from the changing remaining minutes in the main strip.
 
-Current checks: **805 native checks**, 16 Node tests, 9 fixture checks and a successful web build after the upstream merge. All seven updated Unity mission previews rendered successfully; arrow, compass ticks, cardinal labels and red border were visually confirmed after the renderer fix.
+Current 0.6 checks: **812 native checks** and ten successful Unity mission previews. The new offline-emergency and recenter screens were visually checked, alongside the storm view. Regression checks cover offline alert retention, startup, shelter arrival, panic versus solar-storm effects and offline request failure. The preceding upstream integration passed 16 Node tests, 9 fixture checks and the web build.
 
-The **0.5.0 APK (version code 5) is installed on Quest 3 over USB**. The relay was restarted and its in-memory export confirmed at 92.4% base open sky and S03. The Quest was asleep after installation, so wearer readability, controller toggles, native frame-rate measurements and the full recording remain pending. The laptop mirror was reopened.
+The **0.6.0 APK (version code 6) is installed on Quest 3 over USB**. It adds a one-second B hold indicator, request/result feedback and smooth left-stick-click recentering. Stale readings are labelled and any last-known emergency retains its red border. The Quest was asleep after this installation, so new physical button interactions remain awaiting wearer confirmation. The laptop USB mirror was reopened. No repeat full-run or frame-rate claim is made for this update.
+
+The **0.5.0 APK completed the full live USB rehearsal**. The relay's in-memory export was confirmed at 92.4% base open sky and S03. Native device logs confirm each stage and measured 72.0 fps / p95 13.9 ms. The MP4 was checked for a complete container and duration; it has not been reviewed frame by frame. Final wearer readability and controller-toggle confirmation remain useful; physical HDMI projection still needs the actual projector.
+
+Local evidence: `.local/Beacon-Quest-demo-2026-11-14-153004.mp4` (85.54 s, 1920×1248, no microphone audio), `.local/quest05-full-run-timeline.json`, `.local/quest05-full-run-device.log`. These include private demo/passthrough content and are excluded from Git.
 
 For the full presenter rehearsal, keep Beacon open and run `node tools/demo-quest-run.mjs` from the repository root. It validates every displayed waypoint, Quela, the link-loss warning, the S03 diversion and arrival, then resets. It writes `.local/quest-demo-timeline.json`. `--quick` reduces the holds for a shorter integration check. Recording is supported by `tools/mirror-quest.ps1 -Record <new-file.mp4> -Seconds 90`; capture includes passthrough but no microphone audio. Keep recordings local unless the wearer chooses to share them.

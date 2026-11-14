@@ -31,7 +31,7 @@ public static class BeaconMissionPreview
         camera.clearFlags=CameraClearFlags.SolidColor; camera.backgroundColor=new Color(.25f,.27f,.29f,1);
         camera.nearClipPlane=.05f; camera.farClipPlane=100; camera.fieldOfView=90; camera.stereoTargetEye=StereoTargetEyeMask.None;
         var target=new RenderTexture(1600,1000,24,RenderTextureFormat.ARGB32); target.Create(); camera.targetTexture=target;
-        void Capture(string name,int index,bool storm=false,bool vr=false,bool lookAtButte=false)
+        void Capture(string name,int index,bool storm=false,bool vr=false,bool lookAtButte=false,bool offline=false,bool recenter=false)
         {
             var p=storm ? doc.reroutes["30"][index] : doc.main[index];
             var state=new MissionState {version=1,route=storm ? "reroute":"main",rerouteFrom=storm ? 30:(int?)null,waypointIndex=index,
@@ -41,7 +41,9 @@ public static class BeaconMissionPreview
             rig.centerEyeAnchor.rotation=Quaternion.identity;
             relay.Preview(state,doc,site); view.Calibrate(); view.SetImmersive(vr); view.Tick(10);
             if(lookAtButte) rig.centerEyeAnchor.rotation=Quaternion.Euler(0,view.NorthYaw+315,0);
-            view.Tick(10); atmosphere.UpdateSun(); atmosphere.SetStormStrength(storm ? 1:0); hud.Refresh(); hud.Tick();
+            if(offline) relay.PreviewOffline();
+            if(recenter) view.Recenter();
+            view.Tick(10); atmosphere.UpdateSun(); atmosphere.SetStormStrength(storm && !offline ? 1:0); hud.Refresh(); hud.Tick();
             camera.transform.SetPositionAndRotation(rig.centerEyeAnchor.position,rig.centerEyeAnchor.rotation);
             Canvas.ForceUpdateCanvases();
             foreach(var text in UnityEngine.Object.FindObjectsByType<TMP_Text>(FindObjectsInactive.Include,FindObjectsSortMode.None)) text.ForceMeshUpdate(true,true);
@@ -52,6 +54,8 @@ public static class BeaconMissionPreview
         Capture("m00-base",0); Capture("m19-science",19); Capture("m19-northwest",19,lookAtButte:true);
         Capture("m25-warning",25); Capture("m30-storm",0,storm:true);
         Capture("shelter-arrival",doc.reroutes["30"].Count-1,storm:true); Capture("vr-fallback",19,vr:true);
+        Capture("offline-calm",19,offline:true); Capture("offline-emergency",0,storm:true,offline:true);
+        Capture("recenter-feedback",19,recenter:true);
         RenderTexture.active=null; camera.targetTexture=null; target.Release(); UnityEngine.Object.DestroyImmediate(target);
         if(ShaderUtil.ShaderHasError(view.skylineShader)) throw new Exception("Skyline shader failed");
         EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);

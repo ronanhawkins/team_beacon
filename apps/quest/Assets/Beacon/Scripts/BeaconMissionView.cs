@@ -1,3 +1,4 @@
+using System;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -17,6 +18,7 @@ namespace Beacon
         public float Heading => (float)Navigation.Wrap(EyeYaw - NorthYaw);
         public bool Immersive { get; private set; }
         public bool RingVisible { get; private set; } = true;
+        public event Action Recentered;
         float EyeYaw => Mathf.Atan2(rig.centerEyeAnchor.forward.x,rig.centerEyeAnchor.forward.z) * Mathf.Rad2Deg;
         Transform ring;
         Mesh mesh;
@@ -89,6 +91,11 @@ namespace Beacon
             }
         }
         public void Calibrate() { targetNorth=EyeYaw-(float)(relay.State?.headingDeg ?? 0); NorthYaw=targetNorth; aligned=true; }
+        public void Recenter()
+        {
+            targetNorth=EyeYaw-(float)(relay.State?.headingDeg ?? 0); aligned=true;
+            Recentered?.Invoke(); Debug.Log("BEACON_VIEW: Recentered");
+        }
         public void SetImmersive(bool enabled)
         {
             Immersive=enabled;
@@ -100,6 +107,7 @@ namespace Beacon
         {
             if(OVRInput.GetDown(OVRInput.Button.One,OVRInput.Controller.LTouch)) SetImmersive(!Immersive);
             if(OVRInput.GetDown(OVRInput.Button.Two,OVRInput.Controller.LTouch)) RingVisible=!RingVisible;
+            if(OVRInput.GetDown(OVRInput.Button.PrimaryThumbstick,OVRInput.Controller.LTouch)) Recenter();
         }
         void LateUpdate()
         {

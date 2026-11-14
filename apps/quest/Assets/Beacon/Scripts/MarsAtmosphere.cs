@@ -39,6 +39,7 @@ namespace Beacon
             wind = gameObject.AddComponent<AudioSource>(); wind.loop = true; wind.spatialBlend = 0;
             wind.volume = .04f; windClip = MakeWind(); wind.clip = windClip;
             SetEffectsEnabled(effectsEnabled);
+            SetImmersive(immersive);
             UpdateSun();
         }
         Transform Draw(string name, Mesh mesh, Material material)
@@ -93,9 +94,9 @@ namespace Beacon
             sky.position = eye.position;
             if (OVRInput.GetDown(OVRInput.Button.One, OVRInput.Controller.RTouch)) SetEffectsEnabled(!effectsEnabled);
             UpdateSun();
-            // Illustrative effects follow the emergency display mode; offline
-            // data lets them fade back to calm. This is not a weather forecast.
-            bool stormActive = relay != null && relay.Connected && (relay.State?.storm == true || relay.State?.mode == "storm");
+            // A panic request is not a solar-storm event. Only the actual storm
+            // flag strengthens these artistic effects; offline data fades calm.
+            bool stormActive = relay != null && MissionPresentation.StormAtmosphere(relay.State,relay.Connected);
             SetStormStrength(Mathf.MoveTowards(storm, stormActive ? 1 : 0, Time.unscaledDeltaTime / 4));
         }
         void OnApplicationPause(bool pause)

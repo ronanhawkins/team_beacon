@@ -18,6 +18,8 @@ The laptop relay remains the authority. The app loads `/session.json` and that s
 - Warning mode shows an amber border and reason. Storm mode shows a red border, “Solar storm, take cover”, chime and pulsing shelter marker. Arrival says “In shelter” and keeps the shelter skyline and active storm warning.
 - The lower explanation comes directly from `rerouteInfo`, including the initial chosen-route time and why base was excluded. Current remaining minutes always come from the relay; the headset does not run its own timer or planner.
 - Data credit uses the site file's JPL Horizons time. Missing decision or metadata fields are not fabricated.
+- Disconnection labels readings as last-known data, hides navigation and retains any last-known emergency with a red border. Reconnection or arrival does not repeat the alert chime; a new emergency does.
+- Holding B shows a temporary progress bar, then the request/result. Already-sheltered and already-rerouted states give confirmation without another request. Feedback disappears automatically to keep the centre clear.
 
 Physical room movement and controller sticks do not advance the Mars route. The presenter uses the hub's Next/Storm/Reset controls. A surveyed lecture-hall route and persistent spatial anchors are a separate next step.
 
@@ -27,6 +29,7 @@ Physical room movement and controller sticks do not advance the Mars route. The 
 | Right B, hold one second | Ask the relay for a shelter route |
 | Left X | Toggle AR passthrough / VR fallback |
 | Left Y | Show or hide the skyline ring in AR |
+| Left stick click | Smoothly recenter the mission's forward direction to the current gaze |
 
 VR fallback uses an opaque dusty sky and the same data-driven skyline filled as a solid silhouette. X returns to AR. It is a fallback scene; the full textured terrain/panorama remains a later enhancement. The ring is always present in VR.
 
@@ -34,7 +37,7 @@ VR fallback uses an opaque dusty sky and the same data-driven skyline filled as 
 
 The native AR view starts with a translucent ochre sky, a small low sun and halo, low red mist and wind-blown sand. The room remains visible. Press **A on the right controller** to switch between Mars effects and clear passthrough; the HUD and live mission continue in both modes. **B held for one second** still requests shelter.
 
-Emergency display mode gradually thickens the illustrative dust and strengthens a quiet wind loop over four seconds, including a panic-triggered emergency. Disconnected mission data lets the effect return to calm. The effect has two mesh draws (184 dust billboards and a small sky dome), no post-processing, and excludes particles close to the face. It never adds a route line or centre navigation panel.
+The live solar-storm flag gradually thickens the illustrative dust and strengthens a quiet wind loop over four seconds. A panic request alone does not change the weather effect. Disconnected mission data lets the effect return to calm while the HUD retains its last-known emergency. The effect has two mesh draws (184 dust billboards and a small sky dome), no post-processing, and excludes particles close to the face. It never adds a route line or centre navigation panel.
 
 The dust and wind are artistic effects. The Sun now follows the waypoint's JPL Horizons direction and disappears behind the supplied skyline when `sun.visible` is false; its ring marker remains dimmed. The real terrain assets remain in `data/out/terrain/` for a later textured immersive scene. Shader stereo handling follows [Unity's single-pass instancing guidance](https://docs.unity.com/en-us/engine/6000.3/manual/xr/graphics/stereo-rendering/single-pass-instancing).
 
@@ -58,9 +61,11 @@ Development builds allow HTTP for the local USB mission connection. Do not treat
 
 ## Verified demo
 
+Version **0.6.0** adds hold-to-request feedback, left-stick recentering, explicit stale readings and persistent last-known emergency alerts on USB loss. It passed **812 native checks**, built successfully, rendered ten mission previews, and was installed over USB (version code 6). The new offline and recenter screens were visually checked. The headset was asleep after this update, so the new controller actions await wearer confirmation. The USB mirror was reopened. The full live recording and measured frame rate below are from 0.5 immediately before this usability update.
+
 The 0.5.0 update merges main through `32564e3` and follows its current exports. The screenshot checklist's older values changed: base is 92.4% open sky, and the far-point choice is S03 (4.52 minutes), rather than S04. Quela is 81.5% with the Sun hidden; m25–m28 lose base contact; shelter arrival is 74.6% with base contact retained. See [acceptance checklist](ACCEPTANCE.md) for evidence and outstanding hardware checks. `Beacon → Render mission acceptance previews` renders all these states against neutral grey, not a camera image.
 
-Version 0.5.0 passed 805 native checks, seven visual previews, 16 relay/client tests and nine fixture checks, and was installed over USB. The laptop relay now serves the updated export. The headset was asleep after installation, so the final wearer check, frame-rate run and recording are still pending.
+Version 0.5.0 passed 805 native checks, seven visual previews, 16 relay/client tests and nine fixture checks, and was installed over USB. A full on-device rehearsal on 14 November then passed all 31 main waypoints, all 13 points on the S03 diversion, arrival and reset. During the run and USB recording, Unity reported mean 72.0 fps and p95 frame time 13.9 ms. These are app-frame measurements, not independent compositor/GPU measurements. The complete 85.54-second local recording is `.local/Beacon-Quest-demo-2026-11-14-153004.mp4`; the full state timeline and device log are `.local/quest05-full-run-timeline.json` and `.local/quest05-full-run-device.log`. The recording stays off Git.
 
 The 0.4.0 atmosphere build passed all 611 Unity checks and compiled both shaders for Android/Vulkan on 14 November 2026. Calm and storm materials were rendered and visually checked in Unity against a neutral background; these are material previews, not headset captures. The APK was then installed and launched on Quest 3 over USB. Device logs confirmed atmosphere startup, live mission data, a six-second storm test, the next shelter-route point and reset to calm, with no matching runtime exceptions. The USB mirror was reopened. Wearer confirmation of the final effect strength and A-button toggle is still needed. `Beacon → Render atmosphere preview` recreates the previews under `.local/`.
 
