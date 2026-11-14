@@ -1,7 +1,10 @@
 //! Beacon terrain engine.
 //!
 //!   engine check                  skyline at the parking spot vs data/site.json referenceCheck
-//!   engine point <col> <row>      blocked fraction and 72-value skyline as one line of JSON
+//!   engine point <x> <y>          blocked fraction and 72-value skyline as one line of JSON
+//!
+//! Positions are local metres: x east, y north, origin at the crop's south-west
+//! outer corner (shared/conventions.md).
 //!
 //! Paths are relative to the repo root (the folder above engine/). Override with --root <dir>.
 
@@ -37,13 +40,13 @@ struct Site {
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct NearCrop {
-    parking_spot_in_crop: ColRow,
+    parking_spot_local: LocalXY,
 }
 
 #[derive(Deserialize)]
-struct ColRow {
-    col: f64,
-    row: f64,
+struct LocalXY {
+    x: f64,
+    y: f64,
 }
 
 #[derive(Deserialize)]
@@ -66,14 +69,14 @@ fn load_grid(root: &Path) -> Result<terrain::Grid, String> {
 fn check(root: &Path) -> Result<bool, String> {
     let site = load_site(root)?;
     let grid = load_grid(root)?;
-    let spot = &site.near_crop.parking_spot_in_crop;
+    let spot = &site.near_crop.parking_spot_local;
     let reference = &site.reference_check;
 
-    let sky = skyline::skyline(&grid, spot.col, spot.row, EYE_HEIGHT_M, N_DIRS, STEP_M, MAX_DIST_M)?;
+    let sky = skyline::skyline(&grid, spot.x, spot.y, EYE_HEIGHT_M, N_DIRS, STEP_M, MAX_DIST_M)?;
     let blocked = skyline::blocked_fraction(&sky);
     let blocked_diff = blocked - reference.blocked_at_parking_spot;
 
-    println!("Parking spot: col {}, row {} in {} ({} x {})", spot.col, spot.row, NEAR_BIN, grid.width, grid.height);
+    println!("Parking spot: x {} m, y {} m in {} ({} x {})", spot.x, spot.y, NEAR_BIN, grid.width, grid.height);
     println!("Eye {EYE_HEIGHT_M} m, {N_DIRS} directions, step {STEP_M} m, out to {MAX_DIST_M} m\n");
     println!(
         "Blocked fraction: {:.3}   reference {:.3}   diff {:+.3}\n",
@@ -120,17 +123,17 @@ fn check(root: &Path) -> Result<bool, String> {
     Ok(blocked_ok && angles_ok)
 }
 
-fn point(root: &Path, col: f64, row: f64) -> Result<(), String> {
+fn point(root: &Path, x: f64, y: f64) -> Result<(), String> {
     let grid = load_grid(root)?;
-    let sky = skyline::skyline(&grid, col, row, EYE_HEIGHT_M, N_DIRS, STEP_M, MAX_DIST_M)?;
+    let sky = skyline::skyline(&grid, x, y, EYE_HEIGHT_M, N_DIRS, STEP_M, MAX_DIST_M)?;
     let blocked = skyline::blocked_fraction(&sky);
     let sky72: Vec<f64> = skyline::resample(&sky, CONTRACT_SAMPLES)
         .iter()
         .map(|&a| (a as f64 * 10.0).round() / 10.0)
         .collect();
     let out = serde_json::json!({
-        "col": col,
-        "row": row,
+        "x": x,
+        "y": y,
         "blocked": (blocked as f64 * 1000.0).round() / 1000.0,
         "skyline": sky72,
     });
@@ -139,7 +142,7 @@ fn point(root: &Path, col: f64, row: f64) -> Result<(), String> {
 }
 
 fn usage() -> String {
-    "usage: engine [--root <dir>] check\n       engine [--root <dir>] point <col> <row>".to_string()
+    "usage: engine [--root <dir>] check\n       engine [--root <dir>] point <x> <y>   (local metres)".to_string()
 }
 
 fn run() -> Result<bool, String> {
@@ -153,9 +156,9 @@ fn run() -> Result<bool, String> {
 
     match args.iter().map(String::as_str).collect::<Vec<_>>().as_slice() {
         ["check"] => check(&root),
-        ["point", col, row] => {
+        ["point", x, y] => {
             let parse = |s: &str| s.parse::<f64>().map_err(|_| format!("not a number: {s}"));
-            point(&root, parse(col)?, parse(row)?).map(|_| true)
+            point(&root, parse(x)?, parse(y)?).map(|_| true)
         }
         _ => Err(usage()),
     }

@@ -4,8 +4,8 @@ Usage: python3 tools/make_fake_layers.py   (needs Pillow)
 
 The scene is the same flat plain and butte as the fake waypoints (fake_scene.py),
 so the route lines up with the layers. Image layout follows shared/layers.md:
-row 0 is north, column 0 is west, pixel (col, row) covers
-x = col * metresPerPixel, y = (height - 1 - row) * metresPerPixel.
+row 0 is north, column 0 is west, and each pixel is sampled at its centre:
+x = (col + 0.5) * metresPerPixel, y = (height - row - 0.5) * metresPerPixel.
 """
 
 import json
@@ -73,9 +73,9 @@ def main():
     OUT.mkdir(parents=True, exist_ok=True)
     pixels = {name: bytearray(SIZE * SIZE) for name in LAYERS}
     for row in range(SIZE):
-        y = (SIZE - 1 - row) * MPP
+        y = (SIZE - row - 0.5) * MPP
         for col in range(SIZE):
-            values = sample((col * MPP, y))
+            values = sample(((col + 0.5) * MPP, y))
             for name, spec in LAYERS.items():
                 pixels[name][row * SIZE + col] = to_byte(values[name], spec["min"], spec["max"])
 

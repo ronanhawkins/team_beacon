@@ -25,6 +25,12 @@ These apply to every contract in this folder. Read this first.
 - x is east, y is north, z is up.
 - z is the terrain height from the elevation model, so it is a large negative number in Gale crater. Only differences in z matter.
 
+## Grid cells
+
+- Positions are always in local metres, never in pixel or array indices.
+- A grid cell is a square of `metresPerPixel` on a side. Its value belongs to its centre, not its corner.
+- Cell (col, row), with row 0 at the north edge, covers x from col * metresPerPixel to (col + 1) * metresPerPixel. Its centre is at x = (col + 0.5) * metresPerPixel, y = (height - row - 0.5) * metresPerPixel, where height is the number of rows.
+
 ## Fractions that count
 
 - `openSky`: fraction of the sky dome not blocked by terrain. 1 is a flat open plain.

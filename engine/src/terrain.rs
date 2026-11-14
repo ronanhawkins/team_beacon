@@ -1,7 +1,10 @@
 //! Terrain grid: loading an ENVI float32 raster and sampling it.
 //!
-//! Row 0 is the north edge and column 0 the west edge. Integer (col, row)
-//! is the centre of that cell, so sample(3.0, 7.0) returns cell (3, 7) exactly.
+//! Positions outside this file are local metres (shared/conventions.md):
+//! x east, y north, origin at the south-west outer corner of the crop.
+//! Inside, array indices are used: row 0 is the north edge, column 0 the
+//! west edge, and whole-number (col, row) is the centre of that cell.
+//! `local_to_index` is the only place that converts between the two.
 
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -25,12 +28,33 @@ impl Grid {
         if v == NO_DATA || !v.is_finite() { None } else { Some(v) }
     }
 
-    /// True if (col, row) lies inside the grid's cell centres.
+    /// Array indices for a local position in metres. The one conversion point.
+    pub fn local_to_index(&self, x: f64, y: f64) -> (f64, f64) {
+        let mpp = self.metres_per_pixel;
+        let col = x / mpp - 0.5;
+        let row = (self.height as f64 * mpp - y) / mpp - 0.5;
+        (col, row)
+    }
+
+    /// True if the local position (x, y) lies inside the grid's cell centres.
+    pub fn contains_local(&self, x: f64, y: f64) -> bool {
+        let (col, row) = self.local_to_index(x, y);
+        self.contains(col, row)
+    }
+
+    /// Bilinear sample at a local position in metres. See `sample`.
+    pub fn sample_local(&self, x: f64, y: f64) -> Option<f32> {
+        let (col, row) = self.local_to_index(x, y);
+        self.sample(col, row)
+    }
+
+    /// True if array indices (col, row) lie inside the grid's cell centres.
     pub fn contains(&self, col: f64, row: f64) -> bool {
         col >= 0.0 && row >= 0.0 && col <= (self.width - 1) as f64 && row <= (self.height - 1) as f64
     }
 
-    /// Bilinear blend of the four nearest cells. None if outside the grid
+    /// Bilinear blend of the four nearest cells, at array indices (whole
+    /// numbers are cell centres). None if outside the grid
     /// or if any of the four cells is no-data.
     pub fn sample(&self, col: f64, row: f64) -> Option<f32> {
         if !self.contains(col, row) {
@@ -153,6 +177,37 @@ mod tests {
         let g = grid(2, 2, vec![0.0, NO_DATA, 0.0, 0.0]);
         assert_eq!(g.sample(0.5, 0.5), None);
         assert_eq!(g.sample(0.0, 1.0), Some(0.0));
+    }
+
+    #[test]
+    fn sample_local_uses_cell_centres() {
+        // 0.5 m cells whose value is the x of the cell centre, in metres.
+        let (width, height, mpp) = (20, 6, 0.5);
+        let mut data = Vec::new();
+        for _row in 0..height {
+            for col in 0..width {
+                data.push(((col as f64 + 0.5) * mpp) as f32);
+            }
+        }
+        let g = Grid { width, height, data, metres_per_pixel: mpp };
+        for (x, y) in [(0.25, 0.25), (0.6, 1.1), (1.37, 2.0), (3.14159, 0.9), (5.0, 2.7), (9.75, 2.75)] {
+            let v = g.sample_local(x, y).unwrap() as f64;
+            assert!((v - x).abs() < 1e-5, "x {x}, y {y}: got {v}");
+        }
+        // Outside the outermost cell centres there are not four cells to blend.
+        assert_eq!(g.sample_local(0.2, 1.0), None);
+        assert_eq!(g.sample_local(1.0, 2.9), None);
+    }
+
+    #[test]
+    fn local_to_index_corners_and_centres() {
+        let g = Grid { width: 4, height: 3, data: vec![0.0; 12], metres_per_pixel: 2.0 };
+        // Centre of the north-west cell (0, 0) is x 1, y 5.
+        assert_eq!(g.local_to_index(1.0, 5.0), (0.0, 0.0));
+        // Centre of the south-east cell (3, 2) is x 7, y 1.
+        assert_eq!(g.local_to_index(7.0, 1.0), (3.0, 2.0));
+        // The south-west outer corner is half a cell outside cell (0, 2).
+        assert_eq!(g.local_to_index(0.0, 0.0), (-0.5, 2.5));
     }
 
     #[test]

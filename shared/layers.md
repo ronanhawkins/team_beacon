@@ -9,7 +9,7 @@ Units and the position frame are in `conventions.md`.
 - One 8-bit greyscale PNG per layer.
 - Every image has the same width and height, covering the whole terrain crop.
 - Row 0 is the north edge. Column 0 is the west edge.
-- Pixel (col, row) covers local position x = col * metresPerPixel, y = (height - 1 - row) * metresPerPixel.
+- Pixel (col, row) covers x from col * metresPerPixel to (col + 1) * metresPerPixel. Its centre is at x = (col + 0.5) * metresPerPixel, y = (height - row - 0.5) * metresPerPixel.
 - Pixel value 0 maps to the layer's `min` and 255 to its `max`, linearly.
 
 ## Layers
