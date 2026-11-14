@@ -13,7 +13,7 @@ const { WebSocketServer, WebSocket } = require('ws');
 
 const HTTPS_PORT = Number(process.env.HTTPS_PORT) || 8443; // pages + wss://…/ws for browsers
 const PLAIN_PORT = Number(process.env.PLAIN_PORT) || 8081; // ws:// for the ESP32
-const WARNING_MINUTES_TO_SHELTER = 5; // mode is "warning" above this
+const WARNING_MINUTES_TO_SHELTER = 12; // mode is "warning" above this. Provisional until real waypoints exist
 const DEFAULT_EARTH_DELAY_MINUTES = 14;
 const PING_INTERVAL_MS = 15000;
 
