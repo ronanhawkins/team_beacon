@@ -25,7 +25,7 @@ public static class BeaconBuild
         Directory.CreateDirectory("Assets/Beacon/Scenes"); Directory.CreateDirectory("Assets/XR");
         PlayerSettings.companyName = "Team Beacon"; PlayerSettings.productName = "Beacon AR";
         PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, "com.teambeacon.ar");
-        PlayerSettings.bundleVersion = "0.3.0"; PlayerSettings.Android.bundleVersionCode = 3;
+        PlayerSettings.bundleVersion = "0.4.0"; PlayerSettings.Android.bundleVersionCode = 4;
         PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android, ScriptingImplementation.IL2CPP);
         PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64;
         PlayerSettings.Android.minSdkVersion = AndroidSdkVersions.AndroidApiLevel32;
@@ -95,6 +95,10 @@ public static class BeaconBuild
         RenderSettings.skybox = null;
         var app = new GameObject("Beacon mission"); var relay = app.AddComponent<BeaconRelay>();
         var hud = app.AddComponent<BeaconHud>(); hud.rig = rig; hud.relay = relay; hud.font = font;
+        var atmosphere = app.AddComponent<MarsAtmosphere>(); atmosphere.rig = rig; atmosphere.relay = relay;
+        atmosphere.skyShader = AssetDatabase.LoadAssetAtPath<Shader>("Assets/Beacon/Shaders/MarsAtmosphere.shader");
+        atmosphere.dustShader = AssetDatabase.LoadAssetAtPath<Shader>("Assets/Beacon/Shaders/MarsDust.shader");
+        if (atmosphere.skyShader == null || atmosphere.dustShader == null) throw new Exception("Mars atmosphere shaders are missing");
         EditorSceneManager.SaveScene(scene, ScenePath);
         EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
         AssetDatabase.SaveAssets();

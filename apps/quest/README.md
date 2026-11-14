@@ -19,6 +19,14 @@ The laptop relay remains the authority. The app loads `/session.json` and that s
 
 Entering the app establishes an illustrative room north after tracking starts. Physical room movement does not advance the Mars route. The presenter uses the hub's Next/Storm/Reset controls. A surveyed lecture-hall route and persistent spatial anchors are a separate next step; the current Mars coordinates must not be treated as a room-scale walking path.
 
+## Mars atmosphere
+
+The native AR view starts with a translucent ochre sky, a small low sun and halo, low red mist and wind-blown sand. The room remains visible. Press **A on the right controller** to switch between Mars effects and clear passthrough; the HUD and live mission continue in both modes. **B held for one second** still requests shelter.
+
+A live storm gradually thickens the dust and strengthens a quiet wind loop over four seconds. Panic without a storm does not change the weather. Disconnected mission data lets the effect return to calm. The effect has two mesh draws (184 dust billboards and a small sky dome), no post-processing, and excludes particles close to the face. It never adds a route line or centre navigation panel.
+
+This is an artistic atmosphere over room passthrough, not a scanned room, Mars terrain, or an astronomically computed Sun position. Sun direction is fixed relative to the initial room heading. The real terrain assets remain in `data/out/terrain/` for the separate immersive scene. Shader stereo handling follows [Unity's single-pass instancing guidance](https://docs.unity.com/en-us/engine/6000.3/manual/xr/graphics/stereo-rendering/single-pass-instancing).
+
 ## Build and install
 
 1. Activate a Unity licence and install editor `6000.3.28f1` with Android Build Support, SDK, NDK and OpenJDK.
@@ -38,6 +46,8 @@ Development builds allow HTTP for the local USB mission connection. Do not treat
 `Mirror Quest USB.cmd` opens a read-only USB mirror using [the official scrcpy Windows release](https://github.com/Genymobile/scrcpy/blob/master/doc/windows.md). This laptop has version 5.0.1 in `.local/scrcpy/scrcpy-win64-v5.0.1/`; the download is excluded from Git. Connect the laptop to the projector over HDMI. No Meta casting sign-in is involved. The captured view depends on the Quest compositor; check the view with the app running before a presentation. The mirror does not capture microphone audio.
 
 ## Verified demo
+
+The 0.4.0 atmosphere build passed all 611 Unity checks and compiled both shaders for Android/Vulkan on 14 November 2026. Calm and storm materials were rendered and visually checked in Unity against a neutral background; these are material previews, not headset captures. In-headset confirmation of the final effect strength is still needed. `Beacon → Render atmosphere preview` recreates the previews under `.local/`.
 
 The 0.3.0 development APK replaces the dashboard with the small corner readouts and compass-only waypoint described above. It passed all 611 Unity checks, built successfully, and was installed over USB on 14 November 2026. Final corner visibility and text readability need to be assessed by the wearer; the Quest was asleep immediately after installation.
 
