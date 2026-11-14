@@ -39,7 +39,7 @@ The engine works in "open-ground minutes": one minute on open ground on a quiet 
 | `briefing.stormDoseMicroGrayMax` | The worst storm: from the waypoint where it costs most, walking to the chosen cover and sitting out the whole storm |
 | `rerouteInfo[i].stormDoseMicroGray` | The same, from main waypoint `i` |
 
-On the planned walk, the dose is about 1.1 microgray (10.5 minutes at a little under the open-ground rate). A storm caught at the far point costs about 765 microgray: 4.5 minutes' walk to shelter s03, then 4 hours there at 33 times the quiet rate, cut by 9 percent by the terrain.
+On the planned walk, the dose is about 1.1 microgray (10.5 minutes at a little under the open-ground rate). A storm caught at the far point costs about 765 microgray: 4.5 minutes' walk to the Butte M12 shelter (s-1475-1497), then 4 hours there at 33 times the quiet rate, cut by 9 percent by the terrain.
 
 ## Limits
 

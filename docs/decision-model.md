@@ -66,25 +66,25 @@ Most numbers below are assumptions for the demo. The storm's length and strength
 With a 5-minute limit, every point of the walk has somewhere to go in time:
 
 - **The first third of the walk (waypoints m00 to m14):** back to the base, at most 4.7 minutes away.
-- **From just before the Quela drill site to the far point (m15 to m30):** shelter s03, a hollow at the foot of the butte next to Quela. It has a quarter of the sky blocked and radio contact with the base, and it's at most 4.5 minutes away.
+- **From just before the Quela drill site to the far point (m15 to m30):** the Butte M12 shelter (s-1475-1497), a hollow at the foot of the butte next to Quela. It has a quarter of the sky blocked and radio contact with the base, and it's at most 4.5 minutes away.
 
 The longest walk to cover anywhere on the route is 4.7 minutes, inside the limit.
 
 ## How the choice changes with warning time
 
-The time limit is set equal to the warning in each column. Each cell shows the chosen site and the walk to it, or "late" and the minutes over the limit when nothing can be reached in time. Run `engine decide --sweep` to reproduce it.
+The time limit is set equal to the warning in each column. Each cell shows the chosen site and the walk to it, or "late" and the minutes over the limit when nothing can be reached in time. Run `engine decide --sweep` to reproduce it. Shelter ids are `s-<x>-<y>`, the shelter's position in metres, so they stay the same when other shelters appear or disappear; Butte M12 is s-1475-1497.
 
 | Waypoint | No warning | 2 min | 5 min | 10 min | 15 min |
 |---|---|---|---|---|---|
-| m10, open ground a third of the way out | s03, late by 3.4 | s03, late by 1.4 | base, 3.5 min | base, 3.5 min | base, 3.5 min |
-| m19, Quela drill site | s03, late by 0.8 | s03, 0.8 min | s03, 0.8 min | base, 6.6 min | base, 6.6 min |
-| m25, butte outcrop | s05, late by 1.0 | s06, 1.5 min | s03, 2.8 min | base, 8.0 min | base, 8.0 min |
-| m30, far point | s21, late by 1.5 | s17, 2.0 min | s03, 4.5 min | base, 9.7 min | base, 9.7 min |
+| m10, open ground a third of the way out | Butte M12, late by 3.4 | Butte M12, late by 1.4 | base, 3.5 min | base, 3.5 min | base, 3.5 min |
+| m19, Quela drill site | Butte M12, late by 0.8 | Butte M12, 0.8 min | Butte M12, 0.8 min | base, 6.6 min | base, 6.6 min |
+| m25, butte outcrop | s-1483-1537, late by 1.0 | s-1555-1555, 1.5 min | Butte M12, 2.8 min | base, 8.0 min | base, 8.0 min |
+| m30, far point | s-1441-1621, late by 1.5 | s-1429-1607, 2.0 min | Butte M12, 4.5 min | base, 9.7 min | base, 9.7 min |
 
 How to read it:
 
 - **With no warning**, nothing is ever "in time", so the astronaut goes to the nearest cover.
-- **With a short warning**, the choice is the best shelter in reach. At the far point with 2 minutes, that shelter (s17) has no radio contact with the base, but it is the only one in reach.
+- **With a short warning**, the choice is the best shelter in reach. At the far point with 2 minutes, that shelter (s-1429-1607) has no radio contact with the base, but it is the only one in reach.
 - **With 10 minutes or more**, the base is in reach from every point tested, and its shielding wins.
 
 ## Forecasts days ahead, warnings minutes ahead

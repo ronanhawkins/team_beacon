@@ -70,6 +70,9 @@ struct Site {
     planner: planner::PlannerConfig,
     planner_bounds: planner::Bounds,
     storm: decision::StormConfig,
+    /// Names for the shelter nearest a route stop (optional).
+    #[serde(default)]
+    shelter_labels: Vec<ShelterLabel>,
     /// The measured storm from data/cache/rad_storm.json, when present.
     #[serde(skip)]
     rad: Option<RadCache>,
@@ -82,6 +85,13 @@ struct Site {
     /// Images per stop id, from data/cache/stop_images.json when present.
     #[serde(skip)]
     stop_images: Option<serde_json::Value>,
+}
+
+#[derive(Deserialize)]
+struct ShelterLabel {
+    /// A routeStops id: the shelter nearest that stop gets the label.
+    near: String,
+    label: String,
 }
 
 #[derive(Deserialize)]
@@ -550,6 +560,17 @@ fn plan_inputs<'a>(site: &Site, grid: &'a terrain::Grid, far72: &'a [f32], far36
         space_weather: site.space_weather.clone(),
         conditions: site.conditions.as_ref().map(|c| c.0.clone()),
         stop_images: site.stop_images.clone(),
+        shelter_labels: site
+            .shelter_labels
+            .iter()
+            .filter_map(|l| match site.stop(&l.near) {
+                Ok((x, y)) => Some((x, y, l.label.clone())),
+                Err(e) => {
+                    eprintln!("warning: shelterLabels: {e}");
+                    None
+                }
+            })
+            .collect(),
         stops,
     }
 }
@@ -611,7 +632,7 @@ fn decide_command(root: &Path, a: DecideArgs) -> Result<(), String> {
         ("far point", main.len() - 1),
     ];
     println!("\nChosen site by warning time (limit to cover = warning); storm {} min, multiplier {}\n", site.storm.storm_minutes, site.storm.dose_multiplier);
-    println!("  {:<22} {}", "waypoint", SWEEP_WARNINGS.iter().map(|w| format!("{:>16}", format!("{w} min"))).collect::<String>());
+    println!("  {:<22} {}", "waypoint", SWEEP_WARNINGS.iter().map(|w| format!("{:>22}", format!("{w} min"))).collect::<String>());
     let mut rows = Vec::new();
     for (what, i) in picks {
         let (x, y) = pos(i);
@@ -628,9 +649,9 @@ fn decide_command(root: &Path, a: DecideArgs) -> Result<(), String> {
                 Some(late) => format!("{} LATE {:.1}", c.id, late),
                 None => format!("{} {:.1}m", c.id, c.t),
             };
-            line += &format!("{cell:>16}");
+            line += &format!("{cell:>22}");
             let mut chosen = serde_json::json!({
-                "id": c.id, "kind": c.kind.as_str(), "minutes": (c.t * 100.0).round() / 100.0,
+                "id": c.id, "label": c.label, "kind": c.kind.as_str(), "minutes": (c.t * 100.0).round() / 100.0,
                 "score": (d.chosen.score * 10.0).round() / 10.0, "late": d.minutes_late.is_some(),
             });
             if let Some(late) = d.minutes_late {

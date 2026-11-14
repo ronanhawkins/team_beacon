@@ -49,6 +49,8 @@ impl Kind {
 #[derive(Clone, Debug)]
 pub struct Candidate {
     pub id: String,
+    /// Optional name, empty for most sites.
+    pub label: String,
     pub kind: Kind,
     /// Walking minutes to the site.
     pub t: f64,
@@ -119,11 +121,11 @@ mod tests {
     }
 
     fn shelter(id: &str, t: f64, blocked: f64, link: bool) -> Candidate {
-        Candidate { id: id.into(), kind: Kind::Shelter, t, blocked, f: site_factor(blocked, SHIELD, OPEN), base_link: link }
+        Candidate { id: id.into(), label: String::new(), kind: Kind::Shelter, t, blocked, f: site_factor(blocked, SHIELD, OPEN), base_link: link }
     }
 
     fn base(t: f64) -> Candidate {
-        Candidate { id: "base".into(), kind: Kind::Base, t, blocked: 0.05, f: BASE_FACTOR, base_link: true }
+        Candidate { id: "base".into(), label: String::new(), kind: Kind::Base, t, blocked: 0.05, f: BASE_FACTOR, base_link: true }
     }
 
     #[test]
@@ -174,7 +176,7 @@ mod tests {
             for f in [0.5, 0.75, 0.9, 1.0] {
                 let mut prev = f64::MIN;
                 for k in 0..=600 {
-                    let c = Candidate { id: "x".into(), kind: Kind::Shelter, t: k as f64 * 0.5, blocked: 0.1, f, base_link: true };
+                    let c = Candidate { id: "x".into(), label: String::new(), kind: Kind::Shelter, t: k as f64 * 0.5, blocked: 0.1, f, base_link: true };
                     let sc = score(&c, &s).score;
                     assert!(sc >= prev - 1e-9, "lead {lead}, f {f}, t {}: {sc} < {prev}", c.t);
                     prev = sc;

@@ -124,6 +124,11 @@
     { "id": "sol1446", "x": 1500.0, "y": 1627.7, "label": "Far point" }
   ],
 
+  "shelterLabels": [
+    { "near": "quela", "label": "Butte M12 shelter" }
+  ],
+  "shelterLabelsNote": "Optional names: the shelter nearest each listed routeStops id gets the label. Shelter ids come from position (s-<x>-<y>, metres), so they stay the same when the shelter set changes",
+
   "plannerBounds": {
     "xMin": 1250, "xMax": 1650, "yMin": 1200, "yMax": 1750,
     "note": "Local metres. A mosaic seam runs roughly north-south at local x 1580 to 1605, inside these bounds; its step is about 0.5 m north of y 1600 and under 0.15 m further south, too small to affect planning. The east limit excludes a separate doubtful band near x 1700"
@@ -173,8 +178,6 @@
 
   "notes": [
     "The waypoint file's easting and northing are already in the terrain mosaic's projection. No conversion needed.",
-    "The terrain at the waypoint reads -4379.53 m against the waypoint's own -4379.46 m, so the route and the terrain line up with no offset.",
-    "There is a visible seam in the mosaic running roughly north to south about 80 m east of the route. Treat steep cells along it as an artefact.",
-    "Sun and Earth directions and the date for the demo are still to be added."
+    "The terrain at the waypoint reads -4379.53 m against the waypoint's own -4379.46 m, so the route and the terrain line up with no offset."
   ]
 }
