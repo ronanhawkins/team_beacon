@@ -47,6 +47,8 @@ pub struct PlanInputs<'a> {
     /// Measured quiet open-ground dose rate in microgray per hour (Curiosity RAD), when known.
     /// Adds the microgray fields to the outputs.
     pub dose_rate_ugy_h: Option<f64>,
+    /// DONKI forecasts for the briefing (space.rs), when known.
+    pub space_weather: Option<Value>,
     pub stops: Vec<Stop>,
 }
 
@@ -564,6 +566,9 @@ pub fn run(inp: &PlanInputs, out_dir: &Path) -> Result<(), String> {
         briefing["doseBudgetMicroGray"] = json!(ugy(budget));
         briefing["stormMinutes"] = json!(inp.storm.storm_minutes);
         briefing["stormDoseMultiplier"] = json!(inp.storm.dose_multiplier);
+    }
+    if let Some(sw) = &inp.space_weather {
+        briefing["spaceWeather"] = sw.clone();
     }
 
     // Write files.

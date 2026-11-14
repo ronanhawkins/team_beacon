@@ -87,6 +87,10 @@ How to read it:
 - **With a short warning**, the choice is the best shelter in reach. At the far point with 2 minutes, that shelter (s17) has no radio contact with the base, but it is the only one in reach.
 - **With 10 minutes or more**, the base is in reach from every point tested, and its shielding wins.
 
+## Forecasts days ahead, warnings minutes ahead
+
+The briefing's `spaceWeather` lists NASA's DONKI forecasts of coronal mass ejections arriving at Mars. Those clouds travel for days, so the forecasts come with lead times of days (30 to 114 hours for the May 2024 storm). They are for deciding whether to go out at all. The model's short warning time is for something else: the fast particles from a solar flare, which reach Mars within minutes. In May 2024 Curiosity's detector rose about 1.3 hours before the earliest forecast arrival of the cloud.
+
 ## Limits
 
 - **This is an operating rule, not a dose-optimal result.** The dose model on its own would accept a longer walk to the shielded base, even arriving after the storm has started, because the base cuts the dose so much. The rule exists because the onset is the most intense and least predictable part of a storm, so being caught in the open then is the risk to avoid. Once the peak has passed, the astronaut returns to base.

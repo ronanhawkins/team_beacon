@@ -9,6 +9,21 @@
   "routeLengthM": 440.9,
   "shelterCount": 35,
   "slopeAtBaseDeg": 4.4,
+  "spaceWeather": {
+    "marsArrivals": 2,
+    "may2024": "73 simulations forecast 30 Mars arrivals (5 glancing) between 2024-05-13 and 2024-05-29, 30 to 114 hours ahead; the closest to Curiosity's measured onset (2024-05-20T05:21:50Z) was 2024-05-20T06:40Z, +1.3 hours from it, forecast 87 hours ahead",
+    "nearest": {
+      "arrivalTime": "2026-11-13T12:00Z",
+      "hoursFromSkyTime": -31.7,
+      "isGlancingBlow": true,
+      "leadHours": 88.5,
+      "link": "https://ccmc.gsfc.nasa.gov/DONKI/view/WSA-ENLIL/49472/-1",
+      "modelCompletionTime": "2026-11-09T19:32Z"
+    },
+    "searched": "2026-11-04 to 2026-11-14",
+    "source": "NASA CCMC DONKI WSA-Enlil simulations, impacts at Mars (data/cache/donki_mars.json)",
+    "windowHours": 72.0
+  },
   "stormDoseMaxAt": "m30",
   "stormDoseMicroGrayMax": 183.9,
   "stormDoseMultiplier": 7.985,

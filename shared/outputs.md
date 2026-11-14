@@ -31,3 +31,13 @@ Added when the engine has the measured Curiosity RAD storm (`data/cache/rad_stor
 | `doseBudgetMicroGray` | number | The `doseFraction` budget: `doseFraction` = dose / budget. Chosen so the largest `doseFraction` over the main route and every reroute is 0.9 |
 | `stormMinutes` | number | Storm length used by the decision |
 | `stormDoseMultiplier` | number | Storm dose rate relative to the quiet rate, used by the decision |
+
+Added when the engine has the DONKI forecasts (`data/cache/donki_mars.json`):
+
+| Field | Type | Meaning |
+|---|---|---|
+| `spaceWeather.marsArrivals` | number | Forecast coronal mass ejection arrivals at Mars within `windowHours` (72) either side of the sky time |
+| `spaceWeather.nearest` | object or null | The nearest of those: `arrivalTime`, `hoursFromSkyTime` (negative = before), `isGlancingBlow`, `modelCompletionTime`, `leadHours` (arrival minus model completion), `link` |
+| `spaceWeather.searched` | string | Dates of the forecasts searched |
+| `spaceWeather.may2024` | string | One line on the forecasts for the May 2024 storm |
+| `spaceWeather.source`, `windowHours` | | Where the data came from, and the window |

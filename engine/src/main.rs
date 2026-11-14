@@ -21,6 +21,7 @@ mod planner;
 mod route;
 mod sight;
 mod skyline;
+mod space;
 mod terrain;
 
 use std::collections::BTreeMap;
@@ -35,6 +36,7 @@ const MOLA_BIN: &str = "data/raw/mola.bin";
 const LAYERS_DIR: &str = "data/out/layers";
 const SITE_JSON: &str = "data/site.json";
 const RAD_CACHE: &str = "data/cache/rad_storm.json";
+const DONKI_CACHE: &str = "data/cache/donki_mars.json";
 
 // Settings matching referenceCheck.method in data/site.json.
 const EYE_HEIGHT_M: f64 = 1.0;
@@ -66,6 +68,9 @@ struct Site {
     /// The measured storm from data/cache/rad_storm.json, when present.
     #[serde(skip)]
     rad: Option<RadCache>,
+    /// The briefing's spaceWeather, from data/cache/donki_mars.json when present.
+    #[serde(skip)]
+    space_weather: Option<serde_json::Value>,
 }
 
 /// The fields of data/cache/rad_storm.json (tools/fetch_rad.py) that the engine uses.
@@ -78,6 +83,9 @@ struct RadCache {
     minutes_above: f64,
     /// Mean dose rate over those minutes, as a multiple of the baseline.
     mean_multiplier_above: f64,
+    /// First reading above 1.5 x the baseline, UTC.
+    #[serde(default)]
+    onset: Option<String>,
 }
 
 /// Default for storm.stormMinutesCap.
@@ -163,7 +171,21 @@ fn load_site(root: &Path) -> Result<Site, String> {
         site.storm.storm_minutes = rad.minutes_above.min(site.storm.storm_minutes_cap.unwrap_or(STORM_MINUTES_CAP));
         site.storm.dose_multiplier = rad.mean_multiplier_above;
     }
+    site.space_weather = load_space_weather(root, &site);
     Ok(site)
+}
+
+/// DONKI forecasts summarised for the briefing, or None (with a warning if the file is there but unreadable).
+fn load_space_weather(root: &Path, site: &Site) -> Option<serde_json::Value> {
+    let text = std::fs::read_to_string(root.join(DONKI_CACHE)).ok()?;
+    let onset = site.rad.as_ref().and_then(|r| r.onset.as_deref());
+    match serde_json::from_str::<space::Cache>(&text).map_err(|e| e.to_string()).and_then(|c| space::briefing(&c, &site.sky.time_u_t, onset)) {
+        Ok(v) => Some(v),
+        Err(e) => {
+            eprintln!("warning: cannot read {DONKI_CACHE} ({e}); the briefing has no spaceWeather");
+            None
+        }
+    }
 }
 
 /// The measured storm, or None (with a warning if the file is there but unreadable).
@@ -437,6 +459,7 @@ fn plan_inputs<'a>(site: &Site, grid: &'a terrain::Grid, far72: &'a [f32], far36
         storm: site.storm,
         base_dose_factor: site.base.dose_factor,
         dose_rate_ugy_h: site.rad.as_ref().map(|r| r.baseline_rate),
+        space_weather: site.space_weather.clone(),
         stops,
     }
 }
