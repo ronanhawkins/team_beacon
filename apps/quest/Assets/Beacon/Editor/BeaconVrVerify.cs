@@ -142,6 +142,11 @@ public static class BeaconVrVerify
             }
             Check(!reroute || scenery.InShelter,"walking the shelter route produces actual arrival");
             scenery.TickBeacon();Check(!scenery.Beacon.Visible,"destination beacon disappears on actual arrival");
+            for(int i=0;i<100;i++) {scenery.Step(Vector2.up,Vector2.zero,1,.05f);Physics.SyncTransforms();}
+            scenery.TickBeacon();hud.Tick();
+            Check(Navigation.Distance(scenery.Position,path[path.Count-1].pos)>WalkNavigation.ArrivalRadius,"completion test walks away from the reached beacon");
+            Check(scenery.TargetIndex==-1 && scenery.WaypointIndex==-1 && !scenery.Beacon.Visible && !compassArrow.gameObject.activeSelf,"walking away never reopens a completed destination arrow or beacon");
+            Check(!reroute || !scenery.InShelter,"completed route does not falsely claim current shelter cover");
         }
         WalkPath(document.main,false);WalkPath(document.reroutes[(document.main.Count-1).ToString()],true);
         view.SetImmersive(false);var arPosition=scenery.playerRoot.position;

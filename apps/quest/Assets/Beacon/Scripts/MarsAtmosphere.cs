@@ -90,7 +90,6 @@ namespace Beacon
         {
             if (visuals == null) return;
             sky.position = eye.position;
-            if (OVRInput.GetDown(OVRInput.Button.One, OVRInput.Controller.RTouch)) SetEffectsEnabled(!effectsEnabled);
             UpdateSun();
             // A panic request is not a solar-storm event. Only the actual storm
             // flag strengthens these artistic effects; offline data fades calm.

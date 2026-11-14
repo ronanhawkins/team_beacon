@@ -20,7 +20,7 @@ namespace Beacon
         static readonly string[] LastCaptions={"SHELTER","LAST BASE","LAST SUN","LAST O2","LAST DOSE"};
         TMP_Text openSky,skyCaption,science,scienceCaption,alert,viewMode,nextDistance;
         RectTransform sciencePanel;
-        RectTransform feedbackPanel,holdBar;
+        RectTransform feedbackPanel;
         TMP_Text feedback;
         CompassGraphic compass;
         ArrowGraphic waypointGraphic;
@@ -28,11 +28,11 @@ namespace Beacon
         CanvasGroup alertGroup;
         Image alertBacking;
         AudioSource sound;
-        float pulseUntil,requestHeld,feedbackUntil,requestDeadline,shelterNoticeUntil;
+        float pulseUntil,feedbackUntil,shelterNoticeUntil;
         string shelterNoticeCaption,shelterNotice;
         public string ShelterNotice => shelterNotice;
-        public float ShelterHoldProgress => Mathf.Clamp01(requestHeld);
-        bool requestSent,requestPending,wasEmergency;
+        bool stormWasPressed,resetWasPressed,buttonsArmed=true,wasEmergency;
+        int commandGeneration;
         bool wasImmersive,wasBoundary;
 
 
@@ -55,11 +55,6 @@ namespace Beacon
                 var card=Surface("Side reading "+Captions[i],left ? -26:26,pitch,250,88,.32f);
                 readingCaptions[i]=Text(card,Captions[i],0,25,230,25,19,Muted);
                 readings[i]=Text(card,"--",0,-12,230,52,36,White);
-                if(i==0)
-                {
-                    var progress=BeaconUi.Backing(card,0,4,Mint); holdBar=progress.rectTransform;
-                    holdBar.pivot=new Vector2(0,.5f);holdBar.anchoredPosition=new Vector2(-115,-39);
-                }
             }
             var sky=Surface("Open sky",-26,2,250,96,.32f);
             skyCaption=Text(sky,"OPEN SKY",0,29,230,24,19,Muted);
@@ -125,7 +120,6 @@ namespace Beacon
             alertGroup.gameObject.SetActive(title!=""); alert.text=title;
             alertBacking.color=emergency ? new Color(.26f,.035f,.025f,.8f) : new Color(.16f,.11f,.025f,.8f);
             border.gameObject.SetActive(MissionPresentation.AlertBorder(s,live)); border.color=emergency ? new Color(1,.18f,.10f,.58f) : new Color(1,.65f,.15f,.35f);
-            if(requestPending && live && s.route=="reroute") { requestPending=false; ShelterFeedback("FOLLOW ARROW","ROUTE READY"); Pulse(.12f); }
         }
         public void Tick()
         {
@@ -147,8 +141,8 @@ namespace Beacon
             bool walking=missionView.Immersive && missionView.vrScenery!=null && missionView.vrScenery.Active;
             var selection=relay.Selection;
             var navigationPosition=walking ? missionView.vrScenery.Position:selection?.Point.pos;
-            int goal=relay.Connected ? WalkNavigation.WaypointIndex(selection,navigationPosition):-1;
-            int target=relay.Connected ? WalkNavigation.TargetIndex(selection,navigationPosition):-1;
+            int goal=relay.Connected ? (walking ? missionView.vrScenery.WaypointIndex : WalkNavigation.WaypointIndex(selection,navigationPosition)):-1;
+            int target=relay.Connected ? (walking ? missionView.vrScenery.TargetIndex : WalkNavigation.TargetIndex(selection,navigationPosition)):-1;
             bool hasTarget=goal>=0 && target>=0;
             waypoint.gameObject.SetActive(hasTarget);nextDistance.gameObject.SetActive(hasTarget);
             if(hasTarget)
@@ -170,29 +164,20 @@ namespace Beacon
             }
             viewMode.text=missionView.Immersive ? "VR · X: AR" : "AR · X: VR";
             if(alertGroup.gameObject.activeSelf) alertGroup.alpha=Time.unscaledTime<pulseUntil ? .88f+.12f*Mathf.Sin(Time.unscaledTime*5) : 1;
-            if(requestPending && !relay.Connected) {requestPending=false;ShelterFeedback("CHECK USB","LAPTOP OFFLINE");}
-            if(requestPending && Time.unscaledTime>=requestDeadline) { requestPending=false; ShelterFeedback("HOLD B TO RETRY","NO REPLY"); }
-            bool holding=requestHeld>0 && !requestSent;
             bool sprinting=missionView.Immersive && missionView.vrScenery!=null && missionView.vrScenery.Sprinting;
             feedbackPanel.gameObject.SetActive(Time.unscaledTime<feedbackUntil || sprinting);
-            holdBar.gameObject.SetActive(holding);
             if(sprinting && Time.unscaledTime>=feedbackUntil) feedback.text="SPRINT";
             // Always restore the ordinary shelter reading before applying a
             // temporary result, so expired feedback cannot leave stale text.
             if(relay.Connected && relay.Selection!=null)
             {
                 bool covered=walking ? missionView.vrScenery.InShelter : relay.Selection.Point.isShelter;
-                readings[0].text=covered ? "IN SHELTER" : walking && relay.Selection.Point.isShelter ? (relay.Selection.Reroute ? "RETURN TO SHELTER" : "BASE · "+Navigation.DistanceText(Navigation.Distance(missionView.vrScenery.Position,relay.Selection.Point.pos))) : $"{relay.State.minutesToShelter:0.0} min";
+                readings[0].text=covered ? "IN SHELTER" : walking && relay.Selection.Point.isShelter ? (relay.Selection.Reroute ? "OUTSIDE SHELTER" : "BASE · "+Navigation.DistanceText(Navigation.Distance(missionView.vrScenery.Position,relay.Selection.Point.pos))) : $"{relay.State.minutesToShelter:0.0} min";
                 readings[0].fontSize=covered || relay.Selection.Point.isShelter ? 24:36;
-                readingCaptions[0].text=relay.Selection.Reroute && walking && !covered ? "SHELTER · "+Navigation.DistanceText(missionView.vrScenery.Remaining) : "SHELTER · HOLD B";
+                readingCaptions[0].text=relay.Selection.Reroute && walking && !covered ? "SHELTER · "+Navigation.DistanceText(missionView.vrScenery.Remaining) : "SHELTER · B: STORM";
             }
             else {readings[0].text="--";readings[0].fontSize=36;readingCaptions[0].text="SHELTER · OFFLINE";}
-            if(holding)
-            {
-                readingCaptions[0].text="HOLD B · 1 SEC";
-                holdBar.sizeDelta=new Vector2(230*ShelterHoldProgress,4);
-            }
-            else if(Time.unscaledTime<shelterNoticeUntil)
+            if(Time.unscaledTime<shelterNoticeUntil)
             {
                 readingCaptions[0].text=shelterNoticeCaption;readings[0].text=shelterNotice;readings[0].fontSize=24;
             }
@@ -215,43 +200,47 @@ namespace Beacon
             yield return new WaitForSecondsRealtime(seconds);
             OVRInput.SetControllerVibration(0,0,OVRInput.Controller.RTouch);
         }
-        async Task RequestShelterWithFeedback()
+        async Task RunDemoCommand(bool reset)
         {
             if(!relay.Connected) { ShelterFeedback("CHECK USB","LAPTOP OFFLINE"); return; }
-            if(requestPending) { ShelterFeedback("SHELTER REQUEST","WAITING…"); return; }
+            if(relay.SimulationCommandPending && !reset) { ShelterFeedback("SIMULATION","WAITING…"); return; }
+            int generation=++commandGeneration;
             bool walking=missionView.Immersive && missionView.vrScenery?.Active==true;
-            if(walking ? missionView.vrScenery.InShelter : relay.Selection?.Point.isShelter==true) { ShelterFeedback("HOLD POSITION","ALREADY SAFE"); return; }
-            if(relay.State?.route=="reroute") { ShelterFeedback("FOLLOW ARROW","ROUTE ACTIVE"); return; }
-            requestPending=true; requestDeadline=Time.unscaledTime+5; ShelterFeedback("SHELTER REQUEST","REQUESTING…",5);
+            ShelterFeedback(reset ? "A · RESET" : "B · STORM",reset ? "RESETTING…" : "STARTING…",6);Pulse(.08f);
             int? from=walking ? WalkNavigation.ClosestMain(relay.Document,missionView.vrScenery.Position):(int?)null;
-            bool sent=await relay.RequestShelter(from);
-            if(this==null) return;
-            if(!sent) { requestPending=false; ShelterFeedback("CHECK USB · RETRY","REQUEST FAILED"); }
-            else if(requestPending) { requestDeadline=Time.unscaledTime+5; ShelterFeedback("SHELTER REQUEST","WAITING…",5); }
-        }
-        public Task ProcessShelterButton(bool pressed,float deltaTime)
-        {
-            if(pressed)
+            bool confirmed=await (reset ? relay.ResetSimulation() : relay.TriggerStorm(from));
+            if(this==null || generation!=commandGeneration) return;
+            if(!confirmed) { ShelterFeedback(relay.Connected ? (reset ? "PRESS A TO RETRY" : "PRESS B TO RETRY") : "CHECK USB",relay.Connected ? "REQUEST FAILED" : "LAPTOP OFFLINE");return; }
+            if(reset)
             {
-                if(requestHeld==0) {shelterNoticeUntil=0;Pulse(.04f);Debug.Log("BEACON_SHELTER_BUTTON: right B pressed");}
-                requestHeld+=Mathf.Clamp(deltaTime,0,.1f);
-                if(requestHeld>=1 && !requestSent) { requestSent=true; Pulse(.08f);return RequestShelterWithFeedback(); }
+                sound.Stop();pulseUntil=0;feedbackUntil=0;missionView.atmosphere?.SetStormStrength(0);
+                ShelterFeedback("SIMULATION","RESET",3);
             }
             else
             {
-                if(requestHeld>0 && !requestSent) ShelterFeedback("RIGHT CONTROLLER","HOLD B · 1 SEC",4);
-                requestHeld=0;requestSent=false;
+                bool covered=missionView.Immersive && missionView.vrScenery?.Active==true ? missionView.vrScenery.InShelter : relay.Selection?.Point.isShelter==true;
+                ShelterFeedback("SOLAR STORM",covered ? "STAY COVERED" : "TAKE COVER",6);
             }
+            Pulse(.12f);
+        }
+        public Task ProcessDemoButtons(bool stormPressed,bool resetPressed)
+        {
+            bool stormDown=stormPressed && !stormWasPressed,resetDown=resetPressed && !resetWasPressed;
+            stormWasPressed=stormPressed;resetWasPressed=resetPressed;
+            if(!buttonsArmed) {if(!stormPressed && !resetPressed) buttonsArmed=true;return Task.CompletedTask;}
+            // A wins if both buttons are pressed; held buttons never repeat.
+            if(resetDown) {Debug.Log("BEACON_DEMO_BUTTON: A reset");return RunDemoCommand(true);}
+            if(stormDown && !resetPressed) {Debug.Log("BEACON_DEMO_BUTTON: B storm");return RunDemoCommand(false);}
             return Task.CompletedTask;
         }
         void LateUpdate()
         {
-            if(Application.isFocused) _=ProcessShelterButton(OVRInput.Get(OVRInput.RawButton.B,OVRInput.Controller.RTouch),Time.unscaledDeltaTime);
+            if(Application.isFocused) _=ProcessDemoButtons(OVRInput.Get(OVRInput.RawButton.B,OVRInput.Controller.RTouch),OVRInput.Get(OVRInput.RawButton.A,OVRInput.Controller.RTouch));
             Tick();
         }
         void OnApplicationFocus(bool focused)
         {
-            if(!focused) {requestHeld=0;requestSent=false;if(Application.isPlaying) OVRInput.SetControllerVibration(0,0,OVRInput.Controller.RTouch);}
+            if(!focused) {buttonsArmed=false;stormWasPressed=false;resetWasPressed=false;if(Application.isPlaying) OVRInput.SetControllerVibration(0,0,OVRInput.Controller.RTouch);}
         }
         void OnDestroy()
         {

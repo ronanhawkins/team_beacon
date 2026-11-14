@@ -127,7 +127,9 @@ public static class BeaconVerify
             var final=new MissionSelection(path.Value,path.Value.Count-1,true);
             Check(WalkNavigation.InShelter(final,final.Point.pos) && WalkNavigation.TargetIndex(final,final.Point.pos)==-1,"actual arrival clears navigation");
             var outside=new SitePosition {x=final.Point.pos.x+10,y=final.Point.pos.y};
-            Check(!WalkNavigation.InShelter(final,outside) && WalkNavigation.TargetIndex(final,outside)==final.Index,"leaving shelter cannot keep claiming arrival");
+            Check(!WalkNavigation.InShelter(final,outside) && WalkNavigation.TargetIndex(final,outside,true)==-1 && WalkNavigation.WaypointIndex(final,outside,true)==-1,"leaving a completed shelter updates cover status without resurrecting its arrow or beacon");
+            Check(WalkNavigation.TargetIndex(final,outside)==final.Index,"a final shelter not yet physically visited remains a target");
+            Check(Math.Abs(WalkNavigation.Remaining(final,outside)-Navigation.Distance(outside,final.Point.pos))<.001,"outside-shelter distance remains truthful after completed guidance disappears");
         }
         for(int i=0;i<exported.main.Count;i++) Check(WalkNavigation.ClosestMain(exported,exported.main[i].pos)==i,"shelter request matches the current physical route location");
         Check(MissionPresentation.Decision(decisionState,route)=="", "optional decision missing does not invent a reason");

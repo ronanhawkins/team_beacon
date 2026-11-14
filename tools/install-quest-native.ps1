@@ -14,7 +14,7 @@ $startRelay=$false
 try {
     $session = Invoke-RestMethod -Uri 'http://127.0.0.1:5174/session.json' -TimeoutSec 3
     $metadata = Invoke-RestMethod -Uri 'http://127.0.0.1:5174/data/site.json' -TimeoutSec 3
-    $startRelay=$metadata.site -notmatch $Site
+    $startRelay=$metadata.site -notmatch $Site -or $session.capabilities.commandReplies -ne $true
 }
 catch {$startRelay=$true}
 if($startRelay) {

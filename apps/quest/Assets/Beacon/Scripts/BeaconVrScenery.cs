@@ -23,10 +23,26 @@ namespace Beacon
         bool advancePending;
         float retryAdvanceAt;
         string advanceKey;
+        string completionKey;
+        int completionIndex=-1;
+        bool destinationReached;
         public SitePosition Position => terrain.MissionPosition(rig.centerEyeAnchor.position);
         public bool InShelter => Active && WalkNavigation.InShelter(missionView.relay.Selection,Position);
-        public int TargetIndex => Active ? WalkNavigation.TargetIndex(missionView.relay.Selection,Position):-1;
-        public int WaypointIndex => Active ? WalkNavigation.WaypointIndex(missionView.relay.Selection,Position):-1;
+        public bool DestinationReached { get {UpdateCompletion();return destinationReached;} }
+        public int TargetIndex => Active ? WalkNavigation.TargetIndex(missionView.relay.Selection,Position,DestinationReached):-1;
+        public int WaypointIndex => Active ? WalkNavigation.WaypointIndex(missionView.relay.Selection,Position,DestinationReached):-1;
+        void UpdateCompletion()
+        {
+            var relay=missionView.relay;var selection=relay.Selection;
+            if(!Active || selection==null) return;
+            string key=relay.State.route+":"+relay.State.rerouteFrom+":"+selection.Points[selection.Points.Count-1].id;
+            if(key!=completionKey || selection.Index<completionIndex) destinationReached=false;
+            completionKey=key;completionIndex=selection.Index;
+            // Latch physical arrival before the final relay acknowledgement.
+            // A new one-point shelter route can still be unvisited in VR.
+            if(selection.Index>=selection.Points.Count-2 && Navigation.Distance(Position,selection.Points[selection.Points.Count-1].pos)<=WalkNavigation.ArrivalRadius)
+                destinationReached=true;
+        }
         public double GuidanceBearing
         {
             get {int target=TargetIndex;return target<0 ? missionView.Heading : Navigation.Bearing(Position,missionView.relay.Selection.Points[target].pos);}
@@ -64,10 +80,11 @@ namespace Beacon
             body=playerRoot.GetComponent<CharacterController>();body.enabled=false;
             body.radius=.22f;body.skinWidth=.025f;body.stepOffset=.3f;body.slopeLimit=45;body.minMoveDistance=0;
             Beacon=new WaypointBeacon(this);
-            initialized=true;terrain.gameObject.SetActive(false);missionView.relay.Changed+=MissionChanged;
+            initialized=true;terrain.gameObject.SetActive(false);missionView.relay.Changed+=MissionChanged;missionView.relay.SimulationReset+=ResetPosition;
         }
         void MissionChanged() {if(Active && missionView.relay.Connected && !MatchesMission) missionView.SetImmersive(false);}
-        void OnDestroy() {if(missionView?.relay!=null) missionView.relay.Changed-=MissionChanged;Beacon?.Dispose();}
+        void ResetPosition() {completionKey=null;completionIndex=-1;destinationReached=false;ReturnToRoute();TickBeacon();}
+        void OnDestroy() {if(missionView?.relay!=null) {missionView.relay.Changed-=MissionChanged;missionView.relay.SimulationReset-=ResetPosition;}Beacon?.Dispose();}
         public void TickBeacon() => Beacon?.Tick();
         void Start() {Create();SetActive(missionView.Immersive);}
         public void SetActive(bool active)
@@ -89,6 +106,7 @@ namespace Beacon
         {
             if(!Active || missionView.relay.Selection==null) return;
             body.enabled=false;velocity=Vector3.zero;falling=0;advancePending=false;
+            Speed=0;Sprinting=false;AtBoundary=false;retryAdvanceAt=0;advanceKey=null;
             playerRoot.SetLocalPositionAndRotation(Vector3.zero,Quaternion.identity);
             terrain.transform.SetPositionAndRotation(Vector3.zero,Quaternion.Euler(0,missionView.NorthYaw,0));
             var start=terrain.WorldPoint(missionView.relay.Selection.Point.pos);
@@ -116,11 +134,12 @@ namespace Beacon
                 Mathf.Max(OVRInput.Get(OVRInput.Axis1D.PrimaryHandTrigger,OVRInput.Controller.LTouch),
                     OVRInput.Get(OVRInput.Axis1D.PrimaryIndexTrigger,OVRInput.Controller.RTouch)),Time.deltaTime);
             var relay=missionView.relay;
+            UpdateCompletion();
             if(relay.Selection?.Point.sun!=null) terrain.SetSun(missionView.SkyDirection(relay.Selection.Point.sun));
             string key=relay.State?.route+":"+relay.State?.rerouteFrom+":"+relay.State?.waypointIndex;
             if(advanceKey!=key) {advancePending=false;retryAdvanceAt=0;advanceKey=key;}
             if(advancePending && Time.unscaledTime>=retryAdvanceAt) advancePending=false;
-            if(relay.Connected && WalkNavigation.ShouldAdvance(relay.Selection,Position) && !advancePending && Time.unscaledTime>=retryAdvanceAt)
+            if(relay.Connected && !relay.SimulationCommandPending && WalkNavigation.ShouldAdvance(relay.Selection,Position) && !advancePending && Time.unscaledTime>=retryAdvanceAt)
             {advanceKey=key;_=Advance();}
             if(Time.unscaledTime>=diagnosticAt)
             {

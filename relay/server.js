@@ -163,11 +163,15 @@ function switchToReroute() {
 
 // Applies one event to sim. Returns false if the event is unknown or invalid.
 function applyEvent(ev) {
+  if (ev.requestId !== undefined && (typeof ev.requestId !== 'string' || ev.requestId.length === 0 || ev.requestId.length > 80)) return false;
   // Native walking acknowledges a specific sample. A delayed/replayed packet
   // must not advance a route selected meanwhile by the hub or an emergency.
   if (ev.expected !== undefined) {
     const expected = ev.expected;
-    if (!expected || expected.route !== sim.route || expected.waypointIndex !== sim.waypointIndex ||
+    // An emergency press can overlap a walking acknowledgement on the same
+    // route. It must still start the storm, without rewinding another route.
+    const startingStorm = ev.type === 'storm' && ev.on === true;
+    if (!expected || expected.route !== sim.route || (!startingStorm && expected.waypointIndex !== sim.waypointIndex) ||
         expected.rerouteFrom !== (sim.route === 'reroute' ? sim.rerouteFrom : null)) return false;
   }
   switch (ev.type) {
@@ -179,6 +183,11 @@ function applyEvent(ev) {
       return true;
     case 'storm':
       if (typeof ev.on !== 'boolean') return false;
+      if (ev.atIndex !== undefined) {
+        if (!ev.on || sim.route !== 'main' || !Number.isInteger(ev.atIndex) || ev.atIndex < 0 || ev.atIndex >= waypoints.main.length ||
+            !waypoints.reroutes?.[String(ev.atIndex)]?.length) return false;
+        sim.waypointIndex = ev.atIndex;
+      }
       if (ev.on) { sim.storm = true; switchToReroute(); return true; }
       sim.storm = false;
       if (sim.route === 'reroute' && !sim.panic && !sim.rerouteRequested) {
@@ -209,12 +218,12 @@ let state = buildState();
 
 const clients = new Set(); // { ws, role, transport, address, since }
 
-function sendState(client) {
-  if (client.ws.readyState === WebSocket.OPEN) client.ws.send(JSON.stringify({ type: 'state', state }));
+function sendState(client, replyTo) {
+  if (client.ws.readyState === WebSocket.OPEN) client.ws.send(JSON.stringify({ type: 'state', state, ...(replyTo && { replyTo }) }));
 }
 
-function broadcast() {
-  for (const c of clients) sendState(c);
+function broadcast(requester, requestId) {
+  for (const c of clients) sendState(c, c === requester ? requestId : undefined);
 }
 
 function who(c) {
@@ -259,7 +268,8 @@ function onConnection(ws, req, transport) {
     state = buildState();
     const changed = JSON.stringify(state) !== before;
     log(`  event     ${who(client)}: ${JSON.stringify(ev)} -> ${state.route}[${state.waypointIndex}] ${state.mode}${changed ? '' : ' (no change)'}`);
-    if (changed) broadcast();
+    if (changed) broadcast(client, ev.requestId);
+    else if (ev.requestId) sendState(client, ev.requestId);
   });
 }
 
@@ -309,7 +319,7 @@ function onRequest(req, res) {
   if (urlPath === '/') return send(res, 200, 'text/html; charset=utf-8', INDEX_HTML);
   if (urlPath === '/debug') return serveFile(res, path.join(__dirname, 'debug.html'));
   // Serve the exact in-memory route used by this relay, including WAYPOINTS overrides.
-  if (urlPath === '/session.json') return send(res, 200, 'application/json', JSON.stringify({ version: 1, waypoints: '/mission/waypoints.json', synthetic }));
+  if (urlPath === '/session.json') return send(res, 200, 'application/json', JSON.stringify({ version: 1, waypoints: '/mission/waypoints.json', synthetic, capabilities: { commandReplies: true } }));
   if (urlPath === '/mission/waypoints.json') return send(res, 200, 'application/json', JSON.stringify(waypoints));
   // The one file outside data/out/ that pages may read.
   if (urlPath === '/data/site.json') return serveFile(res, SITE_FILE);

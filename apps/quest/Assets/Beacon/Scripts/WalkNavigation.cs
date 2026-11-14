@@ -8,16 +8,16 @@ namespace Beacon
         public const double ArrivalRadius=2.5;
         // Mission destinations are distinct from the dense samples used to
         // follow a path. A diversion always ends at its chosen shelter.
-        public static int WaypointIndex(MissionSelection selection,SitePosition position)
+        public static int WaypointIndex(MissionSelection selection,SitePosition position,bool destinationReached=false)
         {
             if(selection==null || position==null) return -1;
             for(int i=selection.Index+1;i<selection.Points.Count;i++)
                 if(selection.Reroute ? i==selection.Points.Count-1 : IsStop(selection,i)) return i;
-            return Navigation.Distance(position,selection.Point.pos)>ArrivalRadius ? selection.Index:-1;
+            return !destinationReached && Navigation.Distance(position,selection.Point.pos)>ArrivalRadius ? selection.Index:-1;
         }
         static bool IsStop(MissionSelection selection,int index)
             => index==selection.Points.Count-1 || selection.Points[index].isScienceStop || selection.Points[index].isShelter;
-        public static int TargetIndex(MissionSelection selection,SitePosition position)
+        public static int TargetIndex(MissionSelection selection,SitePosition position,bool destinationReached=false)
         {
             if(selection==null || position==null) return -1;
             for(int i=selection.Index+1;i<selection.Points.Count;i++)
@@ -25,7 +25,7 @@ namespace Beacon
                 if(!IsStop(selection,i) && (Navigation.Distance(selection.Points[i-1].pos,selection.Points[i].pos)<=.1 || PassedPoint(selection,i,position))) continue;
                 return i;
             }
-            return Navigation.Distance(position,selection.Point.pos)>ArrivalRadius ? selection.Index:-1;
+            return !destinationReached && Navigation.Distance(position,selection.Point.pos)>ArrivalRadius ? selection.Index:-1;
         }
         public static bool ShouldAdvance(MissionSelection selection,SitePosition position)
         {
@@ -74,7 +74,8 @@ namespace Beacon
         }
         public static double Remaining(MissionSelection selection,SitePosition position)
         {
-            int target=TargetIndex(selection,position);if(target<0) return 0;
+            int target=TargetIndex(selection,position);
+            if(target<0) return selection?.Point.isShelter==true && position!=null ? Navigation.Distance(position,selection.Point.pos):0;
             double total=Navigation.Distance(position,selection.Points[target].pos);
             for(int i=target;i<selection.Points.Count-1;i++) total+=Navigation.Distance(selection.Points[i].pos,selection.Points[i+1].pos);
             return total;
