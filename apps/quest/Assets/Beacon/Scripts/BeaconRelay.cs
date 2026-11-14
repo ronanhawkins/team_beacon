@@ -19,6 +19,8 @@ namespace Beacon
         public string serverUrl = "http://127.0.0.1:5174";
         public MissionState State { get; private set; }
         public MissionSelection Selection { get; private set; }
+        public RouteDocument Document { get; private set; }
+        public MissionSite Site { get; private set; }
         public bool Connected { get; private set; }
         public bool Synthetic { get; private set; }
         public string Error { get; private set; } = "Connecting to laptop";
@@ -31,6 +33,12 @@ namespace Beacon
         void Update() { while (mainThread.TryDequeue(out var action)) action(); }
         void OnDestroy() { lifetime?.Cancel(); socket?.Abort(); }
         void Publish(Action update) => mainThread.Enqueue(() => { update(); Changed?.Invoke(); });
+#if UNITY_EDITOR
+        public void Preview(MissionState state, RouteDocument document, MissionSite site)
+        {
+            State=state; Document=document; Site=site; Selection=Contracts.Select(state,document); Connected=true; Changed?.Invoke();
+        }
+#endif
         async Task Run(CancellationToken cancel)
         {
             int delay = 1000;
@@ -38,7 +46,7 @@ namespace Beacon
             {
                 try
                 {
-                    RouteDocument route; MissionSession session;
+                    RouteDocument route; MissionSession session; MissionSite site = null;
                     using (var http = new HttpClient { Timeout = TimeSpan.FromSeconds(8) })
                     {
                         var root = new Uri(serverUrl.TrimEnd('/') + "/");
@@ -50,6 +58,13 @@ namespace Beacon
                         using (var response = await http.GetAsync(routeUri, cancel))
                         { response.EnsureSuccessStatusCode(); route = JsonConvert.DeserializeObject<RouteDocument>(await response.Content.ReadAsStringAsync()); }
                         Contracts.Validate(route);
+                        // Optional credit metadata never prevents the live HUD connecting.
+                        try
+                        {
+                            using (var response = await http.GetAsync(new Uri(root, "data/site.json"), cancel))
+                                if (response.IsSuccessStatusCode) site = JsonConvert.DeserializeObject<MissionSite>(await response.Content.ReadAsStringAsync());
+                        }
+                        catch (Exception) when (!cancel.IsCancellationRequested) { }
                     }
                     using (var ws = new ClientWebSocket())
                     {
@@ -77,7 +92,7 @@ namespace Beacon
                                 var selection = Contracts.Select(next, route);
                                 Publish(() => {
                                     bool changed = !Connected || State?.route != next.route || State?.waypointIndex != next.waypointIndex || State?.mode != next.mode;
-                                    State = next; Selection = selection; Synthetic = session.synthetic; Connected = true; Error = "";
+                                    State = next; Selection = selection; Document = route; Site = site; Synthetic = session.synthetic; Connected = true; Error = "";
 #if DEVELOPMENT_BUILD || UNITY_EDITOR
                                     if (changed) Debug.Log($"BEACON_STATE: {next.route} {next.waypointIndex} {next.mode} {selection.Point.id}");
 #endif

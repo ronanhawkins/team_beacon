@@ -9,160 +9,151 @@ namespace Beacon
         public OVRCameraRig rig;
         public TMP_FontAsset font;
         public BeaconRelay relay;
-        // Closer than the original dashboard, with a much smaller angular size.
-        const float HudDepth = 1.2f, CompassWidth = 600, CompassHalfSpan = 70;
-        static readonly Color White = Hex("F0F6F9"), Muted = Hex("9BAEBB"), Blue = Hex("72C7FF"), Mint = Hex("93E9CE"), Amber = Hex("FFCC82"), Red = Hex("FF9187");
-        TMP_Text oxygen, dose, contact, doseCaption, alertTitle, alertDetail;
-        readonly TMP_Text[] bearings = new TMP_Text[24];
-        RectTransform root, waypoint;
-        CanvasGroup alertGroup;
-        Image alertBacking;
+        public BeaconMissionView missionView;
+        const float Depth=1.2f, CompassWidth=720, CompassHalfSpan=70;
+        static readonly Color White=new Color(.94f,.97f,1), Muted=new Color(.67f,.75f,.80f), Mint=new Color(.55f,.94f,.79f), Amber=new Color(1,.77f,.38f), Red=new Color(1,.48f,.40f);
+        RectTransform root,waypoint;
+        readonly TMP_Text[] bearings=new TMP_Text[24], readings=new TMP_Text[5];
+        TMP_Text openSky,skyCaption,science,scienceCaption,alert,decision,credit,viewMode;
+        RectTransform sciencePanel,decisionPanel;
         CompassGraphic compass;
         ArrowGraphic waypointGraphic;
-        Sprite rounded;
-        string alertKey = "";
-        float pulseUntil, north, nextCompassUpdate, requestHeld;
-        bool aligned, requestSent;
+        HudBorderGraphic border;
+        CanvasGroup alertGroup;
+        Image alertBacking;
         AudioSource sound;
+        string alertKey="";
+        float pulseUntil,requestHeld;
+        bool requestSent;
 
-        static Color Hex(string s) { ColorUtility.TryParseHtmlString("#" + s, out var c); return c; }
-        static RectTransform Rect(string name, Transform parent, float x, float y, float w, float h)
+        RectTransform Surface(string name,float yaw,float pitch,float width,float height,float metres)
         {
-            var r = new GameObject(name, typeof(RectTransform)).GetComponent<RectTransform>();
-            r.SetParent(parent, false); r.sizeDelta = new Vector2(w, h); r.anchoredPosition = new Vector2(x, y); return r;
+            var p=BeaconUi.Rect(name,root,0,0,width,height);
+            p.localPosition=new Vector3(Mathf.Tan(yaw*Mathf.Deg2Rad)*Depth,Mathf.Tan(pitch*Mathf.Deg2Rad)*Depth,Depth);
+            BeaconUi.Canvas(p,metres); return p;
         }
-        Sprite MakeRounded()
+        TMP_Text Text(Transform parent,string value,float x,float y,float w,float h,float size,Color colour)
+            => BeaconUi.Text(parent,font,value,x,y,w,h,size,colour);
+        void Start() => CreateVisuals();
+        public void CreateVisuals()
         {
-            var tex = new Texture2D(64, 64, TextureFormat.RGBA32, false) { filterMode = FilterMode.Bilinear };
-            var pixels = new Color[64 * 64];
-            for (int y = 0; y < 64; y++) for (int x = 0; x < 64; x++)
+            if(root!=null) return;
+            root=BeaconUi.Rect("Readable peripheral HUD",rig.centerEyeAnchor,0,0,1,1); root.localPosition=Vector3.zero;
+            var strip=Surface("Quiet mission line",0,-18,1000,74,1.1f);
+            BeaconUi.Backing(strip,1000,74,new Color(.025f,.04f,.055f,.58f));
+            string[] captions={"SHELTER","BASE","SUNLIGHT","OXYGEN","DOSE USED"};
+            for(int i=0;i<5;i++)
             {
-                float dx = Mathf.Max(0, Mathf.Abs(x - 31.5f) - 17), dy = Mathf.Max(0, Mathf.Abs(y - 31.5f) - 17);
-                pixels[y * 64 + x] = new Color(1, 1, 1, Mathf.Clamp01(14.5f - Mathf.Sqrt(dx * dx + dy * dy)));
+                float x=(i-2)*200;
+                Text(strip,captions[i],x,25,188,27,20,Muted);
+                readings[i]=Text(strip,"--",x,-11,188,48,36,White);
             }
-            tex.SetPixels(pixels); tex.Apply();
-            return Sprite.Create(tex, new Rect(0, 0, 64, 64), new Vector2(.5f, .5f), 100, 0, SpriteMeshType.FullRect, new Vector4(17, 17, 17, 17));
-        }
-        Image Backing(Transform parent, float width, float height, Color color)
-        {
-            var image = Rect("Tint", parent, 0, 0, width, height).gameObject.AddComponent<Image>();
-            image.sprite = rounded; image.type = Image.Type.Sliced; image.color = color; image.raycastTarget = false; return image;
-        }
-        RectTransform Surface(string name, float yaw, float pitch, float width, float height, float metres)
-        {
-            var p = Rect(name, root, 0, 0, width, height);
-            p.localPosition = new Vector3(Mathf.Tan(yaw * Mathf.Deg2Rad) * HudDepth, Mathf.Tan(pitch * Mathf.Deg2Rad) * HudDepth, HudDepth);
-            p.localScale = Vector3.one * (metres / width);
-            var canvas = p.gameObject.AddComponent<Canvas>(); canvas.renderMode = RenderMode.WorldSpace;
-            canvas.overrideSorting = true; canvas.sortingOrder = 100;
-            return p;
-        }
-        TMP_Text Label(Transform parent, string value, float x, float y, float w, float h, float size, Color color, bool bold = false)
-        {
-            var text = Rect(value, parent, x, y, w, h).gameObject.AddComponent<TextMeshProUGUI>();
-            text.font = font; text.text = value; text.fontSize = size; text.color = color;
-            text.fontStyle = bold ? FontStyles.Bold : FontStyles.Normal; text.alignment = TextAlignmentOptions.MidlineLeft;
-            text.textWrappingMode = TextWrappingModes.NoWrap; text.overflowMode = TextOverflowModes.Ellipsis; text.raycastTarget = false;
-            text.outlineColor = new Color(0, 0, 0, .85f); text.outlineWidth = .15f;
-            return text;
-        }
-        void Start()
-        {
-            rounded = MakeRounded(); root = Rect("Beacon peripheral HUD", rig.centerEyeAnchor, 0, 0, 1, 1); root.localPosition = Vector3.zero;
-            var left = Surface("Oxygen corner", -35, -25, 240, 72, .19f);
-            Backing(left, 240, 72, new Color(.025f, .045f, .06f, .48f));
-            oxygen = Label(left, "O2 --", 0, 10, 214, 38, 32, Mint, true);
-            contact = Label(left, "CONNECTING", 0, -20, 214, 20, 15, Muted);
-            var right = Surface("Dose corner", 35, -25, 240, 72, .19f);
-            Backing(right, 240, 72, new Color(.025f, .045f, .06f, .48f));
-            dose = Label(right, "DOSE --", 0, 10, 214, 38, 32, White, true);
-            doseCaption = Label(right, "BUDGET USED", 0, -20, 214, 20, 15, Muted);
+            var sky=Surface("Open sky",-24,-6,210,102,.29f);
+            BeaconUi.Backing(sky,210,102,new Color(.025f,.04f,.055f,.40f));
+            skyCaption=Text(sky,"OPEN SKY",0,31,190,24,19,Muted);
+            openSky=Text(sky,"--%",0,-11,190,65,46,Mint);
+            sciencePanel=Surface("Science stop",24,-6,280,102,.36f);
+            BeaconUi.Backing(sciencePanel,280,102,new Color(.025f,.04f,.055f,.48f));
+            scienceCaption=Text(sciencePanel,"SCIENCE STOP",0,29,258,25,18,Muted);
+            science=Text(sciencePanel,"",0,-10,258,55,28,White);
 
-            var tape = Surface("Top compass", 0, 27, CompassWidth, 72, .66f);
-            Backing(tape, CompassWidth, 72, new Color(.025f, .045f, .06f, .30f));
-            compass = Rect("Compass ticks", tape, 0, 0, CompassWidth, 72).gameObject.AddComponent<CompassGraphic>();
-            compass.HalfSpan = CompassHalfSpan; compass.raycastTarget = false;
-            string[] cardinal = { "N", "NE", "E", "SE", "S", "SW", "W", "NW" };
-            for (int i = 0; i < bearings.Length; i++)
+            var tape=Surface("Lowered compass",0,16,CompassWidth,88,.84f);
+            BeaconUi.Backing(tape,CompassWidth,88,new Color(.025f,.04f,.055f,.32f));
+            compass=BeaconUi.Rect("Compass ticks",tape,0,0,CompassWidth,72).gameObject.AddComponent<CompassGraphic>();
+            compass.HalfSpan=CompassHalfSpan; compass.raycastTarget=false;
+            string[] cardinal={"N","NE","E","SE","S","SW","W","NW"};
+            for(int i=0;i<bearings.Length;i++)
             {
-                bool major = i % 3 == 0;
-                bearings[i] = Label(tape, major ? cardinal[i / 3] : (i * 15).ToString(), 0, 12, 54, 27, major ? 22 : 16, major ? White : Muted, major);
-                bearings[i].alignment = TextAlignmentOptions.Center;
+                bool major=i%3==0;
+                bearings[i]=Text(tape,major ? cardinal[i/3] : (i*15).ToString(),0,13,65,40,major ? 32 : 26,major ? White : Muted);
             }
-            // The sole navigation marker lives on the compass. It turns sideways
-            // at the tape edge when the waypoint is outside the visible bearings.
-            waypoint = Rect("Waypoint arrow", tape, 0, -22, 16, 16);
-            waypointGraphic = waypoint.gameObject.AddComponent<ArrowGraphic>(); waypointGraphic.color = Blue; waypointGraphic.raycastTarget = false;
+            waypoint=BeaconUi.Rect("Single waypoint arrow",tape,0,-27,23,23);
+            waypointGraphic=waypoint.gameObject.AddComponent<ArrowGraphic>(); waypointGraphic.raycastTarget=false;
+            viewMode=Text(tape,"AR · X: VR",0,58,250,23,18,Muted);
 
-            var alert = Surface("Corner alert", 34, 25, 280, 80, .25f);
-            alertBacking = Backing(alert, 280, 80, new Color(.22f, .04f, .05f, .78f));
-            alertTitle = Label(alert, "", 0, 15, 254, 30, 24, Red, true);
-            alertDetail = Label(alert, "", 0, -18, 254, 25, 17, White);
-            alertGroup = alert.gameObject.AddComponent<CanvasGroup>(); alert.gameObject.SetActive(false);
-            sound = gameObject.AddComponent<AudioSource>(); sound.spatialBlend = 0; sound.volume = .15f; sound.clip = Chime();
-            relay.Changed += Refresh; Refresh(); UpdateCompass(0);
+            var alertPanel=Surface("Emergency status",0,9,780,54,.90f);
+            alertBacking=BeaconUi.Backing(alertPanel,780,54,new Color(.24f,.04f,.035f,.8f));
+            alert=Text(alertPanel,"",0,0,750,50,34,White);
+            alertGroup=alertPanel.gameObject.AddComponent<CanvasGroup>();
+            var frame=Surface("Peripheral alert border",0,0,1000,650,1.72f);
+            border=BeaconUi.Rect("Border",frame,0,0,1000,650).gameObject.AddComponent<HudBorderGraphic>(); border.raycastTarget=false;
+            decisionPanel=Surface("Shelter choice reason",0,-22.3f,1100,42,1.15f);
+            decision=Text(decisionPanel,"",0,0,1090,42,24,White);
+            var source=Surface("Data credit",0,-26,1100,28,1.12f);
+            credit=Text(source,"",0,0,1100,28,18,Muted);
+            sound=gameObject.AddComponent<AudioSource>(); sound.spatialBlend=0; sound.volume=.15f; sound.clip=Chime();
+            relay.Changed+=Refresh; Refresh(); Tick();
         }
-        void OnDestroy() { if (relay != null) relay.Changed -= Refresh; }
-        static AudioClip Chime()
+        public void Refresh()
         {
-            const int rate = 24000; var clip = AudioClip.Create("Beacon alert", rate / 3, 1, rate, false); var samples = new float[rate / 3];
-            for (int i = 0; i < samples.Length; i++) { float t = (float)i / rate; samples[i] = Mathf.Sin(2 * Mathf.PI * (t < .16f ? 660 : 880) * t) * Mathf.Sin(Mathf.PI * i / samples.Length) * .5f; }
-            clip.SetData(samples, 0); return clip;
-        }
-        void Refresh()
-        {
-            var s = relay.State; var sel = relay.Selection; bool available = relay.Connected && sel != null;
-            oxygen.text = s == null ? "O2 --" : $"<size=60%>O2</size> {s.oxygenFraction * 100:0}<size=65%>%</size>";
-            dose.text = s == null ? "DOSE --" : $"<size=55%>DOSE</size> {s.doseFraction * 100:0.0}<size=65%>%</size>";
-            oxygen.color = available ? Mint : Muted; dose.color = available ? White : Muted;
-            contact.text = s == null ? "CONNECTING" : !available ? "OFFLINE / LAST DATA" : s.baseLink ? "BASE LINK OK" : "BASE LINK LOST";
-            contact.color = available && s.baseLink ? Muted : Amber;
-            doseCaption.text = s != null && !available ? "LAST DATA" : "BUDGET USED";
-            waypointGraphic.color = s?.Emergency == true ? Red : sel?.Reroute == true ? Amber : Blue;
-            waypoint.gameObject.SetActive(available && sel.Next != null);
-            string key = "", title = "", detail = ""; bool emergency = s?.Emergency == true;
-            if (emergency)
+            if(root==null) return;
+            var s=relay.State; var sel=relay.Selection; bool live=relay.Connected && sel!=null;
+            var p=sel?.Point;
+            openSky.text=s==null ? "--%" : $"{s.openSky*100:0.0}<size=65%>%</size>";
+            openSky.color=live ? Mint : Muted; skyCaption.text=live ? "OPEN SKY" : "LAST DATA";
+            readings[0].text=!live ? "--" : p.isShelter ? "IN SHELTER" : $"{s.minutesToShelter:0.0} min";
+            readings[0].fontSize=live && p.isShelter ? 28 : 36;
+            readings[1].text=s==null ? "--" : s.baseLink ? "LINK OK" : "LINK LOST";
+            readings[2].text=s==null ? "--" : s.sunlit ? "SUNLIT" : "SHADE";
+            readings[3].text=s==null ? "--" : $"{s.oxygenFraction*100:0}%";
+            readings[4].text=s==null ? "--" : $"{s.doseFraction*100:0.0}%";
+            for(int i=0;i<readings.Length;i++) readings[i].color=live ? White : Muted;
+            if(live) { readings[1].color=s.baseLink ? Mint : Amber; readings[3].color=Mint; }
+            bool showScience=live && p.isScienceStop;
+            sciencePanel.gameObject.SetActive(showScience);
+            if(showScience) { scienceCaption.text="SCIENCE STOP"; science.text=p.Name; }
+            waypoint.gameObject.SetActive(live && sel.Next!=null);
+            waypointGraphic.color=s?.Emergency==true ? Red : sel?.Reroute==true ? Amber : new Color(.45f,.8f,1);
+            string key="",title="";
+            bool emergency=s?.Emergency==true;
+            if(!live && s!=null) { key="offline"; title="DATA OFFLINE · CHECK USB"; }
+            else if(emergency)
             {
-                bool sheltered = available && sel.Point.isShelter;
-                key = $"emergency:{s.panic}:{sheltered}:{available}"; title = s.panic ? "EMERGENCY" : "STORM ALERT";
-                detail = !available ? "DATA OFFLINE" : sheltered ? "IN SHELTER / HOLD" : "SEEK SHELTER";
+                key="emergency:"+s.panic+":"+p.isShelter;
+                title=p.isShelter ? "IN SHELTER · HOLD POSITION" : s.panic ? "EMERGENCY · SEEK SHELTER" : "SOLAR STORM, TAKE COVER";
             }
-            else if (s != null && !available) { key = "offline"; title = "DATA OFFLINE"; detail = "CHECK USB"; }
-            else if (s?.mode == "warning") { key = "warning"; title = !s.baseLink ? "BASE LINK LOST" : "SHELTER WARNING"; detail = "CHECK WATCH"; }
-            if (key != alertKey) { pulseUntil = emergency ? Time.unscaledTime + 3 : 0; if (emergency) sound.Play(); alertKey = key; }
-            alertGroup.gameObject.SetActive(key != ""); alertTitle.text = title; alertDetail.text = detail;
-            alertTitle.color = emergency ? Red : Amber;
-            alertBacking.color = emergency ? new Color(.22f, .04f, .05f, .78f) : new Color(.15f, .12f, .025f, .72f);
+            else if(s?.mode=="warning") { key="warning"; title=MissionPresentation.Warning(s); }
+            if(key!=alertKey) { pulseUntil=emergency ? Time.unscaledTime+3 : 0; if(emergency) sound.Play(); alertKey=key; }
+            alertGroup.gameObject.SetActive(key!=""); alert.text=title;
+            alertBacking.color=emergency ? new Color(.26f,.035f,.025f,.8f) : new Color(.16f,.11f,.025f,.8f);
+            border.gameObject.SetActive(live && s.mode!="nominal"); border.color=emergency ? new Color(1,.18f,.10f,.58f) : new Color(1,.65f,.15f,.35f);
+            decision.text=live ? MissionPresentation.Decision(s,relay.Document) : "";
+            decisionPanel.gameObject.SetActive(!string.IsNullOrEmpty(decision.text));
+            credit.text=MissionPresentation.Credit(relay.Site);
         }
-        void UpdateCompass(float heading)
+        public void Tick()
         {
-            compass.Heading = heading; compass.SetVerticesDirty();
-            for (int i = 0; i < bearings.Length; i++)
+            if(root==null || missionView==null) return;
+            float heading=missionView.Heading;
+            compass.Heading=heading; compass.SetVerticesDirty();
+            for(int i=0;i<bearings.Length;i++)
             {
-                float relative = (float)Navigation.Relative(i * 15, heading);
-                bool visible = Mathf.Abs(relative) < CompassHalfSpan - 5;
+                float relative=(float)Navigation.Relative(i*15,heading); bool visible=Mathf.Abs(relative)<CompassHalfSpan-6;
                 bearings[i].gameObject.SetActive(visible);
-                if (visible) bearings[i].rectTransform.anchoredPosition = new Vector2(relative / CompassHalfSpan * CompassWidth * .5f, 12);
+                if(visible) bearings[i].rectTransform.anchoredPosition=new Vector2(relative/CompassHalfSpan*CompassWidth*.5f,13);
             }
-            var sel = relay.Selection;
-            if (relay.Connected && sel?.Next != null)
+            if(relay.Connected && relay.Selection?.Next!=null)
             {
-                float relative = (float)Navigation.Relative(Navigation.Bearing(sel.Point.pos, sel.Next.pos), heading);
-                waypoint.anchoredPosition = new Vector2(Mathf.Clamp(relative / CompassHalfSpan, -.96f, .96f) * CompassWidth * .5f, -22);
-                waypoint.localEulerAngles = new Vector3(0, 0, Mathf.Abs(relative) > CompassHalfSpan ? -Mathf.Sign(relative) * 90 : 0);
+                float relative=(float)Navigation.Relative(relay.State.headingDeg,heading);
+                waypoint.anchoredPosition=new Vector2(Mathf.Clamp(relative/CompassHalfSpan,-.96f,.96f)*CompassWidth*.5f,-27);
+                waypoint.localEulerAngles=new Vector3(0,0,Mathf.Abs(relative)>CompassHalfSpan ? -Mathf.Sign(relative)*90 : 0);
             }
+            viewMode.text=missionView.Immersive ? "VR · X: AR" : "AR · X: VR";
+            if(alertGroup.gameObject.activeSelf) alertGroup.alpha=Time.unscaledTime<pulseUntil ? .88f+.12f*Mathf.Sin(Time.unscaledTime*5) : 1;
         }
         void LateUpdate()
         {
-            if (root == null) return;
-            var forward = rig.centerEyeAnchor.forward;
-            if (!aligned && Time.timeSinceLevelLoad > 1 && OVRPlugin.GetNodeOrientationTracked(OVRPlugin.Node.EyeCenter))
-            { north = Mathf.Atan2(forward.x, forward.z) * Mathf.Rad2Deg; aligned = true; }
-            float heading = (float)Navigation.Wrap(Mathf.Atan2(forward.x, forward.z) * Mathf.Rad2Deg - north);
-            if (Time.unscaledTime >= nextCompassUpdate) { UpdateCompass(heading); nextCompassUpdate = Time.unscaledTime + 1f / 45; }
-            if (alertGroup.gameObject.activeSelf) alertGroup.alpha = Time.unscaledTime < pulseUntil ? .82f + .18f * Mathf.Sin(Time.unscaledTime * 5) : 1;
-            if (OVRInput.Get(OVRInput.Button.Two)) { requestHeld += Time.unscaledDeltaTime; if (requestHeld >= 1 && !requestSent) { relay.RequestShelter(); requestSent = true; } }
-            else { requestHeld = 0; requestSent = false; }
+            Tick();
+            if(OVRInput.Get(OVRInput.Button.Two,OVRInput.Controller.RTouch))
+            { requestHeld+=Time.unscaledDeltaTime; if(requestHeld>=1 && !requestSent) { relay.RequestShelter(); requestSent=true; } }
+            else { requestHeld=0; requestSent=false; }
+        }
+        void OnDestroy() { if(relay!=null) relay.Changed-=Refresh; }
+        static AudioClip Chime()
+        {
+            const int rate=24000; var clip=AudioClip.Create("Beacon alert",rate/3,1,rate,false); var samples=new float[rate/3];
+            for(int i=0;i<samples.Length;i++) { float t=(float)i/rate; samples[i]=Mathf.Sin(2*Mathf.PI*(t<.16f ? 660 : 880)*t)*Mathf.Sin(Mathf.PI*i/samples.Length)*.5f; }
+            clip.SetData(samples,0); return clip;
         }
     }
 }

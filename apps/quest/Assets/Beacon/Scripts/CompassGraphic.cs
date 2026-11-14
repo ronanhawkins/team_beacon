@@ -3,6 +3,7 @@ using UnityEngine.UI;
 
 namespace Beacon
 {
+    [RequireComponent(typeof(CanvasRenderer))]
     public sealed class CompassGraphic : MaskableGraphic
     {
         public float Heading, HalfSpan = 70;
@@ -30,6 +31,7 @@ namespace Beacon
             Line(vh, new Vector2(0, 29), new Vector2(0, 34), 2, Color.white);
         }
     }
+    [RequireComponent(typeof(CanvasRenderer))]
     public sealed class ArrowGraphic : MaskableGraphic
     {
         protected override void OnPopulateMesh(VertexHelper vh)
@@ -38,6 +40,23 @@ namespace Beacon
             foreach (var p in new[] { new Vector2(0, .5f), new Vector2(-.36f, -.35f), new Vector2(0, -.18f), new Vector2(.36f, -.35f) })
                 vh.AddVert(r.center + new Vector2(p.x * r.width, p.y * r.height), color, Vector2.zero);
             vh.AddTriangle(0, 1, 2); vh.AddTriangle(0, 2, 3);
+        }
+    }
+    [RequireComponent(typeof(CanvasRenderer))]
+    public sealed class HudBorderGraphic : MaskableGraphic
+    {
+        protected override void OnPopulateMesh(VertexHelper vh)
+        {
+            vh.Clear(); var r=rectTransform.rect; const float t=2;
+            void Quad(float x0,float y0,float x1,float y1)
+            {
+                int i=vh.currentVertCount;
+                vh.AddVert(new Vector3(x0,y0),color,Vector2.zero); vh.AddVert(new Vector3(x0,y1),color,Vector2.zero);
+                vh.AddVert(new Vector3(x1,y1),color,Vector2.zero); vh.AddVert(new Vector3(x1,y0),color,Vector2.zero);
+                vh.AddTriangle(i,i+1,i+2); vh.AddTriangle(i,i+2,i+3);
+            }
+            Quad(r.xMin,r.yMin,r.xMax,r.yMin+t); Quad(r.xMin,r.yMax-t,r.xMax,r.yMax);
+            Quad(r.xMin,r.yMin,r.xMin+t,r.yMax); Quad(r.xMax-t,r.yMin,r.xMax,r.yMax);
         }
     }
 }
