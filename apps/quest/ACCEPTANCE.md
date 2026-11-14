@@ -2,7 +2,15 @@
 
 The supplied screenshots are the functional checklist. The user's later native Unity/USB requirement replaces their original browser/HTTPS/Three.js delivery instructions. The current export is the authority for numbers and shelter ids.
 
-**Current target: 0.20 Jezero.** The wearer explicitly switched from Murray Buttes to Jezero. Historical Gale reference values below remain evidence for earlier builds, not the current Jezero mission. The wearer resumed live testing after the earlier deferral.
+**Current target: 0.21 Jezero.** The wearer explicitly switched from Murray Buttes to Jezero. Historical Gale reference values below remain evidence for earlier builds, not the current Jezero mission. The wearer resumed live testing after the earlier deferral.
+
+## Version 0.21 bottom-centre arrival card
+
+The arrival card moves from the upper-right area to **bottom centre, 24 degrees below forward gaze**, in both AR and VR. It now expires five seconds after arrival, and staying in the zone does not restart it. Photo selection, arrival radius and reset behaviour remain unchanged.
+
+**10 focused checks passed**, including visibility immediately before five seconds, hiding at exactly five seconds, no replay while remaining in the zone, and centred placement. AR and VR editor previews were visually inspected in `.local/arrival21-previews/`. Existing base, storm, movement and route suites were skipped. Build/preview logs use `.local/unity-arrival21-*`.
+
+The Android build succeeded and **0.21.0 / code 21** installed over USB. The Quest was asleep at installation, so the app was not opened and no live mirror or wearer check is claimed for this revision.
 
 ## Version 0.20 base habitat and real arrival photographs
 

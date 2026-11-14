@@ -73,7 +73,7 @@ namespace Beacon
             {
                 var point=selection.Points[arrived];
                 if(!shown.Contains(point.id) && SetPhoto(point))
-                {shown.Add(point.id);WaypointId=point.id;until=now+12;Debug.Log("BEACON_ARRIVAL_PHOTO: "+point.id+" / "+PhotoResource);}
+                {shown.Add(point.id);WaypointId=point.id;until=now+5;Debug.Log("BEACON_ARRIVAL_PHOTO: "+point.id+" / "+PhotoResource);}
             }
             bool show=now<until;root.gameObject.SetActive(show);
             if(show) group.alpha=Mathf.Clamp01((until-now)/.4f);

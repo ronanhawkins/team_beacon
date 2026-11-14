@@ -62,7 +62,7 @@ namespace Beacon
             var sky=Surface("Open sky",-26,2,250,96,.32f);
             skyCaption=Text(sky,"OPEN SKY",0,29,230,24,19,Muted);
             openSky=Text(sky,"--%",0,-11,230,65,46,Mint);
-            ArrivalPhoto=new WaypointPhotoCard(Surface("Arrival photo",28,13,300,252,.34f),font);
+            ArrivalPhoto=new WaypointPhotoCard(Surface("Arrival photo",0,-24,300,252,.34f),font);
             relay.SimulationReset+=ResetArrivalPhoto;
 
             var tape=Surface("Lowered compass",0,16,CompassWidth,88,.84f);
