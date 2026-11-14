@@ -19,8 +19,8 @@ namespace Beacon
         readonly Image[] statBackings=new Image[6];
         static readonly string[] Captions={"SHELTER","BASE","SUNLIGHT","OXYGEN","DOSE USED"};
         static readonly string[] LastCaptions={"SHELTER","LAST BASE","LAST SUN","LAST O2","LAST DOSE"};
-        TMP_Text openSky,skyCaption,science,scienceCaption,alert,decision,credit,viewMode,nextDistance;
-        RectTransform sciencePanel,decisionPanel;
+        TMP_Text openSky,skyCaption,science,scienceCaption,alert,viewMode,nextDistance;
+        RectTransform sciencePanel;
         RectTransform feedbackPanel,holdBar;
         TMP_Text feedback;
         CompassGraphic compass;
@@ -93,10 +93,6 @@ namespace Beacon
             alertGroup=alertPanel.gameObject.AddComponent<CanvasGroup>();
             var frame=Surface("Peripheral alert border",0,0,1000,650,1.72f);
             border=BeaconUi.Rect("Border",frame,0,0,1000,650).gameObject.AddComponent<HudBorderGraphic>(); border.raycastTarget=false;
-            decisionPanel=Surface("Shelter choice reason",0,-22.3f,1100,42,1.15f);
-            decision=Text(decisionPanel,"",0,0,1090,42,24,White);
-            var source=Surface("Data credit",0,-26,1100,28,1.12f);
-            credit=Text(source,"",0,0,1100,28,18,Muted);
             feedbackPanel=Surface("Brief action feedback",-24,-24,320,84,.38f);
             BeaconUi.Backing(feedbackPanel,320,84,new Color(.025f,.04f,.055f,.55f));
             feedback=Text(feedbackPanel,"",0,3,300,68,23,White);
@@ -132,9 +128,6 @@ namespace Beacon
             alertGroup.gameObject.SetActive(title!=""); alert.text=title;
             alertBacking.color=emergency ? new Color(.26f,.035f,.025f,.8f) : new Color(.16f,.11f,.025f,.8f);
             border.gameObject.SetActive(MissionPresentation.AlertBorder(s,live)); border.color=emergency ? new Color(1,.18f,.10f,.58f) : new Color(1,.65f,.15f,.35f);
-            decision.text=live ? MissionPresentation.Decision(s,relay.Document) : "";
-            decisionPanel.gameObject.SetActive(!string.IsNullOrEmpty(decision.text));
-            credit.text=MissionPresentation.Credit(relay.Site);
             if(requestPending && live && s.route=="reroute") { requestPending=false; ShelterFeedback("FOLLOW ARROW","ROUTE READY"); Pulse(.12f); }
         }
         public void Tick()
@@ -172,7 +165,6 @@ namespace Beacon
                 if(relay.State.Emergency) alert.text=MissionPresentation.Alert(relay.State,true,atShelter);
             }
             viewMode.text=missionView.Immersive ? "VR · X: AR" : "AR · X: VR";
-            credit.text=missionView.Immersive ? "HiRISE / USGS terrain · Generated materials + illustrative stones" : MissionPresentation.Credit(relay.Site);
             if(alertGroup.gameObject.activeSelf) alertGroup.alpha=Time.unscaledTime<pulseUntil ? .88f+.12f*Mathf.Sin(Time.unscaledTime*5) : 1;
             if(requestPending && !relay.Connected) {requestPending=false;ShelterFeedback("CHECK USB","LAPTOP OFFLINE");}
             if(requestPending && Time.unscaledTime>=requestDeadline) { requestPending=false; ShelterFeedback("HOLD B TO RETRY","NO REPLY"); }

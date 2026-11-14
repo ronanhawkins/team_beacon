@@ -2,7 +2,13 @@
 
 The supplied screenshots are the functional checklist. The user's later native Unity/USB requirement replaces their original browser/HTTPS/Three.js delivery instructions. The current export is the authority for numbers and shelter ids.
 
-**Current target: 0.14 Jezero.** The wearer explicitly switched from Murray Buttes to Jezero. Historical Gale reference values below remain evidence for earlier builds, not the current Jezero mission. The wearer resumed live testing after the earlier deferral.
+**Current target: 0.15 Jezero.** The wearer explicitly switched from Murray Buttes to Jezero. Historical Gale reference values below remain evidence for earlier builds, not the current Jezero mission. The wearer resumed live testing after the earlier deferral.
+
+## Version 0.15 clear lower view
+
+The wearer requested removal of the bottom text. The bottom-centre source-credit line and shelter-choice explanation are removed in AR and VR. This supersedes the earlier screenshot requirement for a headset credit and decision line. The bundled attribution notice and source documents remain available; the side shelter stat continues to show current minutes and request feedback.
+
+Existing HUD visual and shelter-input checks passed; the storm preview was visually inspected with the lower text absent. The Android build succeeded and the device independently reports **0.15.0 / code 15**. The launcher confirmed Beacon running with its live mission connection. The bundled notice was verified and the same wearer-confirmed laptop mirror was restarted. Terrain and planner code were not changed by this update.
 
 ## Version 0.14 AR stats and laptop playback
 
@@ -13,6 +19,8 @@ During the live 0.13 startup, Beacon opened and connected to Jezero over USB. Sa
 The device package manager confirms **0.14.0 / code 14** is installed; the APK's updated notice was verified. Reopening was blocked by a Quest system dialog (`SystemUXController: Launch is blocked ... a Reprojected OS dialog is currently showing`), then the headset slept. The launcher now submits its request without the unbounded Android `-W` wait and retains its bounded process/relay verification, with an explicit prompt-clearing instruction on failure. No success is claimed from a launch request alone. Earlier 0.13 relay logs recorded physical VR arrival events through main point 27; these establish route progression but not final shelter arrival.
 
 After the prompt cleared, the revised launcher confirmed the **0.14 native process and live Jezero connection**. Device logs then showed AR-to-VR switching, grounded continuous movement, sprint up to **4.50 m/s** and guarded route progression from main 27 through 31. Steady sampled windows reported **72.0 fps / p95 13.9 ms**; one mode-switch window reported **67.3 fps**. These are Unity app timings. The restarted single-eye player is responsive with the expected window title and an advancing playback clock. Wearer confirmation of the image framing, AR text readability and physical shelter request remains pending. Local diagnostics: `.local/quest14-live-check.log`, `.local/quest14-live-mirror.log` and `.local/quest-client-view-error.log`; no new video recording.
+
+The wearer subsequently confirmed **“Yes—one upright live view”** for the corrected laptop mirror. This establishes the single-eye picture and orientation; the AR readability and shelter-request checks remain separate.
 
 ## Version 0.13 Jezero switch
 
@@ -37,7 +45,7 @@ Current Jezero reference: 44 main points; base has **92.8% open sky**. A storm a
 | Route and decision | Exact `route`, `waypointIndex`, `rerouteFrom`; decision reason from `rerouteInfo`. No locally chosen shelter or independently running countdown. |
 | Science stop and next waypoint | Named science card; one waypoint arrow on the compass, preserving the user's compass-only navigation preference. |
 | Offline operation and reconnect | Local relay and cached real data over USB; existing retry loop and explicit reroute origin. Relay reconnect regression tests pass. No headset internet needed. |
-| Sources | Small credit from `data/site.json`: HiRISE/USGS, JPL Horizons and 15 Nov 2026 00:00 UT for Jezero. |
+| Sources | HiRISE/USGS and the Jezero JPL Horizons scenario at 15 Nov 2026 00:00 UT remain in site metadata and the APK notice. The HUD credit was removed at the wearer's request in 0.15. |
 | Visual QA | Current Unity previews cover Jezero mission states, shelter feedback and AR/VR scenery. Historical Gale previews and findings are documented below. |
 | Laptop/projector | USB mirror previously confirmed by wearer. Physical HDMI projector rehearsal still needs the actual projector. |
 | Full recording and frame rate | Completed on 0.5: 31 main points, all 13 S03 diversion points, arrival and reset. USB recording 85.54 s; Unity reported mean 72.0 fps, p95 13.9 ms throughout sampled windows, including storm and recording. These measure app-frame pacing. |
