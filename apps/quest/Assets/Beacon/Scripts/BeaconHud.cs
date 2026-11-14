@@ -28,11 +28,14 @@ namespace Beacon
         CanvasGroup alertGroup;
         Image alertBacking;
         AudioSource sound;
+        AudioClip panicChime;
         float pulseUntil,feedbackUntil,shelterNoticeUntil;
         string shelterNoticeCaption,shelterNotice;
         public string ShelterNotice => shelterNotice;
-        bool stormWasPressed,resetWasPressed,buttonsArmed=true,wasEmergency;
-        int commandGeneration;
+        bool stormWasPressed,resetWasPressed,buttonsArmed=true,wasEmergency,wasStorm;
+        bool stopStormArmed,stopStormSent;
+        float stopStormHeld;
+        int commandGeneration,stormAlarmStarts;
         bool wasImmersive,wasBoundary;
 
 
@@ -89,7 +92,8 @@ namespace Beacon
             BeaconUi.Backing(feedbackPanel,320,84,new Color(.025f,.04f,.055f,.55f));
             feedback=Text(feedbackPanel,"",0,3,300,68,23,White);
             feedback.textWrappingMode=TextWrappingModes.Normal;
-            sound=gameObject.AddComponent<AudioSource>(); sound.spatialBlend=0; sound.volume=.15f; sound.clip=Chime();
+            sound=gameObject.AddComponent<AudioSource>(); sound.spatialBlend=0; sound.volume=.15f;
+            sound.playOnAwake=false;sound.loop=false;sound.clip=StormAlarm();panicChime=Chime();
             relay.Changed+=Refresh; missionView.Recentered+=OnRecenter;missionView.ActionFeedback+=OnFeedback; Refresh(); Tick();
         }
         public void Refresh()
@@ -115,7 +119,16 @@ namespace Beacon
             waypointGraphic.color=s?.Emergency==true ? Red : sel?.Reroute==true ? Amber : new Color(.45f,.8f,1);
             bool emergency=s?.Emergency==true;
             string title=MissionPresentation.Alert(s,live,p?.isShelter==true);
-            if(emergency && !wasEmergency) { pulseUntil=Time.unscaledTime+3; sound.Play(); }
+            if(emergency && !wasEmergency) pulseUntil=Time.unscaledTime+3;
+            if(live)
+            {
+                if(s.storm && !wasStorm)
+                {sound.Play();stormAlarmStarts++;Debug.Log("BEACON_STORM_ALARM: started 5 s");}
+                else if(!s.storm && wasStorm)
+                {sound.Stop();Debug.Log("BEACON_STORM_ALARM: stopped");}
+                else if(emergency && !wasEmergency && !s.storm) sound.PlayOneShot(panicChime);
+                wasStorm=s.storm;
+            }
             wasEmergency=emergency;
             alertGroup.gameObject.SetActive(title!=""); alert.text=title;
             alertBacking.color=emergency ? new Color(.26f,.035f,.025f,.8f) : new Color(.16f,.11f,.025f,.8f);
@@ -200,21 +213,26 @@ namespace Beacon
             yield return new WaitForSecondsRealtime(seconds);
             OVRInput.SetControllerVibration(0,0,OVRInput.Controller.RTouch);
         }
-        async Task RunDemoCommand(bool reset)
+        async Task RunDemoCommand(bool reset,bool stopStorm=false)
         {
             if(!relay.Connected) { ShelterFeedback("CHECK USB","LAPTOP OFFLINE"); return; }
             if(relay.SimulationCommandPending && !reset) { ShelterFeedback("SIMULATION","WAITING…"); return; }
             int generation=++commandGeneration;
             bool walking=missionView.Immersive && missionView.vrScenery?.Active==true;
-            ShelterFeedback(reset ? "A · RESET" : "B · STORM",reset ? "RESETTING…" : "STARTING…",6);Pulse(.08f);
+            ShelterFeedback(reset ? "A · RESET" : "B · STORM",reset ? "RESETTING…" : stopStorm ? "STOPPING…" : "STARTING…",6);Pulse(.08f);
             int? from=walking ? WalkNavigation.ClosestMain(relay.Document,missionView.vrScenery.Position):(int?)null;
-            bool confirmed=await (reset ? relay.ResetSimulation() : relay.TriggerStorm(from));
+            bool confirmed=await (reset ? relay.ResetSimulation() : stopStorm ? relay.StopStorm() : relay.TriggerStorm(from));
             if(this==null || generation!=commandGeneration) return;
             if(!confirmed) { ShelterFeedback(relay.Connected ? (reset ? "PRESS A TO RETRY" : "PRESS B TO RETRY") : "CHECK USB",relay.Connected ? "REQUEST FAILED" : "LAPTOP OFFLINE");return; }
             if(reset)
             {
                 sound.Stop();pulseUntil=0;feedbackUntil=0;missionView.atmosphere?.SetStormStrength(0);
                 ShelterFeedback("SIMULATION","RESET",3);
+            }
+            else if(stopStorm)
+            {
+                sound.Stop();missionView.atmosphere?.SetStormStrength(0);
+                ShelterFeedback(relay.State.Emergency ? "STAY ALERT" : "RESUME MISSION","STORM ENDED",4);
             }
             else
             {
@@ -223,24 +241,40 @@ namespace Beacon
             }
             Pulse(.12f);
         }
-        public Task ProcessDemoButtons(bool stormPressed,bool resetPressed)
+        public Task ProcessDemoButtons(bool stormPressed,bool resetPressed,float deltaTime=0)
         {
             bool stormDown=stormPressed && !stormWasPressed,resetDown=resetPressed && !resetWasPressed;
             stormWasPressed=stormPressed;resetWasPressed=resetPressed;
             if(!buttonsArmed) {if(!stormPressed && !resetPressed) buttonsArmed=true;return Task.CompletedTask;}
-            // A wins if both buttons are pressed; held buttons never repeat.
-            if(resetDown) {Debug.Log("BEACON_DEMO_BUTTON: A reset");return RunDemoCommand(true);}
-            if(stormDown && !resetPressed) {Debug.Log("BEACON_DEMO_BUTTON: B storm");return RunDemoCommand(false);}
+            // A wins. Stopping is armed only if a storm existed at B-down, so
+            // keeping the initial start press held cannot cancel that storm.
+            if(resetDown) {stopStormArmed=false;stopStormHeld=0;Debug.Log("BEACON_DEMO_BUTTON: A reset");return RunDemoCommand(true);}
+            if(!stormPressed) {stopStormArmed=false;stopStormSent=false;stopStormHeld=0;return Task.CompletedTask;}
+            if(resetPressed) return Task.CompletedTask;
+            if(stormDown)
+            {
+                stopStormHeld=0;stopStormSent=false;
+                stopStormArmed=relay.Connected && relay.State?.storm==true;
+                if(!stopStormArmed) {Debug.Log("BEACON_DEMO_BUTTON: B storm");return RunDemoCommand(false);}
+                ShelterFeedback("HOLD B · 1 SEC","STOP STORM",2);Pulse(.04f);
+            }
+            if(stopStormArmed && !stopStormSent)
+            {
+                if(!relay.Connected || relay.State?.storm!=true) {stopStormArmed=false;return Task.CompletedTask;}
+                stopStormHeld+=Mathf.Clamp(deltaTime,0,.1f);
+                if(stopStormHeld>=1)
+                {stopStormSent=true;Debug.Log("BEACON_DEMO_BUTTON: B hold stop storm");return RunDemoCommand(false,true);}
+            }
             return Task.CompletedTask;
         }
         void LateUpdate()
         {
-            if(Application.isFocused) _=ProcessDemoButtons(OVRInput.Get(OVRInput.RawButton.B,OVRInput.Controller.RTouch),OVRInput.Get(OVRInput.RawButton.A,OVRInput.Controller.RTouch));
+            if(Application.isFocused) _=ProcessDemoButtons(OVRInput.Get(OVRInput.RawButton.B,OVRInput.Controller.RTouch),OVRInput.Get(OVRInput.RawButton.A,OVRInput.Controller.RTouch),Time.unscaledDeltaTime);
             Tick();
         }
         void OnApplicationFocus(bool focused)
         {
-            if(!focused) {buttonsArmed=false;stormWasPressed=false;resetWasPressed=false;if(Application.isPlaying) OVRInput.SetControllerVibration(0,0,OVRInput.Controller.RTouch);}
+            if(!focused) {buttonsArmed=false;stormWasPressed=false;resetWasPressed=false;stopStormArmed=false;stopStormHeld=0;if(Application.isPlaying) OVRInput.SetControllerVibration(0,0,OVRInput.Controller.RTouch);}
         }
         void OnDestroy()
         {
@@ -249,6 +283,22 @@ namespace Beacon
             if(missionView!=null) missionView.Recentered-=OnRecenter;
             if(missionView!=null) missionView.ActionFeedback-=OnFeedback;
             if(sound!=null && sound.clip!=null) { if(Application.isPlaying) Destroy(sound.clip); else DestroyImmediate(sound.clip); }
+            if(panicChime!=null) {if(Application.isPlaying) Destroy(panicChime);else DestroyImmediate(panicChime);}
+        }
+        static AudioClip StormAlarm()
+        {
+            const int rate=24000;
+            var clip=AudioClip.Create("Solar storm - five seconds",rate*5,1,rate,false);
+            var samples=new float[rate*5];
+            for(int i=0;i<samples.Length;i++)
+            {
+                float t=(float)i/rate,beat=t%.5f;
+                if(beat>=.3f) continue;
+                float fade=Mathf.Clamp01(Mathf.Min(beat,.3f-beat)/.01f);
+                float frequency=((int)(t/.5f)%2==0) ? 880:660;
+                samples[i]=.5f*fade*Mathf.Sin(2*Mathf.PI*frequency*t);
+            }
+            clip.SetData(samples,0);return clip;
         }
         static AudioClip Chime()
         {

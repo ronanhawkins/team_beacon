@@ -23,7 +23,7 @@ Every message is one JSON object with a `type` field.
 
 Native VR can attach `"expected": { "route": "main", "waypointIndex": 3, "rerouteFrom": null }` to an event. The relay ignores the entire event if those three values no longer match. This makes repeated arrival messages harmless and prevents an in-flight main-route step from skipping a newly activated emergency waypoint. Existing clients can omit this field.
 
-Storm-start commands are the exception to the index comparison: they accept an intervening walking acknowledgement on the same route, but still require matching `route` and `rerouteFrom`. This prevents a B press during movement from being discarded solely because a route sample advanced.
+Storm start/stop commands are the exception to the index comparison: they accept an intervening walking acknowledgement on the same route, but still require matching `route` and `rerouteFrom`. This prevents a B press or hold during movement from being discarded solely because a route sample advanced.
 
 `requestReroute` can also carry `"atIndex": 3`. On the main route, this selects the nearest exported main waypoint to the VR wearer's position before requesting its existing engine-provided diversion. The relay accepts only an integer main index with an exported reroute. It does not calculate a new path. The native app sends both `atIndex` and `expected`; other clients retain the existing request format.
 
@@ -33,7 +33,7 @@ Storm-start commands are the exception to the index comparison: they accept an i
 
 An event may include a nonempty string `requestId` of at most 80 characters. For a valid event, the requesting connection receives `{ "type": "state", "state": { ... }, "replyTo": "<requestId>" }`, including when the state did not change. Other clients receive ordinary state broadcasts. Invalid events remain ignored. Native A/B waits for its matching reply before reporting success; A repositions the VR wearer only after the acknowledged reset state arrives. Requests time out after five seconds, and reset supersedes an outstanding storm request.
 
-The local `/session.json` advertises `capabilities.commandReplies: true`; the native launcher uses this to replace an older local relay before starting the headset app.
+The local `/session.json` advertises `capabilities.commandReplies: true` and `capabilities.stormStop: true`; the native launcher uses these to replace an older local relay before starting the headset app. Holding B sends `storm` with `on: false`, using the same acknowledgement protocol. This clears the storm while preserving any independent panic or requested diversion; it does not issue a reset.
 
 | Message | When |
 |---|---|

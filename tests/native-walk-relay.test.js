@@ -28,6 +28,7 @@ for (const site of ['', 'jezero']) {
       const base = `http://127.0.0.1:${port}`;
       const session = await (await fetch(`${base}/session.json`)).json();
       assert.equal(session.capabilities.commandReplies, true, 'launcher can detect command acknowledgement support');
+      assert.equal(session.capabilities.stormStop, true, 'launcher can detect native storm-stop support');
       const doc = await (await fetch(base + session.waypoints)).json();
       const metadata = await (await fetch(base + '/data/site.json')).json();
       assert.ok(metadata.site.includes(site ? 'Jezero' : 'Gale'));
@@ -104,12 +105,24 @@ for (const site of ['', 'jezero']) {
       const alongDiversion = structuredClone(state);
       await event({ type: 'storm', on: true, expected: expected(), requestId: 'b-already-storm' });
       assert.equal(replyTo, 'b-already-storm'); assert.deepEqual(state, alongDiversion, 'B is idempotent and keeps diversion progress');
+      const stopRequest = { type: 'storm', on: false, expected: expected(), requestId: 'b-hold-stop' };
+      await event({ type: 'next', expected: expected() });
+      await event(stopRequest);
+      assert.equal(replyTo, 'b-hold-stop'); assert.equal(state.storm, false);
+      assert.equal(state.route, 'main'); assert.equal(state.waypointIndex, origin, 'storm stop resumes the mission origin rather than resetting to base');
+      await event({ type: 'storm', on: false, expected: expected(), requestId: 'already-stopped' });
+      assert.equal(replyTo, 'already-stopped', 'an unchanged stop still acknowledges the command');
+      await event({ type: 'storm', on: true });
+      await event({ type: 'panic' });
+      await event({ type: 'storm', on: false, expected: expected(), requestId: 'stop-keeps-panic' });
+      assert.equal(state.storm, false); assert.equal(state.panic, true); assert.equal(state.route, 'reroute', 'ending the storm preserves a separate panic diversion');
       const delayedStep = { type: 'next', expected: expected() };
       await event({ type: 'reset', requestId: 'a-after-storm' });
       assert.equal(replyTo, 'a-after-storm'); assert.equal(state.route, 'main'); assert.equal(state.waypointIndex, 0);
       assert.equal(state.storm, false);
       const resetState = structuredClone(state);
       assert.deepEqual(await ignored(delayedStep), resetState, 'late shelter step cannot move the reset mission');
+      assert.deepEqual(await ignored(stopRequest), resetState, 'a stale storm-stop cannot affect a different route');
     } finally {
       ws?.terminate();child.kill();await exited;
     }

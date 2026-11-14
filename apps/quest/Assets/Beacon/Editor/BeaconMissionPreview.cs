@@ -87,6 +87,17 @@ public static class BeaconMissionPreview
         string LastId() => (string)sent[sent.Count-1]["requestId"];
         void Reply(MissionState state,string id) {relay.Preview(state,doc,site);relay.PreviewCommandReply(id);hud.Tick();}
         void Require(bool ok,string why) {if(!ok) throw new Exception("Demo input: "+why);}
+        int AlarmStarts() => (int)typeof(BeaconHud).GetField("stormAlarmStarts",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic).GetValue(hud);
+        var alarm=(AudioSource)typeof(BeaconHud).GetField("sound",System.Reflection.BindingFlags.Instance|System.Reflection.BindingFlags.NonPublic).GetValue(hud);
+        Require(Mathf.Abs(alarm.clip.length-5)<.001f && !alarm.loop,"storm audio lasts exactly five seconds without looping");
+        var audio=new float[alarm.clip.samples];alarm.clip.GetData(audio,0);
+        for(int beat=0;beat<10;beat++)
+        {
+            double tone=0,gap=0;
+            for(int i=beat*12000;i<beat*12000+7200;i++) tone+=audio[i]*audio[i];
+            for(int i=beat*12000+7200;i<(beat+1)*12000;i++) gap+=audio[i]*audio[i];
+            Require(tone>100 && gap<.001,"each alarm beat is audible with a silent gap");
+        }
         void CaptureFeedback(string name)
         {
             hud.Tick();Canvas.ForceUpdateCanvases();camera.transform.SetPositionAndRotation(rig.centerEyeAnchor.position,rig.centerEyeAnchor.rotation);
@@ -97,6 +108,7 @@ public static class BeaconMissionPreview
             {text.ForceMeshUpdate();Require(text.GetPreferredValues(text.text,float.PositiveInfinity,float.PositiveInfinity).x<=text.rectTransform.rect.width+1,"shelter feedback fits without ellipsis: "+text.text);}
         }
         Capture("demo-input-base",0);
+        int alarmCount=AlarmStarts();
         var stormTask=Tap(false);string stormId=LastId();
         Require(sent.Count==1 && (string)sent[0]["type"]=="storm" && (bool)sent[0]["on"],"one B press immediately starts a storm, including at base");
         Require(!stormTask.IsCompleted && relay.SimulationCommandPending,"sending alone never claims success");
@@ -104,6 +116,11 @@ public static class BeaconMissionPreview
         relay.PreviewCommandReply("wrong-id");Require(!stormTask.IsCompleted,"unrelated replies cannot confirm a command");
         Reply(StateAt(0,true,0),stormId);stormTask.GetAwaiter().GetResult();
         Require(hud.ShelterNotice=="STAY COVERED" && relay.State.storm,"a confirmed storm under cover asks the wearer to stay covered");CaptureFeedback("button-b-storm");
+        Require(AlarmStarts()==alarmCount+1,"confirmed storm starts the five-second beep once");
+        for(int i=0;i<20;i++) hud.ProcessDemoButtons(true,false,.1f).GetAwaiter().GetResult();
+        Require(sent.Count==1 && relay.State.storm,"holding the original start press cannot immediately stop its storm");
+        relay.Preview(StateAt(0,true,0),doc,site);relay.PreviewOffline();relay.Preview(StateAt(0,true,0),doc,site);
+        Require(AlarmStarts()==alarmCount+1,"state repeats and reconnecting to the same storm do not restart the beep");
 
         Capture("demo-input-vr",19,vr:true);
         for(int i=0;i<120;i++) {view.vrScenery.Step(Vector2.up,Vector2.zero,1,.05f);Physics.SyncTransforms();}
@@ -113,6 +130,20 @@ public static class BeaconMissionPreview
         Reply(StateAt(0,true,nearest),stormId);stormTask.GetAwaiter().GetResult();
         Require(Navigation.Distance(beforeReset,view.vrScenery.Position)<.01,"storm changes the route without teleporting the wearer");
         Require(hud.ShelterNotice=="TAKE COVER","an exposed wearer gets the storm take-cover warning");CaptureFeedback("button-b-storm-exposed");
+        int stopCount=sent.Count;
+        Release();hud.ProcessDemoButtons(true,false,2).GetAwaiter().GetResult();
+        for(int i=0;i<5;i++) hud.ProcessDemoButtons(true,false,.1f).GetAwaiter().GetResult();
+        Require(sent.Count==stopCount && relay.State.storm,"a stalled frame or short B hold does not end the storm");CaptureFeedback("button-b-hold-hint");
+        Release();var stopTask=System.Threading.Tasks.Task.CompletedTask;
+        for(int i=0;i<11;i++) {var input=hud.ProcessDemoButtons(true,false,.1f);if(!input.IsCompleted) stopTask=input;}
+        Require(sent.Count==stopCount+1 && (string)sent[sent.Count-1]["type"]=="storm" && !(bool)sent[sent.Count-1]["on"] && !stopTask.IsCompleted,"one-second B hold requests a confirmed storm stop exactly once");
+        Reply(StateAt(nearest),LastId());stopTask.GetAwaiter().GetResult();
+        Require(!relay.State.storm && hud.ShelterNotice=="STORM ENDED" && !alarm.isPlaying,"confirmed stop clears the storm and silences its beep");
+        Require(Navigation.Distance(beforeReset,view.vrScenery.Position)<.01,"stopping a storm does not reset or teleport the wearer");CaptureFeedback("button-b-storm-ended");
+        for(int i=0;i<20;i++) hud.ProcessDemoButtons(true,false,.1f).GetAwaiter().GetResult();
+        Require(sent.Count==stopCount+1,"keeping B held after stopping cannot restart or repeat the command");
+        alarmCount=AlarmStarts();stormTask=Tap(false);stormId=LastId();Reply(StateAt(0,true,nearest),stormId);stormTask.GetAwaiter().GetResult();
+        Require(AlarmStarts()==alarmCount+1,"a later fresh storm gets its own five-second beep");
         var resetTask=Tap(true);string resetId=LastId();
         Require((string)sent[sent.Count-1]["type"]=="reset" && !resetTask.IsCompleted,"A requests a confirmed reset");
         int pendingCount=sent.Count;
@@ -150,7 +181,10 @@ public static class BeaconMissionPreview
         view.vrScenery.playerRoot.position+=Vector3.right*6;Physics.SyncTransforms();view.vrScenery.TickBeacon();hud.Tick();
         Require(view.vrScenery.WaypointIndex==-1 && !view.vrScenery.Beacon.Visible && !view.vrScenery.InShelter,"after visiting that shelter, walking away keeps its beacon completed and reports outside cover");
         view.SetImmersive(false);
-        Debug.Log("BEACON_DEMO_INPUT_PASSED: B storm, A reset, no repeat, reset precedence, confirmed VR return, stale reply, offline, send failure, timeout, readable feedback");
+        var panicOnly=StateAt(19);panicOnly.panic=true;panicOnly.mode="storm";relay.Preview(panicOnly,doc,site);
+        alarmCount=AlarmStarts();var solarAndPanic=StateAt(0,true);solarAndPanic.panic=true;relay.Preview(solarAndPanic,doc,site);
+        Require(AlarmStarts()==alarmCount+1,"an existing panic does not mask a new solar-storm beep");
+        Debug.Log("BEACON_DEMO_INPUT_PASSED: five-second beeps, no replay on reconnect, B hold stops once, no stop teleport, fresh-start hold guard, A reset, reset precedence, confirmed VR return, stale reply, offline, send failure, timeout, readable feedback");
         RenderTexture.active=null; camera.targetTexture=null; target.Release(); UnityEngine.Object.DestroyImmediate(target);
         if(ShaderUtil.ShaderHasError(view.skylineShader)) throw new Exception("Skyline shader failed");
         EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);

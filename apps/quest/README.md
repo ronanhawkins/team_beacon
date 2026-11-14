@@ -17,14 +17,16 @@ The laptop relay remains the authority. The app loads `/session.json` and that s
 - Open-sky percentage is prominent on the left. A named science-stop card appears above the right column. The HUD plane remains 1.2 m forward.
 - The ring uses the current waypoint's 72 skyline samples, with faint warm shading above the horizon in AR and N/E/S/W labels. The floating contour line is removed in both AR and VR, and the VR scenery has no artificial blocked-sky fill. There is no flat horizontal baseline or fill over the ground. Sample heights blend as the route advances. North is calibrated once and remains fixed across route changes and head turns; explicit left-stick recentering can recalibrate it.
 - Sun and Earth markers use supplied azimuth, elevation and visibility. Earth includes the relay's delay. Base includes its supplied distance and dims on loss of contact. Shelter includes the supplied walking minutes and pulses during emergencies. Base and shelter destination markers disappear at arrival; the side stat still says “In shelter”. These markers describe the mission view, not furniture.
-- Warning mode shows an amber border and reason. Storm mode shows a red border, “Solar storm, take cover”, chime and pulsing shelter marker. Arrival says “In shelter” and keeps the shelter skyline and active storm warning.
+- Warning mode shows an amber border and reason. Storm mode shows a red border, “Solar storm, take cover”, five seconds of beeps and a pulsing shelter marker. The alarm plays once when a live solar storm starts; repeated updates and reconnecting to the same storm do not replay it. Ending the storm or resetting stops the sound early. Arrival says “In shelter” and keeps the shelter skyline and active storm warning.
 - The bottom-centre source credit and shelter-choice explanation are removed from AR and VR. Source credits and scenario metadata remain in the bundled notice and repository. Current shelter minutes and request feedback remain in the side stat and come from the relay; the headset does not run its own timer or planner.
 - Disconnection labels readings as last-known data, hides navigation and retains any last-known emergency with a red border. Reconnection or arrival does not repeat the alert chime; a new emergency does.
-- One press of right B starts the solar storm and the engine's shelter diversion. Right A resets the mission and VR position to the start. Brief controller pulses and side-card feedback acknowledge commands. A held button does not repeat; A wins simultaneous presses and supersedes an unanswered B. Offline, failed and unanswered commands never claim success. Temporary text disappears automatically and restores the current shelter reading.
+- One press of right B starts the solar storm and the engine's shelter diversion. While a storm is active, hold B for one second to end it; a short press shows the hold hint. Holding the original start press cannot immediately cancel the new storm, and a completed hold never repeats or restarts it. Right A resets the mission and VR position to the start. Brief controller pulses and side-card feedback acknowledge commands. A wins simultaneous presses and supersedes an unanswered B. Offline, failed and unanswered commands never claim success. Temporary text disappears automatically and restores the current shelter reading.
 
 In AR, the presenter uses the hub's Next/Storm/Reset controls; room movement and sticks do not advance the route. In VR, continuous walking follows the real exported coordinates. Reaching a path sample within 2.5 m acknowledges it; a non-stop sample can also advance when the wearer has passed its incoming plane or joined its outgoing leg and is closer to the mission destination than that sample is. Distance alone does not skip an unpassed hairpin. Consecutive passed points advance through existing guarded relay events, preserving route order and emergency-reroute protection. Named stops and shelters still require actual arrival, and duplicate intermediate coordinates cannot stall progress. The compass arrow immediately targets the next unpassed point while relay acknowledgements catch up; the displayed distance and beacon continue to refer to the named destination.
 
 Pressing B starts a storm using the existing engine diversion from the nearest exported main point in VR, or the selected mission point in AR. An active diversion retains its progress. Storms and ordinary route changes do not teleport the wearer. A explicitly resets the simulation: after its correlated relay reply, VR returns to the starting point and clears motion; the current AR/VR mode is retained. Walking acknowledgements pause while a command is pending. A no longer toggles the Mars tint.
+
+Holding B ends only the solar storm. The relay resumes the main mission at the diversion origin unless a separate panic or shelter request still requires that diversion. The wearer's VR position stays unchanged. The storm tint and sound clear when the relay confirms the stop; the side card reports “Storm ended”. A remains the control for a complete reset to base.
 
 Arrival still requires physically reaching the shelter. After reaching the final beacon, walking away no longer resurrects its arrow or beacon. The shelter stat accurately changes to “Outside shelter” with distance when appropriate. Sky, dose and remaining minutes still update at the supplied waypoint samples, rather than being recomputed in the headset. Returning to AR restores the physical tracking frame. A surveyed lecture-hall route and persistent spatial anchors are a separate next step.
 
@@ -32,6 +34,7 @@ Arrival still requires physically reaching the shelter. After reaching the final
 | --- | --- |
 | Right A, press once | Reset mission flags, telemetry and route; return VR to the starting point |
 | Right B, press once | Start the solar storm warning and shelter diversion |
+| Right B, hold one second during a storm | End the storm and silence its alarm without resetting position |
 | Left stick direction | Continuous walking in VR; no action in AR |
 | Right stick left/right | Smooth turning in VR; no action in AR |
 | Hold left grip while moving (or right index trigger) | Sprint in VR, up to 4.5 m/s; release to return to 1.4 m/s walking |
@@ -43,7 +46,7 @@ Version 0.13 uses Jezero's Three Forks and delta front, with the matching export
 
 ## Mars atmosphere
 
-The native AR view starts with a translucent ochre sky, a small Sun and halo, and static red horizon haze. All moving sand and mist particles have been removed. The room remains visible. Right **B** starts the storm; right **A** resets the simulation and clears the storm effect while retaining the ordinary Mars tint.
+The native AR view starts with a translucent ochre sky, a small Sun and halo, and static red horizon haze. All moving sand and mist particles have been removed. The room remains visible. Right **B** starts the storm; **hold B for one second** to end it. Right **A** resets the simulation. Stopping or resetting clears the storm effect while retaining the ordinary Mars tint.
 
 The live solar-storm flag gradually deepens the static red haze and strengthens a quiet wind loop over four seconds. A panic request alone does not change the weather effect. Disconnected mission data lets the effect return to calm while the HUD retains its last-known emergency. The effect uses one sky-dome draw, with no particles or post-processing. It never adds a route line or centre navigation panel.
 
@@ -78,6 +81,8 @@ The 0.14 follow-up supplies presentation timestamps for the raw stream, retains 
 Install the official scrcpy Windows 5.0.1 release under `.local/scrcpy/`. For local cropping, download [FFmpeg 9.0.2 essentials from Gyan](https://www.gyan.dev/ffmpeg/builds/packages/ffmpeg-9.0.2-essentials_build.zip), a provider listed on [FFmpeg's download page](https://ffmpeg.org/download.html), and extract under `.local/ffmpeg/`. The downloaded archive's SHA256 is `60f467265b1e312373dbcd92200c2618a74850f98d3d078e94296bb3fa2047ba`; verify before extracting. Keep binaries out of Git. Optional `-Record <new-file.mp4> -Seconds 90` records the same filtered picture without microphone audio; this new recording path has not yet had a headset rehearsal.
 
 ## Verified demo
+
+Version **0.19.0 / code 19** adds a five-second pulsed solar-storm alarm and a one-second B hold to stop an active storm. It keeps A reset and completed-beacon behaviour. The launcher updates older relays to support storm-stop commands during walking. See [acceptance evidence](ACCEPTANCE.md).
 
 Version **0.18.0 / code 18** maps a single right B press to storm and a single right A press to a confirmed simulation reset, including VR position. It also keeps reached final beacons completed when walking away, fixing the backward arrow reported after arrival. The launcher detects and restarts an older local relay to enable command acknowledgements. See [acceptance evidence](ACCEPTANCE.md).
 

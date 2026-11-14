@@ -169,9 +169,9 @@ function applyEvent(ev) {
   if (ev.expected !== undefined) {
     const expected = ev.expected;
     // An emergency press can overlap a walking acknowledgement on the same
-    // route. It must still start the storm, without rewinding another route.
-    const startingStorm = ev.type === 'storm' && ev.on === true;
-    if (!expected || expected.route !== sim.route || (!startingStorm && expected.waypointIndex !== sim.waypointIndex) ||
+    // route. Storm start/stop must still work, without rewinding another route.
+    const changingStorm = ev.type === 'storm' && typeof ev.on === 'boolean';
+    if (!expected || expected.route !== sim.route || (!changingStorm && expected.waypointIndex !== sim.waypointIndex) ||
         expected.rerouteFrom !== (sim.route === 'reroute' ? sim.rerouteFrom : null)) return false;
   }
   switch (ev.type) {
@@ -319,7 +319,7 @@ function onRequest(req, res) {
   if (urlPath === '/') return send(res, 200, 'text/html; charset=utf-8', INDEX_HTML);
   if (urlPath === '/debug') return serveFile(res, path.join(__dirname, 'debug.html'));
   // Serve the exact in-memory route used by this relay, including WAYPOINTS overrides.
-  if (urlPath === '/session.json') return send(res, 200, 'application/json', JSON.stringify({ version: 1, waypoints: '/mission/waypoints.json', synthetic, capabilities: { commandReplies: true } }));
+  if (urlPath === '/session.json') return send(res, 200, 'application/json', JSON.stringify({ version: 1, waypoints: '/mission/waypoints.json', synthetic, capabilities: { commandReplies: true, stormStop: true } }));
   if (urlPath === '/mission/waypoints.json') return send(res, 200, 'application/json', JSON.stringify(waypoints));
   // The one file outside data/out/ that pages may read.
   if (urlPath === '/data/site.json') return serveFile(res, SITE_FILE);

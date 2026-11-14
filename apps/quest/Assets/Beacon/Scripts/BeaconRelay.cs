@@ -140,6 +140,7 @@ namespace Beacon
             return SendEvent(new JObject {["type"]="next",["expected"]=Expected()});
         }
         public Task<bool> TriggerStorm(int? mainIndex=null) => SimulationCommand("storm",mainIndex);
+        public Task<bool> StopStorm() => SimulationCommand("stopStorm",null);
         public Task<bool> ResetSimulation() => SimulationCommand("reset",null);
         async Task<bool> SimulationCommand(string type,int? mainIndex)
         {
@@ -152,10 +153,10 @@ namespace Beacon
             commandId=Guid.NewGuid().ToString("N");commandType=type;
             commandReply=new TaskCompletionSource<bool>();commandDeadline=Time.unscaledTime+5;
             var reply=commandReply;
-            var message=new JObject {["type"]=type,["requestId"]=commandId};
-            if(type=="storm")
+            var message=new JObject {["type"]=type=="stopStorm" ? "storm":type,["requestId"]=commandId};
+            if(type=="storm" || type=="stopStorm")
             {
-                message["on"]=true;message["expected"]=Expected();
+                message["on"]=type=="storm";message["expected"]=Expected();
                 if(mainIndex.HasValue && State.route=="main") message["atIndex"]=mainIndex.Value;
             }
             bool sent=await SendEvent(message);
@@ -165,7 +166,7 @@ namespace Beacon
         void ConfirmCommand(string id)
         {
             if(commandReply==null || id!=commandId) return;
-            bool confirmed=commandType=="storm" ? State?.storm==true : State?.route=="main" && State.waypointIndex==0 && !State.storm && !State.panic && !State.rerouteRequested;
+            bool confirmed=commandType=="storm" ? State?.storm==true : commandType=="stopStorm" ? State?.storm==false : State?.route=="main" && State.waypointIndex==0 && !State.storm && !State.panic && !State.rerouteRequested;
             CompleteCommand(confirmed);
         }
         void CompleteCommand(bool success)

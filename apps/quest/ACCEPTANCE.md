@@ -2,7 +2,19 @@
 
 The supplied screenshots are the functional checklist. The user's later native Unity/USB requirement replaces their original browser/HTTPS/Three.js delivery instructions. The current export is the authority for numbers and shelter ids.
 
-**Current target: 0.18 Jezero.** The wearer explicitly switched from Murray Buttes to Jezero. Historical Gale reference values below remain evidence for earlier builds, not the current Jezero mission. The wearer resumed live testing after the earlier deferral.
+**Current target: 0.19 Jezero.** The wearer explicitly switched from Murray Buttes to Jezero. Historical Gale reference values below remain evidence for earlier builds, not the current Jezero mission. The wearer resumed live testing after the earlier deferral.
+
+## Version 0.19 storm alarm and hold-to-stop
+
+A live solar-storm onset plays a finite five-second alarm with ten alternating-tone beeps and short gaps. The clip does not loop. Routine updates and reconnecting to the same active storm do not restart it; a new storm does, including when a separate panic already exists. Stopping the storm or resetting silences it immediately. The existing quiet short panic chime remains separate.
+
+Press B to start. Once a storm is active, release and hold B for one second to stop it. The hold is armed only when the storm existed at button-down, so holding the original start press cannot accidentally cancel it. Short holds and a stalled frame do not stop the storm; a completed hold fires once and cannot restart it while kept down. A retains reset priority. The stop waits for a correlated relay reply, clears the storm effect, and preserves VR position. The relay resumes the main mission at the diversion origin unless another emergency/request retains the diversion. Storm-stop commands tolerate a concurrent walking acknowledgement on that same route.
+
+The reported offline state was not present during diagnosis: USB forwarding and the native relay connection were active, and device logs showed live waypoint progress and 72 fps samples. Installation refreshes the USB connection and updates the relay's storm-stop capability. The preceding 0.18 confirmation does not establish alarm audibility.
+
+**21 relay/integration tests** passed, including storm-stop replies, same-route walking races, resumption at the diversion origin, preservation of a separate panic, idempotent stops and stale-route rejection. Native HUD/input checks passed for the exact five-second non-looping clip, ten audible pulse windows and silent gaps, no alarm replay on repeated states/reconnection, fresh storm alarms and panic-to-storm onset. They also cover short/stalled holds, one stop per complete hold, no accidental cancellation from the original start press, no restart while held, no stop teleport, A reset and command failure handling. Hold-hint and storm-ended editor previews were visually inspected; launcher parsing passed.
+
+The Android build succeeded, the copied APK matches the build output, and the embedded notice identifies 0.19. The device independently reports **0.19.0 / code 19**, updated at **23:22:49**. USB forwarding and both relay capabilities were verified. Asked about the five-second beeps and B-hold stop, the wearer replied **“Both work”**. The headset was asleep during the final diagnostics, so the launcher and mirror correctly left it unopened; no fresh device alarm/input log or new frame-rate measurement was captured for 0.19. No new room recording or screenshot was made.
 
 ## Version 0.18 storm/reset controls and completed beacons
 
