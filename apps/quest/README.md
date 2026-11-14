@@ -19,7 +19,7 @@ The laptop relay remains the authority. The app loads `/session.json` and that s
 - The lower explanation comes directly from `rerouteInfo`, including the initial chosen-route time and why base was excluded. Current remaining minutes always come from the relay; the headset does not run its own timer or planner.
 - Data credit uses the site file's JPL Horizons time. Missing decision or metadata fields are not fabricated.
 - Disconnection labels readings as last-known data, hides navigation and retains any last-known emergency with a red border. Reconnection or arrival does not repeat the alert chime; a new emergency does.
-- Holding B shows a temporary progress bar, then the request/result. Already-sheltered and already-rerouted states give confirmation without another request. Feedback disappears automatically to keep the centre clear.
+- Holding physical right B shows progress inside the right-side shelter card, followed by the request/result in that same card. A short tap explains the one-second hold. Brief controller pulses acknowledge the press and completion. Already-sheltered and already-rerouted states give confirmation without another request. Offline, failed and unanswered requests are explicit. Temporary text disappears automatically and restores the current shelter reading.
 
 In AR, the presenter uses the hub's Next/Storm/Reset controls; room movement and sticks do not advance the route. In VR, continuous walking follows the real exported coordinates: coming within 2.5 m of the next waypoint sends a guarded arrival event to the relay. The compass arrow and metres use the wearer's actual position. Holding B requests the existing engine diversion from the nearest exported main point. Route changes do not teleport the wearer. Arrival requires physically reaching the shelter; walking away restores guidance. Sky, dose and remaining minutes still update at the supplied waypoint samples, rather than being recomputed in the headset. Returning to AR restores the physical tracking frame. A surveyed lecture-hall route and persistent spatial anchors are a separate next step.
 
@@ -30,13 +30,11 @@ In AR, the presenter uses the hub's Next/Storm/Reset controls; room movement and
 | Left stick direction | Continuous walking in VR; no action in AR |
 | Right stick left/right | Smooth turning in VR; no action in AR |
 | Hold left grip while moving (or right index trigger) | Sprint in VR, up to 4.5 m/s; release to return to 1.4 m/s walking |
-| Left X | Toggle AR passthrough / Murray Buttes 3D scenery |
+| Left X | Toggle AR passthrough / Jezero 3D scenery |
 | Left Y | Show/hide the ring in AR; explicitly return to the current mission point in VR |
 | Left stick click | Smoothly recenter the mission's forward direction to the current gaze |
 
-Version 0.11 uses a planner-aligned 600 m detail tile from the real 1 m Gale DEM, with matching HiRISE imagery and a coarse 3 km background. It replaces the active Access Mars photo island, which had incomplete photographic coverage and did not share the route's coordinates. Detail levels, collision and the supplied routes are checked together; the worst-case visible budget is 834,976 triangles. See [terrain provenance and limits](Assets/Beacon/Art/MissionTerrain/README.md).
-
-Generated [sand detail](Assets/Beacon/Art/MarsCosmeticDetail.md), [layered rock](Assets/Beacon/Art/MarsLayeredRock.md), decorative stones and scenario-Sun shading make the surface more coherent. These are appearance improvements, not recovered scientific detail. Terrain heights and planner outputs stay unchanged. Original imagery and archived Access Mars files retain their provenance/licences. The VR credit labels generated materials and illustrative stones. This scenery supports Gale; changing the relay to another site returns the app to AR.
+Version 0.13 uses Jezero's Three Forks and delta front, with the matching exported Jezero mission. The route area uses measured 1 m terrain and a matching image; a 7 km surrounding landscape supports approximately 3.5 km roaming radius. The outer terrain is coarser. See [Jezero sources, coordinate frame and quality limits](Assets/Beacon/Art/JezeroTerrain/README.md). Generated sand/rock materials, tint and small stones are cosmetic; they do not change mission calculations. Gale assets remain archived. Changing to a mismatched mission disables VR while preserving AR.
 
 ## Mars atmosphere
 
@@ -44,7 +42,7 @@ The native AR view starts with a translucent ochre sky, a small Sun and halo, an
 
 The live solar-storm flag gradually deepens the static red haze and strengthens a quiet wind loop over four seconds. A panic request alone does not change the weather effect. Disconnected mission data lets the effect return to calm while the HUD retains its last-known emergency. The effect uses one sky-dome draw, with no particles or post-processing. It never adds a route line or centre navigation panel.
 
-The tint, haze and wind are artistic effects. The Sun follows the waypoint's JPL Horizons direction and disappears behind the supplied skyline when `sun.visible` is false; its ring marker remains dimmed. The current source Sun is at azimuth 280.4°, elevation 12°, for the scenario time 14 Nov 2026 19:40 UT. It stays anchored in the calibrated Mars frame; only its supplied visibility changes at different route points. A route turn no longer swings the Sun or Earth around the wearer. Shader stereo handling follows [Unity's single-pass instancing guidance](https://docs.unity.com/en-us/engine/6000.3/manual/xr/graphics/stereo-rendering/single-pass-instancing).
+The tint, haze and wind are artistic effects. The Sun follows the waypoint's JPL Horizons direction and disappears behind the supplied skyline when `sun.visible` is false; its ring marker remains dimmed. The current source Sun is at azimuth 275.8°, elevation 12°, for the Jezero scenario time 15 Nov 2026 00:00 UT. It stays anchored in the calibrated Mars frame; only its supplied visibility changes at different route points. A route turn no longer swings the Sun or Earth around the wearer. Shader stereo handling follows [Unity's single-pass instancing guidance](https://docs.unity.com/en-us/engine/6000.3/manual/xr/graphics/stereo-rendering/single-pass-instancing).
 
 ## Build and install
 
@@ -54,7 +52,7 @@ The tint, haze and wind are artistic effects. The Sun follows the waypoint's JPL
 4. Run **Beacon → Build Quest APK**. The output is `Builds/BeaconAR.apk`, excluded from Git.
 5. Connect Quest USB debugging and run the root `Install Native Quest.cmd`. It starts the laptop relay if needed, installs the app and opens it on Quest.
 
-For later sessions, put on the headset and use **Start Native Quest.cmd**. It restores the USB relay connection and opens the installed app without rebuilding or reinstalling. The launcher checks that the Quest is awake, starts the exact activity in the active profile, and confirms both the app process and native relay connection. An asleep headset gets a clear message instead of a false “launched” result.
+The native launcher defaults to the Jezero relay. If this laptop is still serving Gale, it restarts its own local relay with Jezero so every connected client receives the same mission. For later sessions, put on the headset and use **Start Native Quest.cmd**. It restores the USB relay connection and opens the installed app without rebuilding or reinstalling. The launcher checks that the Quest is awake, starts the exact activity in the active profile, and confirms both the app process and native relay connection. An asleep headset gets a clear message instead of a false “launched” result.
 
 The same setup/build can run with Unity's documented `-batchmode -projectPath ... -executeMethod BeaconBuild.Prepare` / `BeaconBuild.BuildAndroid`. `BeaconVerify.Run` checks the canonical fixtures, navigation, arrival and invalid-state handling.
 
@@ -73,6 +71,10 @@ The 0.10 device-side crop failed the wearer's picture check. Version 0.11 sends 
 Install the official scrcpy Windows 5.0.1 release under `.local/scrcpy/`. For local cropping, download [FFmpeg 9.0.2 essentials from Gyan](https://www.gyan.dev/ffmpeg/builds/packages/ffmpeg-9.0.2-essentials_build.zip), a provider listed on [FFmpeg's download page](https://ffmpeg.org/download.html), and extract under `.local/ffmpeg/`. The downloaded archive's SHA256 is `60f467265b1e312373dbcd92200c2618a74850f98d3d078e94296bb3fa2047ba`; verify before extracting. Keep binaries out of Git. Optional `-Record <new-file.mp4> -Seconds 90` records the same filtered picture without microphone audio; this new recording path has not yet had a headset rehearsal.
 
 ## Verified demo
+
+Version **0.13.0 / code 13** switches the active scenery and native launcher to Jezero. **1,321 mission checks**, **8,803 VR checks**, shelter-button regression checks, rendered previews and **21 Node integration tests** pass. The physics check traverses the Jezero main route and its far-point shelter diversion. The maximum visible scene is **865,108 triangles**, with lower detail at distance. The current build includes the interrupted 0.12 shelter-feedback changes. Headset performance, physical B/haptics and the new laptop mirror remain for the later wearer check. See [acceptance evidence](ACCEPTANCE.md).
+
+Version **0.12.0 / code 12** makes shelter-button feedback visible in the shelter card and adds input-path regression checks. At the starting base, “Already safe” is correct: the AR presenter must advance the demo, or the VR wearer must use the stick to walk outside the shelter radius, before requesting a diversion. VR uses actual position, so retaining the base waypoint while walking away no longer suppresses the request. The input tests cover a short tap, one-second hold, no repeated requests while held, stalled frames, base, offline, send failure and walking away from base. Hardware button/haptic confirmation is deferred at the wearer's request.
 
 Version **0.11.0 / code 11** passes **1,321 mission checks**, **8,450 VR checks**, **21 Node integration tests**, **9 fixture checks** and the web build. Native checks include every route point's DEM alignment, a continuous physics walk of the full main route and far-point diversion, sprint, collision, north, AR restoration and arrival/return guidance. Real relay tests walk every exported shelter route for both Gale and Jezero and reject stale arrival/emergency messages. Seven VR and eleven mission preview renders complete. Installation, current-device performance and one-eye picture results are tracked in [acceptance evidence](ACCEPTANCE.md); older performance numbers below do not establish 0.11 performance.
 

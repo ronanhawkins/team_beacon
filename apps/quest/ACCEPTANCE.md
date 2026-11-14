@@ -2,10 +2,24 @@
 
 The supplied screenshots are the functional checklist. The user's later native Unity/USB requirement replaces their original browser/HTTPS/Three.js delivery instructions. The current export is the authority for numbers and shelter ids.
 
+**Current target: 0.13 Jezero.** The wearer explicitly switched from Murray Buttes to Jezero. Historical Gale reference values below remain evidence for earlier builds, not the current Jezero mission. Hardware testing is deferred at the wearer's request.
+
+## Version 0.13 Jezero switch
+
+The native AR/VR app now uses Jezero's Three Forks/delta-front export and the matching USGS/NASA terrain. All **428 main/diversion points** match the measured 1 m detail tile within 0.25 m. A reprojected 7 km landscape supports approximately 3.5 km roaming radius; distant geometry is coarser. The maximum visible scene budget is **865,108 triangles**, including ground, seam geometry and decorative stones, with detail levels reducing ordinary drawing. Original orbital coverage is distinct from the illustrative warm tint/generated fine materials. No specific 45-million-triangle downloadable model was verified or claimed as imported.
+
+**1,321 mission checks**, **8,803 VR checks**, the shelter-input checks, mission/VR renders and **21 Node integration tests** passed. The physics checks walk Jezero's full main route and its last-point diversion through to shelter. Additional checks verify ground around the wider landscape, survey bounds, consistent coordinate/elevation frame, AR restoration and fixed Sun. New shelter-input tests retain the improvement from the interrupted 0.12 work. Preview inspection found gaps between terrain levels; deeper seam geometry and two-sided rendering close them. The launcher defaults to the Jezero relay and refuses a mismatched site. Physical controller input, haptics, headset frame rate and the laptop's one-eye picture remain unverified for this version.
+
+Source/provenance: `Assets/Beacon/Art/JezeroTerrain/README.md`. Generated material provenance and original Gale/Access Mars assets remain preserved. No new private-room recording was made.
+
+The final APK is installed over USB as **0.13.0 / code 13**, independently confirmed by the Quest package manager. Its embedded Jezero attribution notice was checked. The laptop relay serves **Three Forks and the delta front, Jezero crater**, and USB forwarding on port 5174 is verified. The Quest reports **Asleep**; the launcher correctly leaves it unopened. Start `Start Native Quest.cmd` once wearing it. Installation and automated checks do not establish physical B input, frame rate or mirror quality.
+
+Current Jezero reference: 44 main points; base has **92.8% open sky**. A storm at main index **43** selects **s-1468-1765**, initially **4.31 minutes**, through nine diversion points. Arrival has **82.1% open sky** and retains the base link. The exported shelter label is empty, so presentation uses its id rather than inventing a name.
+
 | Item | Implementation / evidence |
 | --- | --- |
 | Readable, less peripheral HUD | Compass at 16°; 0.10 moves the bottom readings to two columns at ±24°, with brief feedback below the left column. Wearer fit confirmation remains necessary for the new arrangement. |
-| AR and VR fallback | Starts in Quest passthrough. Left X switches to planner-aligned Murray Buttes terrain and warm sky, then back to the room. The terrain and walking controller are disabled in AR. |
+| AR and VR fallback | Starts in Quest passthrough. Left X switches to planner-aligned Jezero terrain and warm sky, then back to the room. The terrain and walking controller are disabled in AR. |
 | 72-sample skyline, N/E/S/W, smooth transitions | Native dynamic mesh from the exact selected waypoint; smooth sample interpolation and stable calibrated north. 0.10 removes the contour in both modes, retains faint AR shading, and removes the VR fill. No blue baseline or ground fill. Y hides the ring in AR. |
 | Sun/Earth/base/shelter markers | Supplied azimuths/elevations in a fixed frame; visibility and base-link dimming; Earth delay and base distance; shelter minutes. Base/shelter markers hide at arrival. No local sky calculation. |
 | Main readings | Open sky from `openSky`; left column adds oxygen and dose; right column shows shelter, base link and sunlight. Fractions displayed as percentages. |
@@ -13,11 +27,17 @@ The supplied screenshots are the functional checklist. The user's later native U
 | Route and decision | Exact `route`, `waypointIndex`, `rerouteFrom`; decision reason from `rerouteInfo`. No locally chosen shelter or independently running countdown. |
 | Science stop and next waypoint | Named science card; one waypoint arrow on the compass, preserving the user's compass-only navigation preference. |
 | Offline operation and reconnect | Local relay and cached real data over USB; existing retry loop and explicit reroute origin. Relay reconnect regression tests pass. No headset internet needed. |
-| Sources | Small credit from `data/site.json`: HiRISE/USGS, JPL Horizons and 14 Nov 2026 19:40 UT. |
-| Visual QA | Unity previews for base, Quela, northwest skyline, warning, storm, arrival and VR fallback. Preview caught missing CanvasRenderer on custom UI; fixed and covered by a regression check. |
+| Sources | Small credit from `data/site.json`: HiRISE/USGS, JPL Horizons and 15 Nov 2026 00:00 UT for Jezero. |
+| Visual QA | Current Unity previews cover Jezero mission states, shelter feedback and AR/VR scenery. Historical Gale previews and findings are documented below. |
 | Laptop/projector | USB mirror previously confirmed by wearer. Physical HDMI projector rehearsal still needs the actual projector. |
 | Full recording and frame rate | Completed on 0.5: 31 main points, all 13 S03 diversion points, arrival and reset. USB recording 85.54 s; Unity reported mean 72.0 fps, p95 13.9 ms throughout sampled windows, including storm and recording. These measure app-frame pacing. |
-| Navigable 3D scenery in VR | Version 0.11 uses the real 1 m DEM in the planner frame, up to 834,976 visible triangles with detail levels. Generated materials are cosmetic. Continuous walking acknowledges reached route samples. Previous Access Mars model remains archived with its licence. |
+| Navigable 3D scenery in VR | Version 0.13 uses Jezero's real 1 m detail DEM in the planner frame and a wider coarse landscape, up to 865,108 visible triangles with detail levels. Generated materials are cosmetic. Continuous walking acknowledges reached route samples. Previous Access Mars model remains archived with its licence. |
+
+## Version 0.12 shelter-button follow-up
+
+The wearer clarified that holding B seemed to do nothing and deferred hardware testing. The old pre-0.11 VR guard used the selected waypoint's `isShelter` even after the wearer walked away from base; 0.11 replaced it with physical proximity. Feedback had remained in a brief low-left panel, which could hide the reason for a refused request. Version 0.12 moves hold progress and all shelter-request outcomes into the existing right-side shelter card. A tap explains the one-second hold; base says **Already safe**; an existing diversion says **Route active**. Offline, send failure and missing replies have distinct messages. Brief right-controller pulses acknowledge press/confirmation, and logs identify both button recognition and outcome. Focus loss clears an unfinished hold.
+
+Input-path checks exercise short taps, the one-second hold, no repeats while held, a long-frame guard, the base, offline state, a failed socket, an existing diversion and continuous VR walking away from a still-selected base waypoint. The latter must reach the sender instead of claiming the wearer remains sheltered. The visual review caught truncated long messages; shortened copy and preferred-width checks now guard against ellipsis. The earlier mission and VR suites are rerun with this change. Physical B input, haptics, current headset performance and the one-eye mirror are deferred at the wearer's request; automated input does not establish those hardware results.
 
 ## Version 0.11 verification
 
@@ -65,7 +85,7 @@ Superseded movement: version **0.8.0 / code 8** removes thumbstick waypoint step
 
 Installed over USB and independently confirmed as version 0.7.0 / code 7. **816 native checks**, **16 relay/client tests**, and eleven mission previews passed. The scene checks confirm that a 90° head turn and route step do not rotate the Sun or north, the skyline does not mask the ground or draw a flat baseline, and the atmosphere has no dust geometry. Arrival-marker suppression and offline next/back requests are covered. AR and the final NASA panorama were visually inspected in editor renders. The original NASA pixels remain unchanged; a conservative coverage lookup feathers the mosaic edges. The Quest was asleep after installation, so physical controller input, wearer appearance and a new frame-rate run remain unverified for 0.7. USB mirroring is restored.
 
-## Current export checks
+## Historical Gale export checks
 
 | State | Current expected output |
 | --- | --- |

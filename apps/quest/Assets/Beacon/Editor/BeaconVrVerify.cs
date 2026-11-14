@@ -41,13 +41,13 @@ public static class BeaconVrVerify
             Check(facing>=back,"coordinate conversion preserves triangle facing");
         }
         string repo=Path.GetFullPath("../..");
-        var document=JsonConvert.DeserializeObject<RouteDocument>(File.ReadAllText(Path.Combine(repo,"data/out/waypoints.json")));
+        var document=JsonConvert.DeserializeObject<RouteDocument>(File.ReadAllText(BeaconBuild.WaypointsFile(repo)));
         foreach(var route in document.reroutes.Values) foreach(var point in route)
             Check(Math.Abs(terrain.HeightAt((float)point.pos.x,(float)point.pos.y)-point.pos.z)<.25,"VR and planner use the same original heights");
         var p=document.main[19];var state=new MissionState {version=1,route="main",waypointIndex=19,mode="nominal",headingDeg=p.headingDeg,
             openSky=p.openSky,oxygenFraction=p.oxygenFraction,doseFraction=p.doseFraction,baseLink=p.@base.visible,sunlit=p.sun.visible,
             earthLink=p.earth.visible,minutesToShelter=p.shelter.minutes,shelterBearingDeg=p.shelter.az,earthDelayMinutes=11};
-        relay.Preview(state,document,JsonConvert.DeserializeObject<MissionSite>(File.ReadAllText(Path.Combine(repo,"data/site.json"))));
+        relay.Preview(state,document,JsonConvert.DeserializeObject<MissionSite>(File.ReadAllText(BeaconBuild.SiteFile(repo))));
         view.CreateVisuals();view.Calibrate();float north=view.NorthYaw;var sun=view.SkyDirection(p.sun);
         string beforeState=JsonConvert.SerializeObject(relay.State);
         view.SetImmersive(true);Physics.SyncTransforms();
@@ -83,6 +83,15 @@ public static class BeaconVrVerify
         Check(!scenery.Sprinting && scenery.Speed<.1f,"release movement stops sprint even with grip held");
         Check(JsonConvert.SerializeObject(relay.State)==beforeState,"sprinting never changes the mission route");
         Check(terrain.cosmeticDetail!=null && terrain.rockDetail!=null,"generated sand and layered rock are bundled");
+        if(terrain.Data.wideWalking)
+        {
+            foreach(var far in new[]{new SitePosition{x=-500,y=1500},new SitePosition{x=3500,y=1500},new SitePosition{x=1500,y=-500},new SitePosition{x=1500,y=3500}})
+            {
+                var point=terrain.WorldPoint(far);
+                Check(terrain.InSurvey(point) && terrain.GroundAt(point,out var farHit),"wide Jezero landscape has walkable measured ground");
+            }
+            Check(!terrain.InSurvey(terrain.WorldPoint(new SitePosition{x=6000,y=1500})),"wide landscape respects its survey boundary");
+        }
         var physicalPosition=scenery.Position;view.Recenter();view.Tick(2);scenery.Step(Vector2.zero,Vector2.zero,0,.02f);Physics.SyncTransforms();
         Check(Navigation.Distance(physicalPosition,scenery.Position)<.1,"recentring preserves the planner location");
         // Walk the real main path and the far-point shelter path through physics.
@@ -91,7 +100,7 @@ public static class BeaconVrVerify
         {
             void Publish(int index)
             {
-                var q=path[index];var s=new MissionState {version=1,route=reroute ? "reroute":"main",rerouteFrom=reroute ? 30:(int?)null,waypointIndex=index,
+                var q=path[index];var s=new MissionState {version=1,route=reroute ? "reroute":"main",rerouteFrom=reroute ? document.main.Count-1:(int?)null,waypointIndex=index,
                     mode=reroute ? "storm":"nominal",storm=reroute,headingDeg=q.headingDeg,openSky=q.openSky,oxygenFraction=q.oxygenFraction,doseFraction=q.doseFraction,
                     baseLink=q.@base.visible,sunlit=q.sun.visible,earthLink=q.earth.visible,minutesToShelter=q.shelter.minutes,shelterBearingDeg=q.shelter.az,earthDelayMinutes=11};
                 relay.Preview(s,document,relay.Site);
@@ -114,7 +123,7 @@ public static class BeaconVrVerify
             }
             Check(!reroute || scenery.InShelter,"walking the shelter route produces actual arrival");
         }
-        WalkPath(document.main,false);WalkPath(document.reroutes["30"],true);
+        WalkPath(document.main,false);WalkPath(document.reroutes[(document.main.Count-1).ToString()],true);
         view.SetImmersive(false);var arPosition=scenery.playerRoot.position;
         scenery.Step(Vector2.up,Vector2.right,1,.05f);
         Check(!terrain.gameObject.activeSelf && !view.passthrough.hidden && !scenery.Sprinting,"AR restores passthrough and hides VR terrain / sprint");

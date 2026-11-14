@@ -19,6 +19,9 @@ using UnityEngine.XR.OpenXR.Features;
 
 public static class BeaconBuild
 {
+    public const string SiteKey="jezero";
+    public static string WaypointsFile(string repo) => Path.Combine(repo,"data/out/jezero/waypoints.json");
+    public static string SiteFile(string repo) => Path.Combine(repo,"data/sites/jezero/site.json");
     const string ScenePath = "Assets/Beacon/Scenes/BeaconAR.unity";
     [MenuItem("Beacon/Prepare native Quest app")]
     public static void Prepare()
@@ -26,7 +29,7 @@ public static class BeaconBuild
         Directory.CreateDirectory("Assets/Beacon/Scenes"); Directory.CreateDirectory("Assets/XR");
         PlayerSettings.companyName = "Team Beacon"; PlayerSettings.productName = "Beacon AR";
         PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, "com.teambeacon.ar");
-        PlayerSettings.bundleVersion = "0.11.0"; PlayerSettings.Android.bundleVersionCode = 11;
+        PlayerSettings.bundleVersion = "0.13.0"; PlayerSettings.Android.bundleVersionCode = 13;
         PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android, ScriptingImplementation.IL2CPP);
         PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64;
         PlayerSettings.Android.minSdkVersion = AndroidSdkVersions.AndroidApiLevel32;
@@ -107,7 +110,7 @@ public static class BeaconBuild
         if(missionView.skylineShader==null) throw new Exception("Skyline shader is missing");
         hud.missionView=missionView;
         var terrain=new GameObject("Planner-aligned Mars terrain").AddComponent<MissionTerrain>();
-        const string terrainPath="Assets/Beacon/Art/MissionTerrain/";
+        const string terrainPath="Assets/Beacon/Art/JezeroTerrain/";
         terrain.heights=AssetDatabase.LoadAssetAtPath<TextAsset>(terrainPath+"height.bytes");
         terrain.backgroundHeights=AssetDatabase.LoadAssetAtPath<TextAsset>(terrainPath+"background.bytes");
         terrain.shadowData=AssetDatabase.LoadAssetAtPath<TextAsset>(terrainPath+"shadow.bytes");
@@ -124,10 +127,10 @@ public static class BeaconBuild
             importer.SaveAndReimport();return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
         }
         terrain.orbital=Texture(terrainPath+"orbital.jpg",4096,false);
-        terrain.backgroundPhoto=Texture(terrainPath+"background.jpg",2048,false);
+        terrain.backgroundPhoto=Texture(terrainPath+"background.jpg",4096,false);
         terrain.cosmeticDetail=Texture("Assets/Beacon/Art/MarsCosmeticDetail.png",2048,true);
         terrain.rockDetail=Texture("Assets/Beacon/Art/MarsLayeredRock.png",2048,true);
-        if(terrain.heights==null || terrain.metadata==null || terrain.backgroundHeights==null) throw new Exception("Run tools/prepare-mission-vr.py first");
+        if(terrain.heights==null || terrain.metadata==null || terrain.backgroundHeights==null) throw new Exception("Run tools/prepare-jezero-native.py first");
         terrain.gameObject.SetActive(false);
         var scenery=app.AddComponent<BeaconVrScenery>();scenery.rig=rig;scenery.missionView=missionView;
         scenery.terrain=terrain;scenery.playerRoot=playerRoot.transform;missionView.vrScenery=scenery;
@@ -191,7 +194,7 @@ public static class BeaconBuild
         if (!File.Exists(ScenePath)) Prepare();
         PlayerSettings.productName="Beacon AR";
         PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android,"com.teambeacon.ar");
-        PlayerSettings.bundleVersion="0.11.0"; PlayerSettings.Android.bundleVersionCode=11;
+        PlayerSettings.bundleVersion="0.13.0"; PlayerSettings.Android.bundleVersionCode=13;
         Directory.CreateDirectory("Builds");
         var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions {
             scenes = new[] { ScenePath }, target = BuildTarget.Android,

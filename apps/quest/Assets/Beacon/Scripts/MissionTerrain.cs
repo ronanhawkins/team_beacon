@@ -14,6 +14,9 @@ namespace Beacon
             public int version,width,height,backgroundWidth,shadowWidth;
             public string site;
             public float originX,originY,spacing,heightOrigin,backgroundSpacing,backgroundOrigin,shadowSpacing;
+            public float backgroundMeshSpacing=16;
+            public bool wideWalking;
+            public float[] photoTint;
             public SitePosition[] mainRoute;
         }
         public TextAsset heights,backgroundHeights,metadata,shadowData;
@@ -46,10 +49,15 @@ namespace Beacon
         }
         public float HeightAt(float x,float y)
         {
-            if(x>=Data.originX && x<=Data.originX+(Data.width-1)*Data.spacing && y>=Data.originY && y<=Data.originY+(Data.height-1)*Data.spacing)
-                return Sample(detail,Data.width,Data.height,(x-Data.originX)/Data.spacing,Data.height-1-(y-Data.originY)/Data.spacing);
-            return Sample(background,Data.backgroundWidth,Data.backgroundWidth,(x-Data.backgroundOrigin)/Data.backgroundSpacing,
+            float coarse=Sample(background,Data.backgroundWidth,Data.backgroundWidth,(x-Data.backgroundOrigin)/Data.backgroundSpacing,
                 Data.backgroundWidth-1-(y-Data.backgroundOrigin)/Data.backgroundSpacing);
+            if(x>=Data.originX && x<=Data.originX+(Data.width-1)*Data.spacing && y>=Data.originY && y<=Data.originY+(Data.height-1)*Data.spacing)
+            {
+                float fine=Sample(detail,Data.width,Data.height,(x-Data.originX)/Data.spacing,Data.height-1-(y-Data.originY)/Data.spacing);
+                float edge=Mathf.Min(x-Data.originX,y-Data.originY,Data.originX+(Data.width-1)*Data.spacing-x,Data.originY+(Data.height-1)*Data.spacing-y);
+                return Data.wideWalking ? Mathf.Lerp(coarse,fine,Mathf.SmoothStep(0,1,edge/20)):fine;
+            }
+            return coarse;
         }
         public Vector3 LocalPoint(float x,float y) => new Vector3(x-CentreX,HeightAt(x,y)-Data.heightOrigin,y-CentreY);
         public Vector3 WorldPoint(SitePosition p) => transform.TransformPoint(LocalPoint((float)p.x,(float)p.y));
@@ -88,14 +96,16 @@ namespace Beacon
                 var lod=chunk.AddComponent<LODGroup>();lod.SetLODs(levels);lod.RecalculateBounds();
             }
             // Eight coarse surrounding rectangles meet the detailed tile's edge.
-            float[] xs={2,Data.originX,Data.originX+(Data.width-1)*Data.spacing,2998};
-            float[] ys={2,Data.originY,Data.originY+(Data.height-1)*Data.spacing,2998};
+            float farMin=Data.backgroundOrigin,farMax=farMin+(Data.backgroundWidth-1)*Data.backgroundSpacing;
+            float[] xs={farMin,Data.originX,Data.originX+(Data.width-1)*Data.spacing,farMax};
+            float[] ys={farMin,Data.originY,Data.originY+(Data.height-1)*Data.spacing,farMax};
             for(int y=0;y<3;y++) for(int x=0;x<3;x++)
             {
                 if(x==1 && y==1) continue;
                 float w=xs[x+1]-xs[x],h=ys[y+1]-ys[y];
-                var mesh=Grid(xs[x],ys[y],w,h,Mathf.CeilToInt(w/16),Mathf.CeilToInt(h/16),true,false);
-                Surface(transform,"Distant terrain",mesh,farMaterial);VisibleTriangles+=mesh.triangles.Length/3;
+                var mesh=Grid(xs[x],ys[y],w,h,Mathf.CeilToInt(w/Data.backgroundMeshSpacing),Mathf.CeilToInt(h/Data.backgroundMeshSpacing),true,Data.wideWalking);
+                var renderer=Surface(transform,"Distant terrain",mesh,farMaterial);VisibleTriangles+=mesh.triangles.Length/3;
+                if(Data.wideWalking) {var collider=renderer.gameObject.AddComponent<MeshCollider>();collider.sharedMesh=mesh;ground.Add(collider);CollisionTriangles+=mesh.triangles.Length/3;}
             }
             MakeStones(nearMaterial);
             if(VisibleTriangles>1000000) throw new InvalidOperationException("Mission scenery exceeds triangle budget");
@@ -105,6 +115,7 @@ namespace Beacon
         {
             var material=new Material(surfaceShader);material.mainTexture=photo;
             material.SetTexture("_SandTex",cosmeticDetail);material.SetTexture("_RockTex",rockDetail);
+            if(Data.photoTint?.Length==3) material.SetColor("_PhotoTint",new Color(Data.photoTint[0],Data.photoTint[1],Data.photoTint[2]));
             material.SetFloat("_Cosmetic",1);materials.Add(material);return material;
         }
         MeshRenderer Surface(Transform parent,string name,Mesh mesh,Material material)
@@ -122,7 +133,8 @@ namespace Beacon
             void Vertex(float px,float py,float drop=0)
             {
                 vertices.Add(LocalPoint(px,py)-Vector3.up*drop);normals.Add(NormalAt(px,py));
-                uv.Add(far ? new Vector2(px/3000,py/3000) : new Vector2((px-Data.originX+.5f)/(Data.width*Data.spacing),(py-Data.originY+.5f)/(Data.height*Data.spacing)));
+                float farEdge=Data.backgroundOrigin-Data.backgroundSpacing*.5f,farSpan=Data.backgroundWidth*Data.backgroundSpacing;
+                uv.Add(far ? new Vector2((px-farEdge)/farSpan,(py-farEdge)/farSpan) : new Vector2((px-Data.originX+.5f)/(Data.width*Data.spacing),(py-Data.originY+.5f)/(Data.height*Data.spacing)));
                 colours.Add(new Color(far ? 1:ShadowAt(px,py),1,1,1));
             }
             for(int row=0;row<=ny;row++) for(int col=0;col<=nx;col++) Vertex(x+w*col/nx,y+h*row/ny);
@@ -137,7 +149,8 @@ namespace Beacon
                 for(int c=nx-1;c>=0;c--) edge.Add(ny*(nx+1)+c);
                 for(int r=ny-1;r>0;r--) edge.Add(r*(nx+1));
                 int lower=vertices.Count;
-                foreach(int i in edge) {vertices.Add(vertices[i]-Vector3.up*.8f);normals.Add(normals[i]);uv.Add(uv[i]);colours.Add(colours[i]);}
+                float skirtDepth=Data.wideWalking ? (far ? 24:4):.8f;
+                foreach(int i in edge) {vertices.Add(vertices[i]-Vector3.up*skirtDepth);normals.Add(normals[i]);uv.Add(uv[i]);colours.Add(colours[i]);}
                 for(int i=0;i<edge.Count;i++) {int n=(i+1)%edge.Count;indices.AddRange(new[]{edge[i],lower+i,edge[n],edge[n],lower+i,lower+n});}
             }
             var mesh=new Mesh {name=far ? "Orbital background" : "Measured 1 m terrain",indexFormat=vertices.Count>65535 ? IndexFormat.UInt32:IndexFormat.UInt16};
@@ -174,7 +187,13 @@ namespace Beacon
         }
         public bool InSurvey(Vector3 world)
         {
-            var p=MissionPosition(world);return p.x>Data.originX+2 && p.y>Data.originY+2 && p.x<Data.originX+(Data.width-1)*Data.spacing-2 && p.y<Data.originY+(Data.height-1)*Data.spacing-2;
+            var p=MissionPosition(world);
+            if(Data.wideWalking)
+            {
+                double radius=(Data.backgroundWidth-1)*Data.backgroundSpacing*.5-10,centre=Data.backgroundOrigin+(Data.backgroundWidth-1)*Data.backgroundSpacing*.5;
+                return (p.x-centre)*(p.x-centre)+(p.y-centre)*(p.y-centre)<radius*radius;
+            }
+            return p.x>Data.originX+2 && p.y>Data.originY+2 && p.x<Data.originX+(Data.width-1)*Data.spacing-2 && p.y<Data.originY+(Data.height-1)*Data.spacing-2;
         }
         public void SetSun(Vector3 worldDirection) {foreach(var m in materials) m.SetVector("_SunDir",worldDirection);}
         public void SetCosmeticEnabled(bool enabled) {foreach(var m in materials) m.SetFloat("_Cosmetic",enabled ? 1:0);}

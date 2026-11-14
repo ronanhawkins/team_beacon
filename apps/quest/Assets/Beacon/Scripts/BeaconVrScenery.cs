@@ -39,7 +39,7 @@ namespace Beacon
             get
             {
                 Create();var relay=missionView.relay;var p=relay.Selection?.Point.pos;
-                return p!=null && (relay.Site?.site==null || relay.Site.site.Contains("Gale")) &&
+                return p!=null && relay.Site?.site!=null && relay.Site.site.IndexOf(terrain.Data.site,StringComparison.OrdinalIgnoreCase)>=0 &&
                     Math.Abs(p.z-terrain.HeightAt((float)p.x,(float)p.y))<5;
             }
         }

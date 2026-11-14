@@ -1,4 +1,4 @@
-param([string]$Serial = '', [switch]$LaunchOnly)
+param([string]$Serial = '', [switch]$LaunchOnly, [ValidateSet('jezero','gale')][string]$Site='jezero')
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path -Parent $PSScriptRoot
 $adb = Join-Path $repo '.local\platform-tools\adb.exe'
@@ -10,12 +10,25 @@ if (!$Serial) { if ($devices.Count -ne 1) { throw 'Connect one Quest and accept 
 if ($Serial -notin $devices) { throw 'Quest is not connected or USB debugging has not been allowed.' }
 $model = (& $adb -s $Serial shell getprop ro.product.model).Trim()
 if ($model -notmatch 'Quest') { throw 'Selected device is not a Quest.' }
-try { $session = Invoke-RestMethod -Uri 'http://127.0.0.1:5174/session.json' -TimeoutSec 3 }
-catch {
+$startRelay=$false
+try {
+    $session = Invoke-RestMethod -Uri 'http://127.0.0.1:5174/session.json' -TimeoutSec 3
+    $metadata = Invoke-RestMethod -Uri 'http://127.0.0.1:5174/data/site.json' -TimeoutSec 3
+    $startRelay=$metadata.site -notmatch $Site
+}
+catch {$startRelay=$true}
+if($startRelay) {
+    $listener=Get-NetTCPConnection -LocalAddress 127.0.0.1 -LocalPort 5174 -State Listen -ErrorAction SilentlyContinue | Select-Object -First 1
+    if($listener) {
+        $existing=Get-CimInstance Win32_Process -Filter ('ProcessId = '+$listener.OwningProcess)
+        if($existing.Name -ne 'node.exe' -or $existing.CommandLine -notmatch 'relay[\\/]server\.js.*--local') {throw 'A different service is using the mission port. Close it before starting Beacon.'}
+        Stop-Process -Id $existing.ProcessId
+    }
     $node = (Get-Command node -ErrorAction Stop).Source
     $logs = Join-Path $repo '.local'
     New-Item -ItemType Directory -Path $logs -Force | Out-Null
-    Start-Process -FilePath $node -ArgumentList @('relay/server.js', '--local') -WorkingDirectory $repo -WindowStyle Hidden `
+    $relayArgs=@('relay/server.js','--local');if($Site -eq 'jezero') {$relayArgs+=@('--site','jezero')}
+    Start-Process -FilePath $node -ArgumentList $relayArgs -WorkingDirectory $repo -WindowStyle Hidden `
         -RedirectStandardOutput (Join-Path $logs 'native-relay.log') -RedirectStandardError (Join-Path $logs 'native-relay-error.log') | Out-Null
     for ($attempt = 0; $attempt -lt 20; $attempt++) {
         Start-Sleep -Milliseconds 250
@@ -23,6 +36,8 @@ catch {
     }
 }
 if ($session.version -ne 1 -or !$session.waypoints) { throw 'The laptop mission relay did not start. Check .local/native-relay-error.log.' }
+$metadata = Invoke-RestMethod -Uri 'http://127.0.0.1:5174/data/site.json' -TimeoutSec 3
+if($metadata.site -notmatch $Site) {throw 'The relay is serving the wrong mission site.'}
 & $adb -s $Serial reverse tcp:5174 tcp:5174
 if ($LASTEXITCODE -ne 0) { throw 'USB data connection failed.' }
 if (!$LaunchOnly) {

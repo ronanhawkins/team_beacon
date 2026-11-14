@@ -7,10 +7,13 @@ Shader "Beacon/Measured terrain with illustrative materials"
         _RockTex("Illustrative sandstone",2D)="white"{}
         _SunDir("Sun direction",Vector)=(-.98,.2,.18,0)
         _Cosmetic("Illustrative materials",Float)=1
+        _PhotoTint("Illustrative photo tint",Color)=(1,1,1,1)
     }
     SubShader
     {
         Tags {"RenderType"="Opaque" "Queue"="Geometry"}
+        // Skirts must occlude gaps when viewed from either neighbouring tile.
+        Cull Off
         Pass
         {
             CGPROGRAM
@@ -18,7 +21,7 @@ Shader "Beacon/Measured terrain with illustrative materials"
             #pragma fragment frag
             #pragma multi_compile_instancing
             #include "UnityCG.cginc"
-            sampler2D _MainTex,_SandTex,_RockTex;float _Cosmetic;float3 _SunDir;
+            sampler2D _MainTex,_SandTex,_RockTex;float _Cosmetic;float3 _SunDir;float4 _PhotoTint;
             struct a {float4 vertex:POSITION;float3 normal:NORMAL;float2 uv:TEXCOORD0;float4 colour:COLOR;UNITY_VERTEX_INPUT_INSTANCE_ID};
             struct v {float4 pos:SV_POSITION;float2 uv:TEXCOORD0;float3 local:TEXCOORD1;float3 world:TEXCOORD2;float3 normal:TEXCOORD3;float3 localNormal:TEXCOORD4;float shadow:TEXCOORD5;UNITY_VERTEX_OUTPUT_STEREO};
             v vert(a i)
@@ -31,7 +34,7 @@ Shader "Beacon/Measured terrain with illustrative materials"
             {
                 UNITY_SETUP_STEREO_EYE_INDEX_POST_VERTEX(i);
                 float distanceToEye=distance(i.world,_WorldSpaceCameraPos);
-                float3 orbital=tex2D(_MainTex,i.uv).rgb;
+                float3 orbital=tex2D(_MainTex,i.uv).rgb*_PhotoTint.rgb;
                 float3 n=normalize(i.normal),localN=normalize(i.localNormal);
                 float2 weights=pow(abs(localN.xz),4);weights/=max(weights.x+weights.y,.001);
                 float3 sand=tex2D(_SandTex,i.local.xz*.6).rgb;

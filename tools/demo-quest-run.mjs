@@ -31,19 +31,19 @@ try {
     await hold(3000);
     for(let i=1;i<doc.main.length;i++) {
         const point=await send({type:'goto',index:i});
-        if(i===19) assert.ok(point.isScienceStop&&!state.sunlit);
-        if(i>=25&&i<=28) assert.equal(state.mode,'warning');
+        if(!point.base.visible) assert.equal(state.mode,'warning');
         await hold(i===19 ? 5000:i===25 ? 3500:i===30 ? 4000:1000);
     }
     await send({type:'storm',on:true});
-    assert.equal(state.rerouteFrom,30); assert.equal(state.route,'reroute');
-    const chosen=doc.rerouteInfo['30'];
-    assert.equal(chosen.chosen.id,doc.reroutes['30'].at(-1).shelter.id);
-    assert.equal(chosen.chosen.label,'Butte M12 shelter'); assert.equal(chosen.base.excludedByLimit,true);
+    const origin=String(doc.main.length-1);
+    assert.equal(state.rerouteFrom,Number(origin)); assert.equal(state.route,'reroute');
+    const chosen=doc.rerouteInfo[origin];
+    assert.equal(chosen.chosen.id,doc.reroutes[origin].at(-1).shelter.id);
     await hold(6000);
     let arrival;
-    for(let i=1;i<doc.reroutes['30'].length;i++) { arrival=await send({type:'next'}); await hold(1000); }
-    assert.ok(arrival.isShelter); assert.equal(state.minutesToShelter,0); assert.equal(state.baseLink,true);
+    arrival=doc.reroutes[origin][0];
+    for(let i=1;i<doc.reroutes[origin].length;i++) { arrival=await send({type:'next'}); await hold(1000); }
+    assert.ok(arrival.isShelter); assert.equal(state.minutesToShelter,0); assert.equal(state.baseLink,arrival.base.visible);
     await hold(6000);
 } finally {
     if(ws.readyState===WebSocket.OPEN) {
