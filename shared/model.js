@@ -146,7 +146,7 @@ export function reduceDemoState(state, event, route, initialState) {
     if (event.type === 'requestReroute') next.rerouteRequested = true;
     if ((event.type !== 'storm' || event.on) && state.route === 'main') {
       if (!route.reroutes[String(state.waypointIndex)]) throw new Error('No precomputed shelter route from this stop');
-      next.route = 'reroute'; next.rerouteFromIndex = state.waypointIndex; next.waypointIndex = 0;
+      next.route = 'reroute'; next.rerouteFromIndex = state.waypointIndex; next.rerouteFrom = state.waypointIndex; next.waypointIndex = 0;
     }
   } else return state;
   next = atPoint(next, resolveSelection(next, route, selected).point);

@@ -161,11 +161,22 @@ def main():
                 if str(i) not in reroutes or not reroutes[str(i)]]
     check("every main index has a reroute", problems)
 
+    # rerouteFrom is null on the main route and names an existing reroute otherwise.
+    problems = []
+    for name, st in states.items():
+        rf = st.get("rerouteFrom")
+        if st.get("route") == "main" and rf is not None:
+            problems.append(f"{name}: route is main but rerouteFrom is {rf}")
+        if st.get("route") == "reroute" and (not isinstance(rf, int) or isinstance(rf, bool) or str(rf) not in reroutes):
+            problems.append(f"{name}: route is reroute but rerouteFrom is {rf!r}, not a reroutes key")
+    check("rerouteFrom is null on main and a reroutes key on a reroute", problems)
+
     # Derived state fields match the waypoint they were taken from.
     sources = {
         "state.json": wp_doc["main"][states["state.json"]["waypointIndex"]]
         if states["state.json"].get("route") == "main" else None,
-        "state-storm.json": reroutes.get("3", [None])[states["state-storm.json"].get("waypointIndex", 0)],
+        "state-storm.json": reroutes.get(str(states["state-storm.json"].get("rerouteFrom")), [None])[
+            states["state-storm.json"].get("waypointIndex", 0)],
     }
     mapping = {
         "headingDeg": lambda w: w["headingDeg"],
@@ -186,7 +197,7 @@ def main():
         for field, get in mapping.items():
             if states[name].get(field) != get(wp):
                 problems.append(f"{name}: {field} {states[name].get(field)}, waypoint {wp['id']} has {get(wp)}")
-    check("state derived fields match their waypoint (main[0], reroutes[3][0])", problems)
+    check("state derived fields match their waypoint (main[0], reroutes[rerouteFrom][0])", problems)
 
     failed = sum(1 for _, p in results if p)
     print()

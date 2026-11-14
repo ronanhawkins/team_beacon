@@ -2,6 +2,7 @@
   "version": 1,
   "route": "main",
   "waypointIndex": 0,
+  "rerouteFrom": null,
   "mode": "nominal",
   "storm": false,
   "panic": false,

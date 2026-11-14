@@ -8,7 +8,7 @@ Node server that holds the one state object (`shared/state.md`), applies events 
 
 | Port | Protocol | Paths |
 | --- | --- | --- |
-| 8443 | HTTPS + WSS | `/hub/`, `/headset/`, `/wrist/`, `/shared/`, `/data/` (= `data/out/`), `/debug`, `/clients`, and the WebSocket at `/ws` (also `/relay`) |
+| 8443 | HTTPS + WSS | `/hub/`, `/headset/`, `/wrist/`, `/shared/`, `/data/` (= `data/out/`), `/data/site.json` (the only file served from outside `data/out/`), `/debug`, `/clients`, and the WebSocket at `/ws` (also `/relay`) |
 | 8081 | plain WS | Any path. For the ESP32, which can't easily do TLS. Same protocol. |
 
 The pages and the browser socket share port 8443, so each device accepts one certificate warning and the socket can't fail silently on a second untrusted certificate. Every response has `Cache-Control: no-store`.

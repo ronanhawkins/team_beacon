@@ -92,6 +92,7 @@ function buildState() {
     version: 1,
     route: sim.route,
     waypointIndex: sim.waypointIndex,
+    rerouteFrom: sim.route === 'reroute' ? sim.rerouteFrom : null,
     mode: 'nominal',
     storm: sim.storm,
     panic: sim.panic,
@@ -260,6 +261,8 @@ function onRequest(req, res) {
   }
   if (urlPath === '/') return send(res, 200, 'text/html; charset=utf-8', INDEX_HTML);
   if (urlPath === '/debug') return serveFile(res, path.join(__dirname, 'debug.html'));
+  // The one file outside data/out/ that pages may read.
+  if (urlPath === '/data/site.json') return serveFile(res, path.join(ROOT, 'data/site.json'));
   if (urlPath === '/clients') {
     const list = [...clients].map(({ role, transport, address, since }) => ({ role, transport, address, since }));
     return send(res, 200, 'application/json', JSON.stringify(list));

@@ -21,6 +21,7 @@ Units and angle conventions are in `conventions.md`.
 | `version` | number | 1 | relay |
 | `route` | string | `"main"` or `"reroute"` | relay, on storm, panic or reroute request |
 | `waypointIndex` | number | index into the current route | `next`, `back`, `goto` events |
+| `rerouteFrom` | number or null | the `main` index the current reroute started from, so `reroutes[rerouteFrom]` is the route in use. `null` on the main route | relay, when it switches to the reroute |
 | `mode` | string | `"nominal"`, `"warning"` or `"storm"` | relay. Drives the colours on every screen |
 | `storm` | boolean | | `storm` event |
 | `panic` | boolean | | `panic` event |
@@ -53,6 +54,7 @@ A screen that shows an arrow to shelter draws it at `shelterBearingDeg - heading
   "version": 1,
   "route": "main",
   "waypointIndex": 3,
+  "rerouteFrom": null,
   "mode": "nominal",
   "storm": false,
   "panic": false,

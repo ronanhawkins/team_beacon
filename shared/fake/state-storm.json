@@ -2,6 +2,7 @@
   "version": 1,
   "route": "reroute",
   "waypointIndex": 0,
+  "rerouteFrom": 3,
   "mode": "storm",
   "storm": true,
   "panic": false,

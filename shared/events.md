@@ -13,7 +13,7 @@ Every message is one JSON object with a `type` field.
 | `{ "type": "back" }` | hub | Go back one waypoint |
 | `{ "type": "goto", "index": 3 }` | hub | Jump to a waypoint on the current route |
 | `{ "type": "storm", "on": true }` | hub | Start or end the solar storm. Starting it switches to the reroute |
-| `{ "type": "panic" }` | esp, wrist | Set panic and switch to the reroute |
+| `{ "type": "panic" }` | esp, wrist, hub | Set panic and switch to the reroute |
 | `{ "type": "requestReroute" }` | wrist, headset | Astronaut asks for a reroute. Switches to the reroute |
 | `{ "type": "reset" }` | hub | Back to waypoint 0 on the main route, all flags cleared |
 
@@ -22,6 +22,14 @@ Every message is one JSON object with a `type` field.
 | Message | When |
 |---|---|
 | `{ "type": "state", "state": { ... } }` | On every change, and to each device when it connects |
+
+## Reserved
+
+Proposed, not implemented. The relay ignores these like any unknown event.
+
+| Event | Proposed by | Intended effect |
+|---|---|---|
+| `{ "type": "plan", "points": [ { "x": 0, "y": 0, "kind": "start" } ] }` | hub | Send the start, stops and end (`kind`: `"start"`, `"stop"` or `"end"`, positions in local metres) to the route planner |
 
 ## Rules
 

@@ -128,11 +128,12 @@ def build():
     return {"version": 1, "skylineSamples": S.SKYLINE_SAMPLES, "main": main, "reroutes": reroutes}
 
 
-def state_from(wp, route, index, mode, storm):
+def state_from(wp, route, index, mode, storm, reroute_from=None):
     return {
         "version": 1,
         "route": route,
         "waypointIndex": index,
+        "rerouteFrom": reroute_from,
         "mode": mode,
         "storm": storm,
         "panic": False,
@@ -178,4 +179,4 @@ if __name__ == "__main__":
     OUT.mkdir(parents=True, exist_ok=True)
     write(OUT / "waypoints.json", doc)
     write(OUT / "state.json", state_from(doc["main"][0], "main", 0, "nominal", False))
-    write(OUT / "state-storm.json", state_from(doc["reroutes"]["3"][0], "reroute", 0, "storm", True))
+    write(OUT / "state-storm.json", state_from(doc["reroutes"]["3"][0], "reroute", 0, "storm", True, reroute_from=3))
