@@ -1,0 +1,38 @@
+{
+  "version": 1,
+  "width": 256,
+  "height": 256,
+  "metresPerPixel": 4,
+  "layers": {
+    "exposure": {
+      "file": "exposure.png",
+      "min": 0,
+      "max": 1
+    },
+    "sunlight": {
+      "file": "sunlight.png",
+      "min": 0,
+      "max": 1
+    },
+    "baseLink": {
+      "file": "baseLink.png",
+      "min": 0,
+      "max": 1
+    },
+    "earthLink": {
+      "file": "earthLink.png",
+      "min": 0,
+      "max": 1
+    },
+    "slope": {
+      "file": "slope.png",
+      "min": 0,
+      "max": 45
+    },
+    "minutesToShelter": {
+      "file": "minutesToShelter.png",
+      "min": 0,
+      "max": 40
+    }
+  }
+}

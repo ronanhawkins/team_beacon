@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "route": "main",
+  "waypointIndex": 0,
+  "mode": "nominal",
+  "storm": false,
+  "panic": false,
+  "rerouteRequested": false,
+  "headingDeg": 29.6,
+  "shelterBearingDeg": 44.0,
+  "minutesToShelter": 10.5,
+  "openSky": 0.963,
+  "doseFraction": 0.0,
+  "oxygenFraction": 1.0,
+  "sunlit": true,
+  "baseLink": true,
+  "earthLink": true,
+  "earthDelayMinutes": 14
+}
