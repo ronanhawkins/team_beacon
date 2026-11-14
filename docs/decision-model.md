@@ -21,7 +21,7 @@ For each option, Beacon works out the walking time over the real terrain (slower
 
 ## The score among reachable sites
 
-Doses are measured in "minutes at the open-ground dose rate": one minute standing on open ground on a normal day counts as 1.
+Doses are measured in "minutes at the open-ground dose rate": one minute standing on open ground on a normal day counts as 1. Curiosity measured that rate at Gale as 6.3 microgray per hour, so one unit is about 0.105 microgray.
 
 | Symbol | Meaning |
 |---|---|
@@ -47,14 +47,14 @@ The shelter formula is calibrated to Curiosity's measurement in this exact place
 
 ## Assumptions
 
-Every number below is an assumption for the demo, not a measured value. They are all in `data/site.json`, each with a note, so they can be changed in one place.
+Most numbers below are assumptions for the demo. The storm's length and strength are measured: they come from Curiosity's radiation detector during the solar storm of 20 May 2024. They are all in `data/site.json`, each with a note, so they can be changed in one place.
 
 | Assumption | Value | Why it matters |
 |---|---|---|
 | Time limit to be under cover | 5 minutes | Hard rule. Normally equal to the warning time |
 | Warning time `L` | 5 minutes | Time before the storm arrives |
-| Storm length `D` | 120 minutes | How long the astronaut shelters |
-| Storm multiplier `M` | 2 | Radiation during the storm relative to normal |
+| Storm length `D` | 240 minutes | Measured: the May 2024 storm stayed above 1.5 times the normal rate for about 38 hours. The model caps it at 4 hours |
+| Storm multiplier `M` | 8.0 | Measured: the mean rate over those 38 hours, relative to normal. The peak was 56 times normal |
 | Base dose factor | 0.5 | The base is a normal shielded habitat |
 | Shelter shielding factor | 0.5 | Converts blocked sky into dose, using the calibration above |
 | Open-ground blocked sky | 0.075 | The blocked fraction where the dose rate is exactly 1 (measured at sol1468, with the distant horizon from MOLA) |

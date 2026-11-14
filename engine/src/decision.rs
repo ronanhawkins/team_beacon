@@ -26,6 +26,9 @@ pub struct StormConfig {
     pub dose_multiplier: f64,
     pub no_link_penalty: f64,
     pub max_minutes_to_cover: f64,
+    /// Longest storm the measured length is allowed to set (data/site.json storm.stormMinutesCap).
+    #[serde(default)]
+    pub storm_minutes_cap: Option<f64>,
 }
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -120,7 +123,7 @@ mod tests {
     const BASE_FACTOR: f64 = 0.5;
 
     fn storm(lead: f64, limit: f64) -> StormConfig {
-        StormConfig { lead_minutes: lead, storm_minutes: 120.0, dose_multiplier: 2.0, no_link_penalty: 0.05, max_minutes_to_cover: limit }
+        StormConfig { lead_minutes: lead, storm_minutes: 120.0, dose_multiplier: 2.0, no_link_penalty: 0.05, max_minutes_to_cover: limit, storm_minutes_cap: None }
     }
 
     fn shelter(id: &str, t: f64, blocked: f64, link: bool) -> Candidate {

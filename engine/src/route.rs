@@ -44,8 +44,14 @@ pub struct PlanInputs<'a> {
     pub storm: StormConfig,
     /// Dose rate inside the base (a shielded habitat), relative to open ground.
     pub base_dose_factor: f64,
+    /// Measured quiet open-ground dose rate in microgray per hour (Curiosity RAD), when known.
+    /// Adds the microgray fields to the outputs.
+    pub dose_rate_ugy_h: Option<f64>,
     pub stops: Vec<Stop>,
 }
+
+/// The doseFraction budget is set so the largest doseFraction over every route is this.
+const LARGEST_DOSE_FRACTION: f64 = 0.9;
 
 pub struct Refuge {
     pub id: String,
@@ -359,6 +365,8 @@ pub fn run(inp: &PlanInputs, out_dir: &Path) -> Result<(), String> {
         id: String,
         minutes_late: Option<f64>,
         info: Value,
+        /// The decision's dose at the chosen site (walking, waiting and the storm), open-ground minutes.
+        storm_dose: f64,
     }
     let mut reroutes_plan: Vec<Reroute> = Vec::new();
     for p in &main_pts {
@@ -400,6 +408,7 @@ pub fn run(inp: &PlanInputs, out_dir: &Path) -> Result<(), String> {
             id: best.candidate.id.clone(),
             minutes_late: decision.minutes_late,
             info: reroute_info(&decision, &inp.storm),
+            storm_dose: decision.chosen.dose,
         });
     }
 
@@ -413,8 +422,28 @@ pub fn run(inp: &PlanInputs, out_dir: &Path) -> Result<(), String> {
         let az = if dist((x, y), target) < 0.5 { heading } else { bearing((x, y), target) };
         json!({ "id": id, "az": r(az, 1), "distance": r(metres, 1), "minutes": r(minutes, 2) })
     };
+    // Doses in minutes at the open-ground rate: the main route at the normal rate, each reroute
+    // from its main waypoint's dose at the storm multiplier. The budget makes the largest 0.9.
+    let total_minutes = main_pts.last().unwrap().minutes;
+    let main_rates: Vec<f64> = main_descs.iter().map(|d| planner::dose_rate(d.blocked, cfg)).collect();
+    let main_minutes: Vec<f64> = main_pts.iter().map(|p| p.minutes).collect();
+    let main_dose = planner::accumulate_dose(&main_rates, &main_minutes, 0.0, 1.0);
+    let mut reroute_descs: Vec<&[Desc]> = Vec::new();
+    let mut reroute_dose: Vec<Vec<f64>> = Vec::new();
+    for (k, rr) in reroutes_plan.iter().enumerate() {
+        let (d_here, d_rest) = rest.split_at(rr.pts.len());
+        rest = d_rest;
+        let rates: Vec<f64> = d_here.iter().map(|d| planner::dose_rate(d.blocked, cfg)).collect();
+        let minutes: Vec<f64> = rr.pts.iter().map(|p| p.minutes).collect();
+        reroute_dose.push(planner::accumulate_dose(&rates, &minutes, main_dose[k], inp.storm.dose_multiplier));
+        reroute_descs.push(d_here);
+    }
+    let largest = main_dose.iter().chain(reroute_dose.iter().flatten()).fold(0.0f64, |a, &b| a.max(b));
+    let budget = (largest / LARGEST_DOSE_FRACTION).max(1e-6);
+    let ugy = |dose: f64| inp.dose_rate_ugy_h.map(|rate| r(dose * rate / 60.0, 1));
+
     let waypoint = |id: String, label: &str, p: &PlanPoint, d: &Desc, heading: f64, shelter: Value, dose: f64, is_shelter: bool, science: bool| -> Value {
-        json!({
+        let mut w = json!({
             "id": id,
             "label": label,
             "pos": { "x": r(p.x, 2), "y": r(p.y, 2), "z": r(d.z, 2) },
@@ -426,19 +455,18 @@ pub fn run(inp: &PlanInputs, out_dir: &Path) -> Result<(), String> {
             "base": { "az": r(d.base_az, 1), "distance": r(d.base_dist, 1), "visible": d.base_visible },
             "shelter": shelter,
             "minutesFromStart": r(p.minutes, 2),
-            "doseFraction": r(dose, 4),
+            "doseFraction": r((dose / budget).clamp(0.0, 1.0), 4),
             "oxygenFraction": r((1.0 - p.minutes / cfg.oxygen_minutes).clamp(0.0, 1.0), 4),
             "isShelter": is_shelter,
             "isScienceStop": science,
-        })
+        });
+        if let Some(v) = ugy(dose) {
+            w["doseMicroGray"] = json!(v);
+        }
+        w
     };
 
     // Main waypoints with dose; each one's shelter is the model's choice from there.
-    let total_minutes = main_pts.last().unwrap().minutes;
-    let budget = 2.0 * total_minutes.max(1e-6);
-    let main_rates: Vec<f64> = main_descs.iter().map(|d| planner::dose_rate(d.blocked, cfg)).collect();
-    let main_minutes: Vec<f64> = main_pts.iter().map(|p| p.minutes).collect();
-    let main_dose = planner::accumulate_dose(&main_rates, &main_minutes, 0.0, 1.0, budget);
     let main_head = headings(&main_pts, 0.0);
     let mut main_json = Vec::new();
     for (i, p) in main_pts.iter().enumerate() {
@@ -462,11 +490,7 @@ pub fn run(inp: &PlanInputs, out_dir: &Path) -> Result<(), String> {
     let mut reroutes = Map::new();
     let mut info_map = Map::new();
     for (k, rr) in reroutes_plan.iter().enumerate() {
-        let (d_here, d_rest) = rest.split_at(rr.pts.len());
-        rest = d_rest;
-        let rates: Vec<f64> = d_here.iter().map(|d| planner::dose_rate(d.blocked, cfg)).collect();
-        let minutes: Vec<f64> = rr.pts.iter().map(|p| p.minutes).collect();
-        let dose = planner::accumulate_dose(&rates, &minutes, main_dose[k], inp.storm.dose_multiplier, budget);
+        let (d_here, dose) = (reroute_descs[k], &reroute_dose[k]);
         let head = headings(&rr.pts, main_head[k]);
         let target = (refuges[rr.refuge].x, refuges[rr.refuge].y);
         let end_label = match rr.kind {
@@ -486,7 +510,12 @@ pub fn run(inp: &PlanInputs, out_dir: &Path) -> Result<(), String> {
             })
             .collect();
         reroutes.insert(k.to_string(), Value::Array(list));
-        info_map.insert(k.to_string(), rr.info.clone());
+        let mut info = rr.info.clone();
+        if let (Some(planned), Some(storm)) = (ugy(main_dose[k]), ugy(rr.storm_dose)) {
+            info["plannedDoseMicroGray"] = json!(planned);
+            info["stormDoseMicroGray"] = json!(storm);
+        }
+        info_map.insert(k.to_string(), info);
     }
 
     let doc = json!({
@@ -513,7 +542,8 @@ pub fn run(inp: &PlanInputs, out_dir: &Path) -> Result<(), String> {
         .enumerate()
         .map(|(i, w)| (i, w["shelter"]["minutes"].as_f64().unwrap_or(0.0)))
         .fold((0, 0.0), |a, b| if b.1 > a.1 { b } else { a });
-    let briefing = json!({
+    let (storm_max_i, storm_max) = reroutes_plan.iter().enumerate().map(|(i, rr)| (i, rr.storm_dose)).fold((0, 0.0), |a, b| if b.1 > a.1 { b } else { a });
+    let mut briefing = json!({
         "version": 1,
         "routeLengthM": r(route_len, 1),
         "minutes": r(total_minutes, 2),
@@ -526,6 +556,15 @@ pub fn run(inp: &PlanInputs, out_dir: &Path) -> Result<(), String> {
         "shelterCount": ctx.shelter_count,
         "slopeAtBaseDeg": r(g.slope[ctx.base_cell] as f64, 1),
     });
+    if let Some(rate) = inp.dose_rate_ugy_h {
+        briefing["doseRateMicroGrayPerHour"] = json!(rate);
+        briefing["plannedDoseMicroGray"] = json!(ugy(*main_dose.last().unwrap()));
+        briefing["stormDoseMicroGrayMax"] = json!(ugy(storm_max));
+        briefing["stormDoseMaxAt"] = json!(format!("m{storm_max_i:02}"));
+        briefing["doseBudgetMicroGray"] = json!(ugy(budget));
+        briefing["stormMinutes"] = json!(inp.storm.storm_minutes);
+        briefing["stormDoseMultiplier"] = json!(inp.storm.dose_multiplier);
+    }
 
     // Write files.
     std::fs::create_dir_all(out_dir.join("layers")).map_err(|e| format!("cannot create {}: {}", out_dir.display(), e))?;

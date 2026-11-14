@@ -341,17 +341,17 @@ pub fn dose_rate(blocked: f64, cfg: &PlannerConfig) -> f64 {
     (1.0 - cfg.dose_shielding_factor * (blocked - cfg.open_blocked)).clamp(0.5, 1.05)
 }
 
-/// Dose fraction at each point along a route: starts at `start`, adds the mean rate of
-/// each leg times its minutes times `multiplier`, divided by `budget`, clamped to 0..1.
-pub fn accumulate_dose(rates: &[f64], minutes: &[f64], start: f64, multiplier: f64, budget: f64) -> Vec<f64> {
+/// Dose at each point along a route in minutes at the open-ground rate: starts at `start`,
+/// adds the mean rate of each leg times its minutes times `multiplier`.
+pub fn accumulate_dose(rates: &[f64], minutes: &[f64], start: f64, multiplier: f64) -> Vec<f64> {
     let mut out = Vec::with_capacity(rates.len());
     let mut dose = start;
     for i in 0..rates.len() {
         if i > 0 {
             let dt = (minutes[i] - minutes[i - 1]).max(0.0);
-            dose += 0.5 * (rates[i] + rates[i - 1]) * multiplier * dt / budget;
+            dose += 0.5 * (rates[i] + rates[i - 1]) * multiplier * dt;
         }
-        out.push(dose.clamp(0.0, 1.0));
+        out.push(dose);
     }
     out
 }
@@ -487,7 +487,7 @@ mod tests {
         assert!(rates.iter().all(|&r| (0.5..=1.05).contains(&r)));
         let minutes = [0.0, 1.0, 1.0, 2.5, 4.0, 4.1, 9.0];
         for mult in [1.0, 2.0] {
-            let dose = accumulate_dose(&rates, &minutes, 0.1, mult, 20.0);
+            let dose = accumulate_dose(&rates, &minutes, 0.1, mult);
             assert!(dose.windows(2).all(|w| w[1] >= w[0]), "{dose:?}");
             assert_eq!(dose[0], 0.1);
         }

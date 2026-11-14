@@ -34,6 +34,7 @@ const FAR_BIN: &str = "data/raw/far.bin";
 const MOLA_BIN: &str = "data/raw/mola.bin";
 const LAYERS_DIR: &str = "data/out/layers";
 const SITE_JSON: &str = "data/site.json";
+const RAD_CACHE: &str = "data/cache/rad_storm.json";
 
 // Settings matching referenceCheck.method in data/site.json.
 const EYE_HEIGHT_M: f64 = 1.0;
@@ -62,7 +63,25 @@ struct Site {
     planner: planner::PlannerConfig,
     planner_bounds: planner::Bounds,
     storm: decision::StormConfig,
+    /// The measured storm from data/cache/rad_storm.json, when present.
+    #[serde(skip)]
+    rad: Option<RadCache>,
 }
+
+/// The fields of data/cache/rad_storm.json (tools/fetch_rad.py) that the engine uses.
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct RadCache {
+    /// Quiet open-ground dose rate, microgray per hour.
+    baseline_rate: f64,
+    /// Minutes above 1.5 x the baseline.
+    minutes_above: f64,
+    /// Mean dose rate over those minutes, as a multiple of the baseline.
+    mean_multiplier_above: f64,
+}
+
+/// Default for storm.stormMinutesCap.
+const STORM_MINUTES_CAP: f64 = 240.0;
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -138,7 +157,31 @@ struct ReferenceCheck {
 fn load_site(root: &Path) -> Result<Site, String> {
     let path = root.join(SITE_JSON);
     let text = std::fs::read_to_string(&path).map_err(|e| format!("cannot read {}: {}", path.display(), e))?;
-    serde_json::from_str(&text).map_err(|e| format!("{}: {}", path.display(), e))
+    let mut site: Site = serde_json::from_str(&text).map_err(|e| format!("{}: {}", path.display(), e))?;
+    site.rad = load_rad(root);
+    if let Some(rad) = &site.rad {
+        site.storm.storm_minutes = rad.minutes_above.min(site.storm.storm_minutes_cap.unwrap_or(STORM_MINUTES_CAP));
+        site.storm.dose_multiplier = rad.mean_multiplier_above;
+    }
+    Ok(site)
+}
+
+/// The measured storm, or None (with a warning if the file is there but unreadable).
+/// Without it the storm settings in data/site.json are used as they are.
+fn load_rad(root: &Path) -> Option<RadCache> {
+    let path = root.join(RAD_CACHE);
+    let text = std::fs::read_to_string(&path).ok()?;
+    match serde_json::from_str::<RadCache>(&text) {
+        Ok(rad) if rad.baseline_rate > 0.0 && rad.minutes_above > 0.0 && rad.mean_multiplier_above > 0.0 => Some(rad),
+        Ok(_) => {
+            eprintln!("warning: {RAD_CACHE} has non-positive values; using the storm settings in {SITE_JSON}");
+            None
+        }
+        Err(e) => {
+            eprintln!("warning: cannot read {RAD_CACHE} ({e}); using the storm settings in {SITE_JSON}");
+            None
+        }
+    }
 }
 
 fn load_grid(root: &Path) -> Result<terrain::Grid, String> {
@@ -393,6 +436,7 @@ fn plan_inputs<'a>(site: &Site, grid: &'a terrain::Grid, far72: &'a [f32], far36
         cfg: site.planner.clone(),
         storm: site.storm,
         base_dose_factor: site.base.dose_factor,
+        dose_rate_ugy_h: site.rad.as_ref().map(|r| r.baseline_rate),
         stops,
     }
 }

@@ -95,6 +95,14 @@ Each option:
 | `reachable` | boolean | Walking minutes are within the limit to be under cover |
 | `score` | number | Modelled storm dose, raised by the no-link penalty when there is no base link. Lowest wins among reachable sites |
 
+Optional microgray fields, written when the engine has the measured Curiosity RAD storm (`data/cache/rad_storm.json`):
+
+| Field | Where | Type | Meaning |
+|---|---|---|---|
+| `doseMicroGray` | every waypoint | number | Dose so far in microgray: the same accumulated dose as `doseFraction`, times the measured quiet open-ground rate. Counts up |
+| `plannedDoseMicroGray` | each `rerouteInfo` entry | number | Dose on the planned route up to that main waypoint, microgray |
+| `stormDoseMicroGray` | each `rerouteInfo` entry | number | Modelled dose of the chosen site's choice (walking, waiting and the whole storm), microgray. The same as `chosen.dose` in microgray |
+
 ```json
 "rerouteInfo": {
   "30": {

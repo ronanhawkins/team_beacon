@@ -149,20 +149,23 @@
       "openBlocked": "Blocked-sky fraction of open ground, where the relative dose rate is 1. Computed by engine check at sol1468 (near field to 700 m plus the far field with MOLA). Was 0.06 with far.bin alone; without data/raw/mola.bin the engine's own value would no longer match this one",
       "doseShieldingFactor": "Assumption: relative dose rate = 1 - doseShieldingFactor * (blocked - openBlocked), kept between 0.5 and 1.05. Calibrated to Curiosity's measurement that about 9 more points of blocked sky cut the dose by about 5 percent. Simulated, not a dose model",
       "oxygenMinutes": "Assumption: minutes of oxygen at the start; oxygenFraction = 1 - minutes elapsed / oxygenMinutes",
-      "doseBudget": "Simulated: doseFraction is accumulated rate * minutes divided by a budget of twice the planned main-route duration at rate 1, clamped to 0..1"
+      "doseBudget": "Simulated: doseFraction is accumulated rate * minutes (times the storm multiplier on reroutes) divided by a budget chosen so the largest doseFraction over the main route and every reroute is 0.9. briefing.json gives the budget in microgray when the RAD cache exists"
     }
   },
 
   "storm": {
     "leadMinutes": 5,
-    "stormMinutes": 120,
-    "doseMultiplier": 2,
+    "stormMinutes": 240,
+    "doseMultiplier": 7.985,
+    "stormMinutesCap": 240,
     "noLinkPenalty": 0.05,
     "maxMinutesToCover": 5,
     "notes": {
       "leadMinutes": "Assumption: minutes of warning between the storm being declared and the storm arriving",
-      "stormMinutes": "Assumption: how long the storm lasts once it arrives, in minutes",
-      "doseMultiplier": "Assumption: dose rate during the storm relative to normal, applied to walking and sheltering once it arrives (and to reroute dose)",
+      "stormMinutes": "Measured: minutes the 20 May 2024 storm stayed above 1.5 x the quiet dose rate at Curiosity (RAD detector E), capped at stormMinutesCap. Measured 2308.9 minutes (still just above at the end of sol 4191's file). The engine sets this from data/cache/rad_storm.json when it exists; was 120 (assumption)",
+      "doseMultiplier": "Measured: mean dose rate over those 2308.9 minutes as a multiple of the quiet rate (6.30 microgray per hour, RAD detector E, median of sol 4186). Peak was 351.4 (x 55.7). Applied to walking and sheltering once the storm arrives (and to reroute dose). The engine sets this from data/cache/rad_storm.json when it exists; was 2 (assumption)",
+      "stormMinutesCap": "Assumption: the longest storm the measured length may set, in minutes",
+      "source": "Curiosity RAD RDR, sols 4186, 4190 and 4191, via tools/fetch_rad.py; https://pds-ppi.igpp.ucla.edu/data/MSL-M-RAD-3-RDR-V1.0/DATA/SOL_04134_04257/",
       "noLinkPenalty": "Assumption: a site without a base link scores this fraction worse (0.05 = 5 percent)",
       "maxMinutesToCover": "Hard rule. The astronaut must be under cover within this many minutes of the warning, so they are not walking in the open when the storm arrives. Normally equal to leadMinutes"
     }
