@@ -43,7 +43,7 @@ export function createScene(host, initialPoint) {
   camera.rotation.order = 'YXZ';
   scene.add(camera);
   const world = new THREE.Group(); scene.add(world);
-  let xrMode = null, needsAlignment = false, northYaw = 0, spatialValid = true;
+  let xrMode = null, needsAlignment = false, northYaw = 0, spatialValid = true, desktopHud = false;
   let yaw = -radians(55), pitch = radians(8);
   const sky = new THREE.Mesh(new THREE.SphereGeometry(90, 32, 20), new THREE.ShaderMaterial({
     side: THREE.BackSide, depthWrite: false,
@@ -87,12 +87,16 @@ export function createScene(host, initialPoint) {
   const hudTexture = new THREE.CanvasTexture(hudCanvas); hudTexture.colorSpace = THREE.SRGBColorSpace;
   const hud = new THREE.Mesh(new THREE.PlaneGeometry(1.25, .3125), new THREE.MeshBasicMaterial({ map: hudTexture, transparent: true, depthTest: false, depthWrite: false }));
   hud.position.set(0, -.42, -1.45); hud.renderOrder = 100; hud.visible = false; camera.add(hud);
+  function fitDesktopHud() {
+    const available = 2 * 1.45 * Math.tan(radians(camera.fov / 2)) * camera.aspect;
+    hud.scale.setScalar(desktopHud && !xrMode ? Math.min(1.5, available * .9 / 1.25) : 1);
+  }
   const borderPoints = [new THREE.Vector3(-.9,-.62,-1.1), new THREE.Vector3(.9,-.62,-1.1), new THREE.Vector3(.9,.62,-1.1), new THREE.Vector3(-.9,.62,-1.1)];
   const border = new THREE.LineLoop(new THREE.BufferGeometry().setFromPoints(borderPoints), new THREE.LineBasicMaterial({ color: 0xff685e, depthTest: false, transparent: true }));
   border.visible = false; border.renderOrder = 101; camera.add(border);
   let state, connection = 'connecting', dataLabel = 'SYNTHETIC DATA', hudKey = '', storm = false, routeError = '';
   function drawHud(point) {
-    const key = JSON.stringify([state, connection, dataLabel, routeError, point.name]);
+    const key = JSON.stringify([state, connection, dataLabel, routeError, point.name, desktopHud, xrMode]);
     if (key === hudKey) return; hudKey = key;
     const ctx = hudCanvas.getContext('2d'); ctx.clearRect(0,0,1536,384);
     ctx.fillStyle = storm ? '#341713ee' : '#0a1517e8'; ctx.fillRect(0,0,1536,384);
@@ -103,14 +107,14 @@ export function createScene(host, initialPoint) {
       ctx.fillStyle = '#a6bdb5'; ctx.fillText('No mission values or skyline have been confirmed.', 40, 166);
       hudTexture.needsUpdate = true; return;
     }
-    ctx.fillText(routeError ? 'REROUTE NOT IDENTIFIED · SKYLINE HIDDEN' : storm ? 'ALERT · FOLLOW SHELTER BEARING' : state.mode === 'warning' ? 'ROUTE WARNING · CHECK BASE CONTACT' : `${point.name.toUpperCase()} · ${(state.openSky * 100).toFixed(0)}% OPEN SKY`, 40, 65);
+    ctx.fillText(routeError ? 'REROUTE NOT IDENTIFIED · SKYLINE HIDDEN' : storm ? (state.minutesToShelter === 0 ? 'SHELTER REACHED · ALERT STILL ACTIVE' : 'ALERT · FOLLOW SHELTER BEARING') : state.mode === 'warning' ? 'ROUTE WARNING · CHECK SHELTER / BASE' : `${point.name.toUpperCase()} · ${(state.openSky * 100).toFixed(0)}% OPEN SKY`, 40, 65);
     const values = [[`${state.minutesToShelter.toFixed(1)} min`, 'TO SHELTER'],[state.baseLink ? 'CLEAR' : 'BLOCKED', 'BASE CONTACT'],[`${(state.oxygenFraction * 100).toFixed(0)}%`, 'OXYGEN'],[`${(state.doseFraction * 100).toFixed(1)}%`, 'DOSE BUDGET USED']];
     values.forEach(([value,label], i) => { const x=40+i*375;ctx.fillStyle='#eff7ee';ctx.font='500 54px Segoe UI';ctx.fillText(value,x,166);ctx.fillStyle='#a6bdb5';ctx.font='24px Segoe UI';ctx.fillText(label,x,212); });
     ctx.fillStyle = ['connected','local'].includes(connection) ? '#9bbaa6' : '#ffbc82'; ctx.font='26px Segoe UI';
     ctx.fillText(`${dataLabel} · ${connection === 'local' ? 'THIS BROWSER ONLY' : connection === 'connected' ? 'RELAY CONNECTED' : 'RELAY OFFLINE / VALUES MAY BE STALE'}`,40,277);
     ctx.fillStyle='#91a99e';ctx.font='23px Segoe UI';
     ctx.fillText(`Earth ${state.earthLink ? 'clear' : 'blocked'} · ${state.earthDelayMinutes} min one-way delay · ${state.sunlit ? 'Sunlit' : 'In shadow'}`,40,320);
-    ctx.fillText('Controller trigger: align this direction to site north',40,360);
+    ctx.fillText(desktopHud && !xrMode ? 'LAPTOP SIMULATION · Drag / arrow keys to look · Esc to exit preview' : 'Controller trigger: align this direction to site north',40,360);
     hudTexture.needsUpdate = true;
   }
 
@@ -150,7 +154,7 @@ export function createScene(host, initialPoint) {
     if (renderer.xr.isPresenting) return;
     const width = host.clientWidth, height = host.clientHeight;
     if (!width || !height) return;
-    camera.aspect = width / height; camera.updateProjectionMatrix(); renderer.setSize(width,height);
+    camera.aspect = width / height; camera.updateProjectionMatrix(); renderer.setSize(width,height); fitDesktopHud();
   }); resize.observe(host);
   let dragging = false, lastX=0, lastY=0;
   host.addEventListener('pointerdown', event => { dragging=true;lastX=event.clientX;lastY=event.clientY;host.setPointerCapture(event.pointerId); });
@@ -158,7 +162,7 @@ export function createScene(host, initialPoint) {
   host.addEventListener('pointerup',()=>{dragging=false;}); host.addEventListener('pointercancel',()=>{dragging=false;});
   host.addEventListener('keydown',event=>{if(['ArrowLeft','ArrowRight','ArrowUp','ArrowDown'].includes(event.key)){event.preventDefault();yaw+=(event.key==='ArrowLeft'?.12:event.key==='ArrowRight'?-.12:0);pitch=THREE.MathUtils.clamp(pitch+(event.key==='ArrowUp'?.08:event.key==='ArrowDown'?-.08:0),-.65,1.2);}});
   renderer.xr.addEventListener('sessionend',()=>{
-    xrMode=null; hud.visible=false;sky.visible=true;land.visible=spatialValid;blocked.material.opacity=.20;world.position.set(0,0,0);camera.position.set(0,0,0);
+    xrMode=null; hud.visible=desktopHud;sky.visible=true;land.visible=spatialValid;blocked.material.opacity=.20;world.position.set(0,0,0);camera.position.set(0,0,0);
     host.dispatchEvent(new CustomEvent('xr-ended'));
     const width=host.clientWidth,height=host.clientHeight;camera.aspect=width/height;camera.updateProjectionMatrix();renderer.setSize(width,height);
   });
@@ -178,6 +182,7 @@ export function createScene(host, initialPoint) {
     drawHud(current); renderer.render(scene,camera);
   });
   return {
+    setDesktopHud(enabled) { desktopHud = enabled; hud.visible = enabled || renderer.xr.isPresenting; fitDesktopHud(); },
     setWaypoint(point) { from=current;to=point;transitionStart=performance.now(); },
     setState(next, status, label, error = '') { state=next;storm=Boolean(state?.storm || state?.panic || state?.mode === 'storm');connection=status;dataLabel=label;routeError=error; },
     setSpatialValid(valid) {
@@ -191,12 +196,12 @@ export function createScene(host, initialPoint) {
       let session;
       try {
         session=await navigator.xr.requestSession(mode, { requiredFeatures: ['local'] });
-        xrMode=mode;sky.visible=mode!=='immersive-ar';land.visible=spatialValid && mode!=='immersive-ar';blocked.material.opacity=mode==='immersive-ar'?.28:.20;
+        xrMode=mode;fitDesktopHud();sky.visible=mode!=='immersive-ar';land.visible=spatialValid && mode!=='immersive-ar';blocked.material.opacity=mode==='immersive-ar'?.28:.20;
         camera.position.set(0,0,0);camera.rotation.set(0,0,0);needsAlignment=true;
         await renderer.xr.setSession(session);hud.visible=true;
       } catch(error) {
         if(session) await session.end().catch(()=>{});
-        xrMode=null;sky.visible=true;land.visible=spatialValid;hud.visible=false;
+        xrMode=null;sky.visible=true;land.visible=spatialValid;hud.visible=desktopHud;
         throw error;
       }
     },

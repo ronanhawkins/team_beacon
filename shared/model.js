@@ -109,7 +109,7 @@ function matchesSnapshot(point, state) {
   return Object.entries(expected).every(([key, value]) => typeof value === 'boolean' ? state[key] === value : Math.abs(state[key] - value) < 1e-6);
 }
 
-// v1 omits the reroute's origin. Prefer an optional additive field, then continuous
+// Current v1 includes the reroute's origin. Prefer that field, then legacy continuous
 // connection history, then an unambiguous exact match to derived waypoint values.
 // Reconnects never reuse old history or guess a skyline.
 export function resolveSelection(state, route, previous = null) {

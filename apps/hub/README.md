@@ -17,6 +17,8 @@ Plain ES modules, no build step and no libraries, so it runs offline on the hots
 
 Start the relay (see `relay/README.md`) and open `https://<laptop>:8443/hub/`.
 
+Laptop/USB rehearsal: `npm run demo` at the repository root, then `http://127.0.0.1:5174/hub/`. Quest Wi-Fi rehearsal: `Start WiFi Demo.cmd` keeps those laptop controls and adds HTTPS for the headset, with one shared state. The hub discovers `/session.json` and uses the relay's exact loaded route, including custom `WAYPOINTS` files. Restart the relay after exports. `?fake=1` deliberately runs locally so its synthetic route cannot be driven by a different live mission.
+
 Without the relay, serve the repo root with any static server and the hub runs by itself in local
 mode (other devices do not follow it):
 
@@ -119,18 +121,13 @@ Map: drag to rotate, Shift-drag or right-drag to move, scroll to zoom.
 
 ## Questions for Ronan
 
-1. **Which reroute.** The state gives `route: "reroute"` and an index, but not the `main` index it
-   left from (`rerouteFrom` in `server.js`). The hub remembers it, and after a reconnect guesses by
-   matching the state's values to the reroutes. Adding `rerouteFrom` to the state removes the guess.
-2. **Panic from the hub.** The task list gives the presenter a panic control, so the hub sends
-   `{ "type": "panic" }`, though `events.md` lists only esp and wrist as senders.
+1. **Which reroute — resolved.** The state now carries `rerouteFrom`. The hub uses this explicit identifier before its compatibility fallback for old relays, including after a reconnect.
+2. **Panic from the hub — resolved.** The current `events.md` includes hub as a panic sender.
 3. **Planner link.** No event carries the start, stops and end to the planner. The hub sends a
    proposed `{ "type": "plan", "points": [{ "x", "y", "kind": "start" | "stop" | "end" }] }`
    (ignored as an unknown event), offers the same as copyable JSON, and has "Reload route" to
    re-read the waypoint file after the engine exports.
-4. **Site file.** `data/site.json` is outside the relay's `/data/` mount, so the hub cannot read it.
-   The hub works out the base position from the waypoints' `base.az` and `base.distance`, and takes
-   the astronaut's name and the start time from `config.js`.
+4. **Site file — available.** The relay now serves `/data/site.json` explicitly. The hub still works out the base position from the waypoints' `base.az` and `base.distance`, and takes the astronaut's name and start time from `config.js`.
 5. **Science tasks and arrival photos** per stop live in the hub's `config.js` for now.
 6. **Wrist readings.** Not in `state.md` yet. The hub reads four proposed state fields and simulates
    them until the wrist sends them and the relay adds them to the state:

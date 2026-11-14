@@ -16,6 +16,21 @@ __pycache__/
 *.key
 .env
 
+# Native Unity Quest app
+apps/quest/[Ll]ibrary/
+apps/quest/[Tt]emp/
+apps/quest/[Oo]bj/
+apps/quest/[Ll]ogs/
+apps/quest/[Uu]ser[Ss]ettings/
+apps/quest/[Bb]uilds/
+apps/quest/*.csproj
+apps/quest/*.sln
+apps/quest/*.slnx
+apps/quest/.vs/
+# Meta generates machine-local development-agent connection settings.
+apps/quest/Assets/Resources/DevAgentSettings.asset
+apps/quest/Assets/Resources/DevAgentSettings.asset.meta
+
 # OS
 .DS_Store
 

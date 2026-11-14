@@ -6,6 +6,7 @@
   "engines": { "node": ">=22.12" },
   "scripts": {
     "dev": "vite --host 127.0.0.1",
+    "demo": "npm run build && node relay/server.js --local",
     "build": "vite build",
     "build:standalone": "vite build --mode standalone",
     "preview": "vite preview --host 127.0.0.1",

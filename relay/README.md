@@ -19,6 +19,12 @@ The pages and the browser socket share port 8443, so each device accepts one cer
 
 ## Run
 
+For laptop-only rehearsal, run `npm run demo` from the repo root. `node relay/server.js --local` uses HTTP + WS on **127.0.0.1:5174 only**, with the same state logic and static mounts. No certificate or ESP port is used. Override `LOCAL_PORT` if needed. The headset must already be built.
+
+For Quest over Wi-Fi, Windows users can run `Start WiFi Demo.cmd` from the root. `node relay/server.js --wifi` serves HTTPS on 8443 and a loopback HTTP mirror on 5174, both sharing the same state and clients. It requires certificates, omits the ESP port, and checks browser WebSocket origins. `RELAY_HOST` optionally binds HTTPS to one network address. The Windows launcher sets it to the Wi-Fi address. Default `npm start` retains the original HTTPS + ESP setup.
+
+`/session.json` returns `{version:1, waypoints:"/mission/waypoints.json", synthetic:boolean}`. That waypoint endpoint serves the exact in-memory route, so browser clients agree with relay state even with `WAYPOINTS` overrides or newly written disk exports. Restart the relay to adopt a new export.
+
 ```sh
 npm install
 npm run cert -- 192.168.1.20   # laptop's IP on the venue network; localhost always included

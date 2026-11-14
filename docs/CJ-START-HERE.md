@@ -1,6 +1,10 @@
 # CJ: first headset session
 
-The priority is to get the existing app visible in Quest passthrough over USB. Unity, Android Studio and an APK build are not required for the team's planned WebXR page.
+Use **Start WiFi Demo.cmd** to get the existing app into Quest passthrough without Developer Mode: connect the Quest and laptop to the same Wi-Fi, enter the printed HTTPS `/headset/` address in Quest Browser, accept its local certificate warning, then select **Enter AR**. The synced laptop hub is `http://127.0.0.1:5174/hub/`. Keep the launcher open. This is the same WebXR app; Unity, Android Studio and an APK build are not required.
+
+For laptop-only practice, **Start Laptop Demo.cmd** opens the same relay without HTTPS. Open its hub and `http://127.0.0.1:5174/headset/?helmet=1` in two tabs. Next, Storm, Panic and Reset in the hub drive the helmet preview. Drag or arrow keys look around. This checks the UI and synchronization; actual passthrough and tracking are still hardware checks.
+
+USB remains available later. Stop one launcher before starting the other because both use port 5174.
 
 ## Borrowed Quest: account setup
 
