@@ -8,6 +8,11 @@
       "label": "Base",
       "minutesFromStart": 0.0,
       "openSky": 0.924,
+      "shelter": {
+        "id": "base",
+        "label": "",
+        "minutes": 0.0
+      },
       "waypoint": "m00",
       "x": 1598.0,
       "y": 1250.0
@@ -31,6 +36,11 @@
       "label": "Quela drill site",
       "minutesFromStart": 6.6,
       "openSky": 0.815,
+      "shelter": {
+        "id": "s-1475-1497",
+        "label": "Butte M12 shelter",
+        "minutes": 0.78
+      },
       "waypoint": "m19",
       "x": 1500.4,
       "y": 1500.4
@@ -74,6 +84,11 @@
       "label": "Butte outcrop",
       "minutesFromStart": 8.71,
       "openSky": 0.871,
+      "shelter": {
+        "id": "s-1475-1497",
+        "label": "Butte M12 shelter",
+        "minutes": 2.78
+      },
       "waypoint": "m25",
       "x": 1507.7,
       "y": 1561.4
@@ -86,6 +101,11 @@
       "label": "Far point",
       "minutesFromStart": 10.47,
       "openSky": 0.903,
+      "shelter": {
+        "id": "s-1475-1497",
+        "label": "Butte M12 shelter",
+        "minutes": 4.52
+      },
       "waypoint": "m30",
       "x": 1500.0,
       "y": 1627.7

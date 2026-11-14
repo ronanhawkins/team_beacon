@@ -36,6 +36,9 @@ uses for waypoints. The header says which is which.
 | Terrain and image | `data/out/terrain/` (in the repo now) | fake terrain with the fake route, else a flat map |
 | Route | `data/out/waypoints.json` | `shared/fake/waypoints.json` |
 | Layers | `data/out/layers/meta.json` | none over real terrain; `shared/fake/layers/` with fake terrain |
+| Dose in microgray and dose rate | `doseMicroGray`, `doseRateMicroGrayPerHour` on waypoints and in the relay state (optional, `shared/state.md`) | percent of the walk budget only |
+| Space weather and weather at Gale | `data/out/briefing.json` (`shared/outputs.md`) | not shown |
+| Curiosity photos at science stops | `data/out/stops.json` and `data/out/media/` | "No arrival photo yet"; `STOP_NOTES` in `config.js` overrides |
 
 | Heart rate, SpO2, skin temperature, wristband battery | `heartRateBpm`, `spo2Fraction`, `skinTempC`, `wristBatteryFraction` in the relay state (proposed, question 6) | simulated values, labelled "simulated" (`VITALS.simulate` in `config.js`) |
 | CO2, cooling and drinking water, suit temperature, suit battery, metabolic rate | none: a model in `vitals.js` driven by heart rate | always modelled, labelled "Modelled" |
@@ -99,7 +102,9 @@ Map: drag to rotate, Shift-drag or right-drag to move, scroll to zoom.
 - **Alerts.** Any value past its limit raises a caution banner and a log line. All limits are in
   `VITALS` in `config.js`; they are demo assumptions, not medical or suit specifications.
 - **Readiness.** Each astronaut gets Fit, Marginal or Not fit for the route on the map, from their
-  condition, rest since the last walk, and weekly dose and walk time including this walk. The limits are
+  condition, rest since the last walk, and weekly dose and walk time including this walk. With the engine's
+  microgray data the weekly dose is in microgray and includes the background of living in the base; the
+  profile also shows the week if a solar storm hits during the walk (shown, not judged). The limits are
   `CREW_LIMITS` in `config.js`; they are demo assumptions, not medical limits. The assigned astronaut's
   verdict also shows under the briefing.
 - **Route history.** Lists past walks for one astronaut or everyone, plus Curiosity's real track. Picking
@@ -113,7 +118,7 @@ Map: drag to rotate, Shift-drag or right-drag to move, scroll to zoom.
 - **Events** (`events.md`): sends `next`, `back`, `goto`, `storm`, `reset` through `shared/client.js`.
 - **Waypoints** (`waypoints.md`): `main` is the route, `reroutes["N"]` is drawn when `route` is
   `"reroute"`. Science stops and shelters come from `isScienceStop` and `isShelter`.
-- **Layers** (`layers.md`): reads `meta.json` and maps pixels through each layer's `min` and `max`.
+- **Layers** (`layers.md`): reads `meta.json`, maps pixels through each layer's `min` and `max`, and places the images at `originX`, `originY`.
 - **Grid cells** (`conventions.md`): values belong to cell centres, for layers and heights alike.
 - **Terrain**: reads `terrain.json` (`heightGrid`, `textures.hub`, `parking`) and `height_750.bin`
   as described in `data/out/terrain/README.md`. It does not use `shared/terrain.js`, which needs

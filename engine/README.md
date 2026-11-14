@@ -11,3 +11,9 @@ Files that will probably live here:
 - `src/skyline.rs`: horizon elevation per azimuth
 - `src/layers.rs`: open-sky fraction, sunlight, line of sight
 - `src/export.rs`: writing files into `data/out/`
+
+## Sites
+
+No site set: Gale, from `data/site.json` and `data/raw/` into `data/out/`. `SITE=<name>` or `--site <name>` (on any
+command) uses `data/sites/<name>/site.json`, `data/raw/<name>/` and `data/out/<name>/` instead; see `data/README.md`
+for the files and the site-file sections the engine reads.

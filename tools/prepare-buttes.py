@@ -13,7 +13,11 @@ from PIL import Image
 from rasterio.enums import Resampling
 from rasterio.windows import Window, bounds as window_bounds, from_bounds as window_from_bounds
 
+from sitepaths import site_paths
+
 ROOT = Path(__file__).resolve().parents[1]
+if site_paths().name:
+    raise SystemExit('prepare-buttes.py is for Gale only: its DEM, image and 3000 m window are fixed. Run it without --site or SITE.')
 RAW = ROOT / 'data/raw'
 OUT = ROOT / 'data/out/terrain'
 DEM = 'https://planetarymaps.usgs.gov/mosaic/Mars/MSL/MSL_Gale_DEM_Mosaic_1m_v3.tif'

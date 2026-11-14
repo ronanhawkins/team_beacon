@@ -20,8 +20,11 @@ import sys
 import urllib.parse
 import urllib.request
 
+from sitepaths import site_paths
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-CACHE = os.path.join(ROOT, "data", "cache", "donki_mars.json")
+P = site_paths()  # --site <name> or SITE=<name> picks the site file for the sky time; the cache is shared by every site
+CACHE = os.path.join(P.cache_shared, "donki_mars.json")
 ENDPOINT = "https://api.nasa.gov/DONKI/WSAEnlilSimulations"
 HEADERS = {"User-Agent": "beacon-fetch/1.0"}
 
@@ -53,7 +56,7 @@ def main():
     if os.path.exists(CACHE) and "--force" not in sys.argv:
         print("%s already exists; pass --force to call DONKI again" % CACHE)
         return 0
-    with open(os.path.join(ROOT, "data", "site.json")) as f:
+    with open(P.site_json) as f:
         time_ut = json.load(f)["sky"]["timeUT"]
     sky_day = datetime.datetime.strptime(time_ut, "%Y-%m-%d %H:%M").date()
     key = os.environ.get("NASA_API_KEY", "DEMO_KEY")

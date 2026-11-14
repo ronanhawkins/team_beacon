@@ -1,0 +1,225 @@
+{
+  "refuges": [
+    {
+      "baseLink": true,
+      "blocked": 0.072,
+      "earthLink": true,
+      "id": "base",
+      "kind": "base",
+      "label": "",
+      "sunlit": true,
+      "x": 1500.0,
+      "y": 1350.0
+    },
+    {
+      "baseLink": true,
+      "blocked": 0.168,
+      "earthLink": true,
+      "id": "s-1636-1691",
+      "kind": "shelter",
+      "label": "",
+      "sunlit": true,
+      "x": 1636.0,
+      "y": 1691.0
+    },
+    {
+      "baseLink": true,
+      "blocked": 0.167,
+      "earthLink": true,
+      "id": "s-1518-1721",
+      "kind": "shelter",
+      "label": "",
+      "sunlit": true,
+      "x": 1518.0,
+      "y": 1721.0
+    },
+    {
+      "baseLink": true,
+      "blocked": 0.173,
+      "earthLink": true,
+      "id": "s-1518-1729",
+      "kind": "shelter",
+      "label": "",
+      "sunlit": true,
+      "x": 1518.0,
+      "y": 1729.0
+    },
+    {
+      "baseLink": true,
+      "blocked": 0.169,
+      "earthLink": true,
+      "id": "s-1504-1731",
+      "kind": "shelter",
+      "label": "",
+      "sunlit": true,
+      "x": 1504.0,
+      "y": 1731.0
+    },
+    {
+      "baseLink": true,
+      "blocked": 0.174,
+      "earthLink": true,
+      "id": "s-1466-1757",
+      "kind": "shelter",
+      "label": "",
+      "sunlit": true,
+      "x": 1466.0,
+      "y": 1757.0
+    },
+    {
+      "baseLink": true,
+      "blocked": 0.177,
+      "earthLink": true,
+      "id": "s-1480-1755",
+      "kind": "shelter",
+      "label": "",
+      "sunlit": true,
+      "x": 1480.0,
+      "y": 1755.0
+    },
+    {
+      "baseLink": true,
+      "blocked": 0.169,
+      "earthLink": true,
+      "id": "s-1452-1761",
+      "kind": "shelter",
+      "label": "",
+      "sunlit": true,
+      "x": 1452.0,
+      "y": 1761.0
+    },
+    {
+      "baseLink": true,
+      "blocked": 0.184,
+      "earthLink": true,
+      "id": "s-1492-1759",
+      "kind": "shelter",
+      "label": "",
+      "sunlit": true,
+      "x": 1492.0,
+      "y": 1759.0
+    },
+    {
+      "baseLink": true,
+      "blocked": 0.168,
+      "earthLink": true,
+      "id": "s-1438-1769",
+      "kind": "shelter",
+      "label": "",
+      "sunlit": true,
+      "x": 1438.0,
+      "y": 1769.0
+    },
+    {
+      "baseLink": true,
+      "blocked": 0.179,
+      "earthLink": true,
+      "id": "s-1468-1765",
+      "kind": "shelter",
+      "label": "",
+      "sunlit": true,
+      "x": 1468.0,
+      "y": 1765.0
+    },
+    {
+      "baseLink": true,
+      "blocked": 0.195,
+      "earthLink": true,
+      "id": "s-1482-1783",
+      "kind": "shelter",
+      "label": "",
+      "sunlit": true,
+      "x": 1482.0,
+      "y": 1783.0
+    },
+    {
+      "baseLink": false,
+      "blocked": 0.192,
+      "earthLink": true,
+      "id": "s-1310-1965",
+      "kind": "shelter",
+      "label": "",
+      "sunlit": true,
+      "x": 1310.0,
+      "y": 1965.0
+    },
+    {
+      "baseLink": false,
+      "blocked": 0.186,
+      "earthLink": true,
+      "id": "s-1658-1969",
+      "kind": "shelter",
+      "label": "",
+      "sunlit": true,
+      "x": 1658.0,
+      "y": 1969.0
+    },
+    {
+      "baseLink": false,
+      "blocked": 0.17,
+      "earthLink": true,
+      "id": "s-1302-1981",
+      "kind": "shelter",
+      "label": "",
+      "sunlit": true,
+      "x": 1302.0,
+      "y": 1981.0
+    },
+    {
+      "baseLink": false,
+      "blocked": 0.179,
+      "earthLink": true,
+      "id": "s-1636-1973",
+      "kind": "shelter",
+      "label": "",
+      "sunlit": true,
+      "x": 1636.0,
+      "y": 1973.0
+    },
+    {
+      "baseLink": false,
+      "blocked": 0.179,
+      "earthLink": true,
+      "id": "s-1608-1977",
+      "kind": "shelter",
+      "label": "",
+      "sunlit": true,
+      "x": 1608.0,
+      "y": 1977.0
+    },
+    {
+      "baseLink": false,
+      "blocked": 0.17,
+      "earthLink": true,
+      "id": "s-1618-1981",
+      "kind": "shelter",
+      "label": "",
+      "sunlit": true,
+      "x": 1618.0,
+      "y": 1981.0
+    },
+    {
+      "baseLink": false,
+      "blocked": 0.176,
+      "earthLink": true,
+      "id": "s-1562-1985",
+      "kind": "shelter",
+      "label": "",
+      "sunlit": true,
+      "x": 1562.0,
+      "y": 1985.0
+    },
+    {
+      "baseLink": false,
+      "blocked": 0.171,
+      "earthLink": true,
+      "id": "s-1540-1985",
+      "kind": "shelter",
+      "label": "",
+      "sunlit": true,
+      "x": 1540.0,
+      "y": 1985.0
+    }
+  ],
+  "version": 1
+}

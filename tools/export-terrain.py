@@ -127,11 +127,13 @@ def export_terrain(dtm_path, image_path, bounds, output, grid=129, texture_size=
 
 
 if __name__ == '__main__':
+    from sitepaths import site_paths
+    site = site_paths()  # --site <name> or SITE=<name>: the default output goes to data/out/<name>/
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--dtm', required=True)
     parser.add_argument('--image', required=True)
     parser.add_argument('--bounds', nargs=4, type=float, required=True)
-    parser.add_argument('--output', default='data/out/terrain.glb')
+    parser.add_argument('--output', default=f'data/out/{site.name}/terrain.glb' if site.name else 'data/out/terrain.glb')
     parser.add_argument('--grid', type=int, default=129)
     parser.add_argument('--texture-size', type=int, default=2048)
     args = parser.parse_args()

@@ -42,6 +42,8 @@ export const ITEMS = [
 
   { key: 'dose', group: 'exposure', label: 'Dose so far', unit: '% of budget', pct: true, d: 0, range: [0, 1],
     level: (v) => (v > 1 ? 'alarm' : v > 0.8 ? 'caution' : 'ok'), limit: () => 'Caution above 80% of the walk budget' },
+  { key: 'doseRate', group: 'exposure', label: 'Dose rate here', unit: 'µGy/h', d: 1, range: [0, 250], note: 'Measured quiet rate on open ground is 6.3',
+    level: (v, c) => (v > c.doseRateHigh ? 'alarm' : 'ok'), limit: (c) => `Alarm above ${c.doseRateHigh} µGy/h (a solar storm)`, line: (c) => c.doseRateHigh },
   { key: 'openSky', group: 'exposure', label: 'Open sky here', unit: '%', pct: true, d: 0, range: [0, 1], note: 'Lower is better shielded',
     level: () => 'ok', limit: () => 'Sets the dose rate' },
   { key: 'sunlit', group: 'exposure', label: 'Sunlight', unit: '', bool: ['In sunlight', 'In shadow'],
@@ -75,7 +77,7 @@ export function createVitals(c) {
     reset() { Object.assign(m, { cooling: 1, drink: 1, suitBattery: 1, co2: 2.0, suitTemp: 21.5, leak: false }); for (const k of Object.keys(hist)) hist[k].length = 0; },
 
     // Call once a second. `real` holds what the relay state carries (any may be null);
-    // `ctx` is { walking, effort 0..1, emergency, sunlit, shelterMin, oxygen, dose, openSky }.
+    // `ctx` is { walking, effort 0..1, emergency, sunlit, shelterMin, oxygen, dose, doseRate, openSky }.
     step(real, ctx) {
       const now = Date.now(), dtMin = Math.min(5, (now - last) / 60000); last = now;
       const sim = {};
@@ -115,7 +117,7 @@ export function createVitals(c) {
       rates.oxygen = load / c.oxygenMinutes;
 
       const v = { hr, spo2, skinTemp, metW, oxygen, co2: m.co2, cooling: m.cooling, drink: m.drink, suitTemp: m.suitTemp, suitBattery: m.suitBattery,
-        dose: ctx.dose, openSky: ctx.openSky, sunlit: ctx.sunlit, battery, linkAge };
+        dose: ctx.dose, doseRate: ctx.doseRate ?? null, openSky: ctx.openSky, sunlit: ctx.sunlit, battery, linkAge };
       for (const it of ITEMS) if (!it.bool) push(it.key, v[it.key]);
 
       // safety margin: the scarcest supply's minutes left at the current rate, less the minutes needed to reach shelter

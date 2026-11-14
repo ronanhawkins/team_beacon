@@ -6,7 +6,10 @@ and writes the latest 30 sols, with the feed's English disclaimer, to
 data/cache/rems.json (committed). The feed is provided by Centro de
 Astrobiologia (CAB) for outreach use; REMS science data is in the PDS.
 
-    python3 tools/fetch_rems.py [--force]
+    python3 tools/fetch_rems.py [--force] [--site <name>]
+
+With --site <name> (or SITE=<name>) it writes data/cache/<name>/rems.json, and the feed URL must be given
+as "weatherFeedUrl" in data/sites/<name>/site.json (the default URL is Curiosity's, at Gale).
 
 Standard library only.
 """
@@ -16,9 +19,15 @@ import os
 import sys
 import urllib.request
 
+from sitepaths import site_paths
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-CACHE = os.path.join(ROOT, "data", "cache", "rems.json")
+P = site_paths()
+CACHE = os.path.join(P.cache_site, "rems.json")
 URL = "https://mars.nasa.gov/rss/api/?feed=weather&category=msl&feedtype=json"
+if P.name:
+    with open(P.site_json) as _f:
+        URL = json.load(_f).get("weatherFeedUrl") or sys.exit("%s has no weatherFeedUrl; Curiosity's REMS feed is for Gale only" % P.site_json)
 HEADERS = {"User-Agent": "beacon-fetch/1.0"}
 KEEP = 30
 

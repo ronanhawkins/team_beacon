@@ -42,7 +42,7 @@ Added when the engine has the DONKI forecasts (`data/cache/donki_mars.json`):
 | `spaceWeather.may2024` | string | One line on the forecasts for the May 2024 storm |
 | `spaceWeather.source`, `windowHours` | | Where the data came from, and the window |
 
-Added when the engine has the REMS weather feed (`data/cache/rems.json`). Values are from the latest sol in the feed, which may be weeks before the sky time (`daysBeforeSkyTime`). The feed is for outreach use only (`disclaimer`). Missing values are null.
+Added when the engine has the REMS weather feed (`data/cache/rems.json`), as `latestWeatherReport`. Values are from the latest sol in the feed, which may be weeks before the sky time: `ageDays` is how many. The feed is for outreach use only (`disclaimer`). Missing values are null. The same object without `ageDays` is also written as `conditions`, its earlier name, so older readers keep working; new code should read `latestWeatherReport`. The fields below are listed as `conditions.*` and are the same in both.
 
 | Field | Type | Meaning |
 |---|---|---|
@@ -55,6 +55,19 @@ Added when the engine has the REMS weather feed (`data/cache/rems.json`). Values
 | `conditions.ls` | number | Solar longitude of that sol, degrees |
 | `conditions.skyTimeLocal` | `{lmst, ltst, ls}` | The sky time as local mean and true solar time at the site, and its solar longitude (Mars24 algorithm) |
 | `conditions.source`, `disclaimer` | string | Where the data came from, and the feed's disclaimer |
+
+## shelters.json
+
+Every refuge the planner found: the base first, then the natural shelters.
+
+| Field | Type | Meaning |
+|---|---|---|
+| `refuges[].id` | string | `"base"`, or `s-<x>-<y>` from the shelter's position in metres, stable when the shelter set changes |
+| `refuges[].label` | string | Optional name from `data/site.json` `shelterLabels`, such as `"Butte M12 shelter"`; empty for most |
+| `refuges[].kind` | string | `"base"` or `"shelter"` |
+| `refuges[].x`, `y` | number | Local metres |
+| `refuges[].blocked` | number | Blocked-sky fraction there |
+| `refuges[].baseLink`, `sunlit`, `earthLink` | boolean | As on a waypoint |
 
 ## stops.json
 
@@ -69,6 +82,7 @@ Every labelled stop of the planned walk, at its main waypoint, with Curiosity im
 | `stops[].x`, `y` | number | Local metres |
 | `stops[].minutesFromStart`, `openSky`, `baseLink` | | As on that waypoint |
 | `stops[].isScienceStop` | boolean | |
+| `stops[].shelter` | `{id, label, minutes}` | The site chosen from that stop if a storm is declared there, as on its waypoint |
 | `stops[].images` | array | Empty when there are none. Each: `nasa_id`, `title`, `date`, `description`, `credit`, `thumbnailUrl`, `page`, and `file`: the thumbnail's path relative to `data/out` (served by the relay at `/data/` + `file`) |
 
 Images come from the NASA Image and Video Library (`tools/fetch_stop_images.py`, cached in `data/cache/stop_images.json`). Credit them as given in `credit`.

@@ -66,7 +66,8 @@ fn hours_of(text: &str) -> Option<f64> {
 }
 
 /// The briefing's "conditions", and a one-line sanity check of the feed's sunset against the sky time.
-pub fn briefing(cache: &Cache, sky_time: &str, lon_east: f64) -> Result<(Value, String), String> {
+/// `cache_path` is how the cache file is named in the source line (data/cache/rems.json at Gale).
+pub fn briefing(cache: &Cache, sky_time: &str, lon_east: f64, cache_path: &str) -> Result<(Value, String), String> {
     let latest = cache.soles.first().ok_or("rems.json has no sols")?;
     let text = |k: &str| latest.get(k).and_then(|v| v.as_str()).filter(|s| !s.is_empty() && *s != "--").map(str::to_string);
     let num = |k: &str| text(k).and_then(|s| s.parse::<f64>().ok());
@@ -76,7 +77,7 @@ pub fn briefing(cache: &Cache, sky_time: &str, lon_east: f64) -> Result<(Value, 
     let days_before = earth_date.as_deref().and_then(|d| space::hours(&format!("{d} 12:00"))).map(|h| ((sky - h) / 24.0).round());
     let sunset = text("sunset");
     let conditions = json!({
-        "source": format!("Curiosity REMS weather feed, {} (data/cache/rems.json)", cache.source),
+        "source": format!("Curiosity REMS weather feed, {} ({cache_path})", cache.source),
         "disclaimer": cache.disclaimer,
         "sol": num("sol").map(|v| v as i64),
         "earthDate": earth_date,

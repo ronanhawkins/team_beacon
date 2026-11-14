@@ -1,6 +1,6 @@
 {
   "baseDoseFactor": 0.5,
-  "doseMultiplier": 7.985,
+  "doseMultiplier": 33.28,
   "noLinkPenalty": 0.05,
   "stormMinutes": 240.0,
   "version": 1,
@@ -15,24 +15,26 @@
       "results": [
         {
           "chosen": {
-            "id": "s03",
+            "id": "s-1475-1497",
             "kind": "shelter",
+            "label": "Butte M12 shelter",
             "late": true,
             "minutes": 3.42,
             "minutesLate": 3.42,
-            "score": 1747.3
+            "score": 7282.5
           },
           "limitMinutes": 0.0,
           "warningMinutes": 0.0
         },
         {
           "chosen": {
-            "id": "s03",
+            "id": "s-1475-1497",
             "kind": "shelter",
+            "label": "Butte M12 shelter",
             "late": true,
             "minutes": 3.42,
             "minutesLate": 1.42,
-            "score": 1747.9
+            "score": 7278.5
           },
           "limitMinutes": 2.0,
           "warningMinutes": 2.0
@@ -41,9 +43,10 @@
           "chosen": {
             "id": "base",
             "kind": "base",
+            "label": "",
             "late": false,
             "minutes": 3.53,
-            "score": 962.5
+            "score": 3997.9
           },
           "limitMinutes": 5.0,
           "warningMinutes": 5.0
@@ -52,9 +55,10 @@
           "chosen": {
             "id": "base",
             "kind": "base",
+            "label": "",
             "late": false,
             "minutes": 3.53,
-            "score": 965.0
+            "score": 4000.4
           },
           "limitMinutes": 10.0,
           "warningMinutes": 10.0
@@ -63,9 +67,10 @@
           "chosen": {
             "id": "base",
             "kind": "base",
+            "label": "",
             "late": false,
             "minutes": 3.53,
-            "score": 967.5
+            "score": 4002.9
           },
           "limitMinutes": 15.0,
           "warningMinutes": 15.0
@@ -84,34 +89,37 @@
       "results": [
         {
           "chosen": {
-            "id": "s03",
+            "id": "s-1475-1497",
             "kind": "shelter",
+            "label": "Butte M12 shelter",
             "late": true,
             "minutes": 0.78,
             "minutesLate": 0.78,
-            "score": 1745.4
+            "score": 7274.6
           },
           "limitMinutes": 0.0,
           "warningMinutes": 0.0
         },
         {
           "chosen": {
-            "id": "s03",
+            "id": "s-1475-1497",
             "kind": "shelter",
+            "label": "Butte M12 shelter",
             "late": false,
             "minutes": 0.78,
-            "score": 1746.8
+            "score": 7274.2
           },
           "limitMinutes": 2.0,
           "warningMinutes": 2.0
         },
         {
           "chosen": {
-            "id": "s03",
+            "id": "s-1475-1497",
             "kind": "shelter",
+            "label": "Butte M12 shelter",
             "late": false,
             "minutes": 0.78,
-            "score": 1749.5
+            "score": 7276.9
           },
           "limitMinutes": 5.0,
           "warningMinutes": 5.0
@@ -120,9 +128,10 @@
           "chosen": {
             "id": "base",
             "kind": "base",
+            "label": "",
             "late": false,
             "minutes": 6.59,
-            "score": 966.5
+            "score": 4001.9
           },
           "limitMinutes": 10.0,
           "warningMinutes": 10.0
@@ -131,9 +140,10 @@
           "chosen": {
             "id": "base",
             "kind": "base",
+            "label": "",
             "late": false,
             "minutes": 6.59,
-            "score": 969.0
+            "score": 4004.4
           },
           "limitMinutes": 15.0,
           "warningMinutes": 15.0
@@ -152,34 +162,37 @@
       "results": [
         {
           "chosen": {
-            "id": "s05",
+            "id": "s-1483-1537",
             "kind": "shelter",
+            "label": "",
             "late": true,
             "minutes": 0.99,
             "minutesLate": 0.99,
-            "score": 1905.5
+            "score": 7941.9
           },
           "limitMinutes": 0.0,
           "warningMinutes": 0.0
         },
         {
           "chosen": {
-            "id": "s06",
+            "id": "s-1555-1555",
             "kind": "shelter",
+            "label": "",
             "late": false,
             "minutes": 1.55,
-            "score": 1790.2
+            "score": 7455.1
           },
           "limitMinutes": 2.0,
           "warningMinutes": 2.0
         },
         {
           "chosen": {
-            "id": "s03",
+            "id": "s-1475-1497",
             "kind": "shelter",
+            "label": "Butte M12 shelter",
             "late": false,
             "minutes": 2.78,
-            "score": 1749.7
+            "score": 7277.1
           },
           "limitMinutes": 5.0,
           "warningMinutes": 5.0
@@ -188,9 +201,10 @@
           "chosen": {
             "id": "base",
             "kind": "base",
+            "label": "",
             "late": false,
             "minutes": 7.98,
-            "score": 967.2
+            "score": 4002.6
           },
           "limitMinutes": 10.0,
           "warningMinutes": 10.0
@@ -199,9 +213,10 @@
           "chosen": {
             "id": "base",
             "kind": "base",
+            "label": "",
             "late": false,
             "minutes": 7.98,
-            "score": 969.7
+            "score": 4005.1
           },
           "limitMinutes": 15.0,
           "warningMinutes": 15.0
@@ -220,34 +235,37 @@
       "results": [
         {
           "chosen": {
-            "id": "s21",
+            "id": "s-1441-1621",
             "kind": "shelter",
+            "label": "",
             "late": true,
             "minutes": 1.54,
             "minutesLate": 1.54,
-            "score": 1897.3
+            "score": 7907.4
           },
           "limitMinutes": 0.0,
           "warningMinutes": 0.0
         },
         {
           "chosen": {
-            "id": "s17",
+            "id": "s-1429-1607",
             "kind": "shelter",
+            "label": "",
             "late": false,
             "minutes": 1.97,
-            "score": 1870.9
+            "score": 7790.9
           },
           "limitMinutes": 2.0,
           "warningMinutes": 2.0
         },
         {
           "chosen": {
-            "id": "s03",
+            "id": "s-1475-1497",
             "kind": "shelter",
+            "label": "Butte M12 shelter",
             "late": false,
             "minutes": 4.52,
-            "score": 1749.8
+            "score": 7277.3
           },
           "limitMinutes": 5.0,
           "warningMinutes": 5.0
@@ -256,9 +274,10 @@
           "chosen": {
             "id": "base",
             "kind": "base",
+            "label": "",
             "late": false,
             "minutes": 9.73,
-            "score": 968.1
+            "score": 4003.5
           },
           "limitMinutes": 10.0,
           "warningMinutes": 10.0
@@ -267,9 +286,10 @@
           "chosen": {
             "id": "base",
             "kind": "base",
+            "label": "",
             "late": false,
             "minutes": 9.73,
-            "score": 970.6
+            "score": 4006.0
           },
           "limitMinutes": 15.0,
           "warningMinutes": 15.0

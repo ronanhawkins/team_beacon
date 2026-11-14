@@ -6,7 +6,9 @@ global MOLA mosaic (Mars Global Surveyor, 463 m per pixel) centred on the site,
 in the same projection as the Gale mosaic. Needs gdal_translate on the PATH.
 The window and command are recorded in data/site.json under "molaCrop".
 
-    python3 tools/fetch_mola.py [--force]
+    python3 tools/fetch_mola.py [--force] [--site <name>]
+
+With --site <name> (or SITE=<name>) it reads data/sites/<name>/site.json and writes data/raw/<name>/mola.bin.
 """
 import json
 import os
@@ -14,13 +16,17 @@ import shlex
 import subprocess
 import sys
 
+from sitepaths import site_paths
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+P = site_paths()
 
 
 def main():
-    with open(os.path.join(ROOT, "data", "site.json")) as f:
+    with open(P.site_json) as f:
         crop = json.load(f)["molaCrop"]
-    out = os.path.join(ROOT, "data", "raw", "mola.bin")
+    os.makedirs(P.raw, exist_ok=True)
+    out = os.path.relpath(os.path.join(P.raw, "mola.bin"), ROOT)
     if os.path.exists(out) and "--force" not in sys.argv:
         print("%s already exists; pass --force to fetch again" % out)
         return 0

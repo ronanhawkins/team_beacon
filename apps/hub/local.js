@@ -19,6 +19,8 @@ export function localRelay({ doc, onState }) {
       storm: sim.storm, panic: sim.panic, rerouteRequested: sim.rerouteRequested,
       headingDeg: wp.headingDeg, shelterBearingDeg: wp.shelter.az, minutesToShelter: wp.shelter.minutes,
       openSky: wp.openSky, doseFraction: wp.doseFraction, oxygenFraction: wp.oxygenFraction,
+      ...(wp.doseMicroGray != null && { doseMicroGray: wp.doseMicroGray }),
+      ...(wp.doseRateMicroGrayPerHour != null && { doseRateMicroGrayPerHour: wp.doseRateMicroGrayPerHour }),
       sunlit: wp.sun.visible, baseLink, earthLink: wp.earth.visible, earthDelayMinutes: EARTH_DELAY_MINUTES,
     };
   }

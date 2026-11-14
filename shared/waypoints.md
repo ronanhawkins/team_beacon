@@ -74,7 +74,8 @@ The `skyline` above is shortened. Real files always have `skylineSamples` values
 
 These fields come from the engine's storm decision (`docs/decision-model.md`). Files without them are still valid, and clients that do not use them can ignore them.
 
-- `shelter.id` on a waypoint: the id of the site chosen from that point: `"base"` or a shelter id from `data/out/shelters.json`.
+- `shelter.id` on a waypoint: the id of the site chosen from that point: `"base"` or a shelter id from `data/out/shelters.json`. A shelter id is `s-<x>-<y>`, its position in local metres rounded to the metre (for example `s-1475-1497`), so it does not change when other shelters are added or removed.
+- `shelter.label` on a waypoint, and `label` on each `rerouteInfo` option and in `shelters.json`, `decision-sweep.json` and `stops.json`: an optional name for the site, such as `"Butte M12 shelter"`. Empty for most sites. Names are set in `data/site.json` `shelterLabels`. Show the label when it is not empty, else the id.
 - `rerouteInfo` at the top level: maps a `main` index (as a string, like `reroutes`) to the decision made there.
 
 | Field | Type | Meaning |
@@ -100,13 +101,14 @@ Optional microgray fields, written when the engine has the measured Curiosity RA
 | Field | Where | Type | Meaning |
 |---|---|---|---|
 | `doseMicroGray` | every waypoint | number | Dose so far in microgray: the same accumulated dose as `doseFraction`, times the measured quiet open-ground rate. Counts up |
+| `doseRateMicroGrayPerHour` | every waypoint | number | Dose rate at that point at that time, microgray per hour. On a reroute it jumps by the storm multiplier once the storm has arrived (`docs/dose-model.md`) |
 | `plannedDoseMicroGray` | each `rerouteInfo` entry | number | Dose on the planned route up to that main waypoint, microgray |
 | `stormDoseMicroGray` | each `rerouteInfo` entry | number | Modelled dose of the chosen site's choice (walking, waiting and the whole storm), microgray. The same as `chosen.dose` in microgray |
 
 ```json
 "rerouteInfo": {
   "30": {
-    "chosen": { "id": "s04", "kind": "shelter", "minutes": 4.52, "blocked": 0.254, "baseLink": true, "reachable": true, "score": 221.7, "dose": 221.7, "late": false },
+    "chosen": { "id": "s-1475-1497", "label": "Butte M12 shelter", "kind": "shelter", "minutes": 4.52, "blocked": 0.254, "baseLink": true, "reachable": true, "score": 7277.3, "dose": 7277.3, "late": false },
     "options": [ { "...": "same fields as above, without dose and late" } ],
     "base": { "minutes": 9.73, "excludedByLimit": true }
   }

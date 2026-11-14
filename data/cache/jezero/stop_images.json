@@ -1,0 +1,89 @@
+{
+ "version": 1,
+ "source": "https://images-api.nasa.gov/search",
+ "provider": "NASA Image and Video Library",
+ "fetchedUT": "2026-11-14T17:54Z",
+ "rule": "Up to 3 per query, in the library's order: names the place, is a photograph (not a graphic, map or chart), not already kept for an earlier query",
+ "stops": {
+  "sol658": {
+   "query": "Perseverance Three Forks sample depot",
+   "results": 7,
+   "images": [
+    {
+     "nasa_id": "PIA25681",
+     "title": "Perseverance's Three Forks Sample Depot Selfie",
+     "date": "2023-01-24",
+     "description": "NASA's Perseverance Mars rover took a selfie with several of the 10 sample tubes it deposited at a sample depot it is creating within an area of Jezero Crater nicknamed \"Three Forks.\" The image was taken by the WATSON (Wide Angle Topographic Sensor for Operations and eNgineering) camera on the end of the rover's robotic arm on Jan. 22, 2023, the 684th Martian day, or sol, of the mission. The ninth tube dropped during the construction of the depot, containing the sample the science team refers to as \"Atsah,\" can be seen in front of the rover. Other sample tubes are visible in the background. In an animated GIF, the rover looks down at the \"Atsah\" sample then back at the camera. The selfie is composed of 59 individual WATSON images that were stitched together once they were sent back to Earth. The Curiosity rover takes similar selfies using a camera on its robotic arm; videos explaining how the rovers take their selfies can be found here. The depot marks a crucial milestone in the NASA-ESA (European Space Agency) Mars Sample Return campaign that aims to bring Mars samples to Earth for closer study. The depot will serve as a backup if Perseverance can't deliver its samples to a future robotic lander. A key objective for Perseverance's mission on Mars is astrobiology, including the search for signs of ancient microbial life. The rover will characterize the planet's geology and past climate, pave the way for human exploration of the Red Planet, and be the first mission to collect and cache Martian rock and regolith (broken rock and dust). Subsequent NASA missions, in cooperation with ESA (European Space Agency), would send spacecraft to Mars to collect these sealed samples from the surface and return them to Earth for in-depth analysis. The Mars 2020 Perseverance mission is part of NASA's Moon to Mars exploration approach, which includes Artemis missions to the Moon that will help prepare for human exploration of the Red Planet. Animation available at https://photojournal.jpl.nasa.gov/catalog/PIA25681",
+     "credit": "NASA/JPL-Caltech/MSSS",
+     "thumbnailUrl": "https://images-assets.nasa.gov/image/PIA25681/PIA25681~thumb.jpg",
+     "file": "media/PIA25681.jpg",
+     "page": "https://images.nasa.gov/details/PIA25681"
+    },
+    {
+     "nasa_id": "PIA25735",
+     "title": "Annotated Version of Perseverance Selfie With Sample Tubes",
+     "date": "2023-02-14",
+     "description": "NASA's Perseverance Mars rover took a selfie with nine of the 10 sample tubes it deposited at a sample depot created within an area of Jezero Crater nicknamed \"Three Forks.\" This annotated version of the selfie points out the estimated locations of those nine tubes. The ninth tube dropped during the construction of the depot, containing the sample the science team refers to as \"Atsah,\" can be seen in front of the rover. Other sample tubes are visible in the background, including \"Skyland,\" which is labeled. The image was taken by the WATSON (Wide Angle Topographic Sensor for Operations and eNgineering) camera on the end of the rover's robotic arm on Jan. 22, 2023, the 684th Martian day, or sol, of the mission. The selfie is composed of 59 individual WATSON images that were stitched together once they were sent back to Earth. The Curiosity rover takes similar selfies using a camera on its robotic arm; videos explaining how the rovers take their selfies can be found here. The depot marks a crucial milestone in the NASA-ESA (European Space Agency) Mars Sample Return campaign that aims to bring Mars samples to Earth for closer study. The depot \u2013 completed when the 10th tube was dropped on Jan. 29, 2023 \u2013 will serve as a backup if Perseverance can't deliver its samples to a future robotic lander. A key objective for Perseverance's mission on Mars is astrobiology, including the search for signs of ancient microbial life. The rover will characterize the planet's geology and past climate, pave the way for human exploration of the Red Planet, and be the first mission to collect and cache Martian rock and regolith (broken rock and dust). Subsequent NASA missions, in cooperation with ESA (European Space Agency), would send spacecraft to Mars to collect these sealed samples from the surface and return them to Earth for in-depth analysis. The Mars 2020 Perseverance mission is part of NASA's Moon to Mars exploration approach, which includes Artemis missions to the Moon that will help prepare for human exploration of the Red Planet. https://photojournal.jpl.nasa.gov/catalog/PIA25735",
+     "credit": "NASA/JPL-Caltech/MSSS",
+     "thumbnailUrl": "https://images-assets.nasa.gov/image/PIA25735/PIA25735~thumb.jpg",
+     "file": "media/PIA25735.jpg",
+     "page": "https://images.nasa.gov/details/PIA25735"
+    },
+    {
+     "nasa_id": "PIA25738",
+     "title": "WATSON's Photomontage of Mars Sample Depot",
+     "date": "2023-02-14",
+     "description": "This photomontage shows each of the sample tubes shortly after they were deposited onto the surface by NASA's Perseverance Mars rover, as viewed by the WATSON (Wide Angle Topographic Sensor for Operations and eNgineering) camera on the end of the rover's 7-foot-long (2-meter-long) robotic arm. Shown, from left, are \"Malay,\" \"Mageik,\" \"Crosswind Lake,\" \"Roubion,\" \"Coulettes,\" \"Montdenier,\" \"Bearwallow,\" \"Skyland,\" \"Atsah,\" and \"Amalik.\" Deposited from Dec. 21, 2022, to Jan. 28, 2023, these samples make up the sample depot Perseverance built at \"Three Forks,\" a location within Mars' Jezero Crater. Perseverance's sample depot is a collection of 10 sample tubes left on the Martian surface in a zig-zag pattern. These tubes represent a backup collection of rock cores and regolith (broken rock and dust) that could be recovered in the future by the NASA-ESA (European Space Agency) Mars Sample Return campaign, which aims to bring Mars samples to Earth for closer study. Perseverance will be collecting more samples on its journey that will be considered the primary samples for return, but the mission team wants to make sure backups are available in case anything happens to the rover. A key objective for Perseverance's mission on Mars is astrobiology, including the search for signs of ancient microbial life. The rover will characterize the planet's geology and past climate, pave the way for human exploration of the Red Planet, and be the first mission to collect and cache Martian rock and regolith (broken rock and dust). Subsequent NASA missions, in cooperation with ESA (European Space Agency), would send spacecraft to Mars to collect these sealed samples from the surface and return them to Earth for in-depth analysis. The Mars 2020 Perseverance mission is part of NASA's Moon to Mars exploration approach, which includes Artemis missions to the Moon that will help prepare for human exploration of the Red Planet. https://photojournal.jpl.nasa.gov/catalog/PIA25738",
+     "credit": "NASA/JPL-Caltech/MSSS",
+     "thumbnailUrl": "https://images-assets.nasa.gov/image/PIA25738/PIA25738~thumb.jpg",
+     "file": "media/PIA25738.jpg",
+     "page": "https://images.nasa.gov/details/PIA25738"
+    }
+   ],
+   "skipped": [
+    {
+     "nasa_id": "PIA25682",
+     "title": "Perseverance's Three Forks Sample Depot Map",
+     "why": "graphic, map or chart"
+    }
+   ]
+  },
+  "sol502": {
+   "query": "Perseverance delta front Jezero",
+   "results": 5,
+   "images": [
+    {
+     "nasa_id": "PIA24923",
+     "title": "Perseverance Exploring the Front of the Delta",
+     "date": "2022-09-15",
+     "description": "NASA's Perseverance rover has been investigating rocks at the front of the delta in Mars' Jezero Crater along the path indicated in this annotated image taken by the agency's Mars Reconnaissance Orbiter (MRO). The red star indicates the location of the rover in September 2022. Perseverance touched down at \"Octavia E. Butler Landing\" on the floor of Jezero Crater on Feb. 18, 2021. It reached the delta in April 2022. The delta is a fan-shaped feature where, billions of years ago, a river flowed into a lake and deposited rocks and sediments. Scientists consider the delta one of the best places on Mars to search for potential signs of ancient microbial life. The annotations show the names of some of the key features Perseverance visited, such as \"Enchanted Lake\" and \"Hogwallow Flats.\" Sample tubes already filled with rock are currently stored in the rover's Sampling and Caching System. Perseverance will deposit select samples in designated locations. MRO took this overhead image with its High Resolution Imaging Science Experiment (HiRISE) camera. A key objective for Perseverance's mission on Mars is astrobiology, including the search for signs of ancient microbial life. The rover will characterize the planet's geology and past climate, pave the way for human exploration of the Red Planet, and be the first mission to collect and cache Martian rock and regolith (broken rock and dust). Subsequent NASA missions, in cooperation with ESA (European Space Agency), would send spacecraft to Mars to collect these sealed samples from the surface and return them to Earth for in-depth analysis. The Mars 2020 Perseverance mission is part of NASA's Moon to Mars exploration approach, which includes Artemis missions to the Moon that will help prepare for human exploration of the Red Planet. https://photojournal.jpl.nasa.gov/catalog/PIA24923",
+     "credit": "NASA/JPL-Caltech/University of Arizona/USGS",
+     "thumbnailUrl": "https://images-assets.nasa.gov/image/PIA24923/PIA24923~thumb.jpg",
+     "file": "media/PIA24923.jpg",
+     "page": "https://images.nasa.gov/details/PIA24923"
+    },
+    {
+     "nasa_id": "PIA25244",
+     "title": "Potential Driving Routes for NASA's Perseverance Rover",
+     "date": "2022-09-15",
+     "description": "This annotated image highlights potential routes that NASA's Perseverance team is considering in September 2022 for the rover to drive from the front of an ancient river delta to the rim of Jezero Crater. The team will continue to investigate the Martian terrain and consider the science potential of these options before choosing the rover's route. The Perseverance team and the U.S. Geological Survey collaborated on the base map seen here, combining multiple images from the High Resolution Imaging Experiment (HiRISE) camera with color from the Compact Reconnaissance Imaging Spectrometer for Mars (CRISM), both instruments aboard NASA's Mars Reconnaissance Orbiter (MRO). The HiRISE images used span a period from 2007 to 2017. Perseverance landed on the floor of Jezero Crater on Feb. 18, 2021. The delta, which Perseverance reached in April 2022, is a fan-shaped area where an ancient river once flowed into an ancient lake and deposited rocks and sediment. A key objective for Perseverance's mission on Mars is astrobiology, including the search for signs of ancient microbial life. The rover will characterize the planet's geology and past climate, pave the way for human exploration of the Red Planet, and be the first mission to collect and cache Martian rock and regolith (broken rock and dust). Subsequent NASA missions, in cooperation with ESA (European Space Agency), would send spacecraft to Mars to collect these sealed samples from the surface and return them to Earth for in-depth analysis. The Mars 2020 Perseverance mission is part of NASA's Moon to Mars exploration approach, which includes Artemis missions to the Moon that will help prepare for human exploration of the Red Planet. https://photojournal.jpl.nasa.gov/catalog/PIA25244",
+     "credit": "NASA/JPL-Caltech/University of Arizona/USGS/JHU-APL",
+     "thumbnailUrl": "https://images-assets.nasa.gov/image/PIA25244/PIA25244~thumb.jpg",
+     "file": "media/PIA25244.jpg",
+     "page": "https://images.nasa.gov/details/PIA25244"
+    },
+    {
+     "nasa_id": "PIA24816",
+     "title": "Perseverance Rover's View of South S\u00e9\u00edtah",
+     "date": "2021-10-15",
+     "description": "This mosaic features a rover-eye view of the \"South S\u00e9\u00edtah\" geologic unit of Jezero Crater. Composed of 84 enhanced-color images that were later stitched together, the mosaic was taken on Sept. 12, 2021 (the 201st Martian day, or sol, of the mission), by the Mastcam-Z imager as the rover was parked on an elevated overlook just outside its entry point into South S\u00e9\u00edtah. An annotated version of this image (Figure 1) indicates the location of several prominent geologic features. At the top left and running about a third of the way to the center of the image is a portion of the delta front, a river delta that billions of years ago fed the lake at Jezero Crater. Below and to the right of that is a ridge nicknamed \"Faillefeu\" (after a medieval abbey in the French Alps). Farther to the right, at the top of the image is the distant peak called \"Santa Cruz.\" While not a planned destination of the rover, Santa Cruz is geologically interesting since it has mineral signatures \u2013 seen both from orbit and by the rover (from its landing site) \u2013 consistent with alteration minerals, primarily clays. Near the top at the far right is a portion of the route Perseverance took to get to this location. At the time, Perseverance was traveling south, skirting the outside of the S\u00e9\u00edtah geologic unit. To the right (and out of frame), Perseverance would take a hard right and head northwest along a ridgeline just outside of S\u00e9\u00edtah. The Mastcam-Z investigation is led and operated by Arizona State University in Tempe, working in collaboration with Malin Space Science Systems in San Diego, California, on the design, fabrication, testing, and operation of the cameras, and in collaboration with the Neils Bohr Institute of the University of Copenhagen on the design, fabrication, and testing of the calibration targets. A key objective for Perseverance's mission on Mars is astrobiology, including the search for signs of ancient microbial life. The rover will characterize the planet's geology and past climate, pave the way for human exploration of the Red Planet, and be the first mission to collect and cache Martian rock and regolith (broken rock and dust). Subsequent NASA missions, in cooperation with ESA (European Space Agency), would send spacecraft to Mars to collect these sealed samples from the surface and return them to Earth for in-depth analysis. The Mars 2020 Perseverance mission is part of NASA's Moon to Mars exploration approach, which includes Artemis missions to the Moon that will help prepare for human exploration of the Red Planet. https://photojournal.jpl.nasa.gov/catalog/PIA24816",
+     "credit": "NASA/JPL-Caltech/ASU/MSSS",
+     "thumbnailUrl": "https://images-assets.nasa.gov/image/PIA24816/PIA24816~thumb.jpg",
+     "file": "media/PIA24816.jpg",
+     "page": "https://images.nasa.gov/details/PIA24816"
+    }
+   ],
+   "skipped": []
+  }
+ }
+}

@@ -6,6 +6,7 @@ use std::time::Instant;
 use rayon::prelude::*;
 use serde_json::{json, Map, Value};
 
+use crate::dose;
 use crate::decision::{self, Candidate, Decision, Kind, Scored, StormConfig};
 use crate::layers::{self, Base};
 use crate::planner::{self, Bounds, PlanGrid, PlannerConfig, RefugeField, SiteSky};
@@ -53,14 +54,22 @@ pub struct PlanInputs<'a> {
     pub conditions: Option<Value>,
     /// Images per stop id (data/cache/stop_images.json "stops"), when known.
     pub stop_images: Option<Value>,
+    /// Labels for the shelter nearest each point: (x, y, label), from data/site.json shelterLabels.
+    pub shelter_labels: Vec<(f64, f64, String)>,
     pub stops: Vec<Stop>,
+    /// The square the map layers cover (site file `layersRegion`); the minutesToShelter layer uses it too.
+    pub region: layers::Region,
 }
 
 /// The doseFraction budget is set so the largest doseFraction over every route is this.
 const LARGEST_DOSE_FRACTION: f64 = 0.9;
 
 pub struct Refuge {
+    /// "base", or "s-<x>-<y>" from the shelter's position rounded to the metre, so it does not change
+    /// when other shelters appear or disappear.
     pub id: String,
+    /// Optional name from data/site.json shelterLabels; empty for most shelters.
+    pub label: String,
     pub x: f64,
     pub y: f64,
     pub cell: usize,
@@ -220,21 +229,38 @@ pub fn prepare(inp: &PlanInputs) -> Result<Context, String> {
         "Shelters found: {} (blocked >= {} + {} = {:.3}, slope <= {} deg, groups of 3+ cells)",
         shelter_cells.len(), cfg.open_blocked, cfg.shelter_extra_blocked, cfg.open_blocked + cfg.shelter_extra_blocked, cfg.shelter_max_slope_deg
     );
-    if shelter_cells.len() < 4 || shelter_cells.len() > 40 {
+    let [lo, hi] = cfg.expected_shelter_count;
+    if shelter_cells.len() < lo || shelter_cells.len() > hi {
         return Err(format!(
-            "{} shelters is outside the expected 4 to 40. Stopping without tuning the threshold; change the planner values in data/site.json deliberately",
+            "{} shelters is outside the expected {lo} to {hi} (planner.expectedShelterCount). Stopping without tuning the threshold; change the planner values in the site file deliberately",
             shelter_cells.len()
         ));
     }
     let (base_cell, base_pt, _) = snap(&g, inp.base.x, inp.base.y)?;
-    let mut refuges = vec![Refuge { id: "base".into(), x: base_pt.0, y: base_pt.1, cell: base_cell, is_base: true }];
-    for (k, &c) in shelter_cells.iter().enumerate() {
+    let mut refuges = vec![Refuge { id: "base".into(), label: String::new(), x: base_pt.0, y: base_pt.1, cell: base_cell, is_base: true }];
+    for &c in &shelter_cells {
         let (x, y) = g.centre(c);
-        refuges.push(Refuge { id: format!("s{:02}", k + 1), x, y, cell: c, is_base: false });
+        let id = shelter_id(x, y);
+        if refuges.iter().any(|rf| rf.id == id) {
+            return Err(format!("two shelters round to the same id {id}"));
+        }
+        refuges.push(Refuge { id, label: String::new(), x, y, cell: c, is_base: false });
+    }
+    for (lx, ly, label) in &inp.shelter_labels {
+        let nearest = refuges.iter_mut().filter(|rf| !rf.is_base).min_by(|a, b| dist((a.x, a.y), (*lx, *ly)).total_cmp(&dist((b.x, b.y), (*lx, *ly))));
+        if let Some(rf) = nearest {
+            println!("Shelter {} labelled {label:?} ({:.1} m from ({lx}, {ly}))", rf.id, dist((rf.x, rf.y), (*lx, *ly)));
+            rf.label = label.clone();
+        }
     }
     let sources: Vec<(usize, f64)> = refuges.iter().map(|rf| (rf.cell, 0.0)).collect();
     let nearest = planner::refuge_field(&g, &sources, cfg);
     Ok(Context { g, refuges, base_cell, nearest, shelter_count: shelter_cells.len() })
+}
+
+/// A shelter's id from its position: "s-1475-1497" for (1475.0, 1497.0), rounded to the metre.
+pub fn shelter_id(x: f64, y: f64) -> String {
+    format!("s-{}-{}", x.round() as i64, y.round() as i64)
 }
 
 /// Candidate sites from a position: the base and every shelter, with walking minutes.
@@ -251,13 +277,14 @@ pub fn options_from(ctx: &Context, inp: &PlanInputs, x: f64, y: f64) -> Result<O
         let blocked = g.blocked[rf.cell] as f64;
         candidates.push(Candidate {
             id: rf.id.clone(),
+            label: rf.label.clone(),
             kind: if rf.is_base { Kind::Base } else { Kind::Shelter },
             t,
             blocked,
             f: if rf.is_base {
                 inp.base_dose_factor
             } else {
-                decision::site_factor(blocked, inp.cfg.dose_shielding_factor, inp.cfg.open_blocked)
+                dose::site_factor(blocked, inp.cfg.dose_shielding_factor, inp.cfg.open_blocked)
             },
             base_link: rf.is_base || g.base_link[rf.cell],
         });
@@ -272,7 +299,7 @@ pub fn options_from(ctx: &Context, inp: &PlanInputs, x: f64, y: f64) -> Result<O
 fn option_json(s: &Scored) -> Value {
     let c = &s.candidate;
     json!({
-        "id": c.id, "kind": c.kind.as_str(), "minutes": r(c.t, 2), "blocked": r(c.blocked, 3),
+        "id": c.id, "label": c.label, "kind": c.kind.as_str(), "minutes": r(c.t, 2), "blocked": r(c.blocked, 3),
         "baseLink": c.base_link, "reachable": s.reachable, "score": r(s.score, 1),
     })
 }
@@ -298,19 +325,23 @@ pub fn print_table(d: &Decision, storm: &StormConfig) {
         "Lead {} min, limit {} min to cover, storm {} min, multiplier {}, no-link penalty {}\n",
         storm.lead_minutes, storm.max_minutes_to_cover, storm.storm_minutes, storm.dose_multiplier, storm.no_link_penalty
     );
-    println!("  {:<6} {:<8} {:>7} {:>8} {:>6} {:>5} {:>6} {:>8} {:>8} {:>8} {:>8} {:>8}", "id", "kind", "t min", "blocked", "f", "link", "in time", "walking", "waiting", "storm", "dose", "score");
+    println!("  {:<12} {:<8} {:>7} {:>8} {:>6} {:>5} {:>6} {:>8} {:>8} {:>8} {:>8} {:>8}", "id", "kind", "t min", "blocked", "f", "link", "in time", "walking", "waiting", "storm", "dose", "score");
     for s in &d.ranked {
         let c = &s.candidate;
         let mark = if c.id == d.chosen.candidate.id { ">" } else { " " };
         println!(
-            "{mark} {:<6} {:<8} {:>7.2} {:>8.3} {:>6.3} {:>5} {:>6} {:>8.1} {:>8.1} {:>8.1} {:>8.1} {:>8.1}",
+            "{mark} {:<12} {:<8} {:>7.2} {:>8.3} {:>6.3} {:>5} {:>6} {:>8.1} {:>8.1} {:>8.1} {:>8.1} {:>8.1}",
             c.id, c.kind.as_str(), c.t, c.blocked, c.f, if c.base_link { "yes" } else { "-" }, if s.reachable { "yes" } else { "-" },
             s.walking, s.waiting, s.storm, s.dose, s.score
         );
     }
     match d.minutes_late {
         Some(late) => println!("\nNothing reachable within {} min: nearest is {}, {:.2} min late", storm.max_minutes_to_cover, d.chosen.candidate.id, late),
-        None => println!("\nChosen: {} ({}), {:.2} min", d.chosen.candidate.id, d.chosen.candidate.kind.as_str(), d.chosen.candidate.t),
+        None => {
+            let c = &d.chosen.candidate;
+            let label = if c.label.is_empty() { String::new() } else { format!(" \"{}\"", c.label) };
+            println!("\nChosen: {}{label} ({}), {:.2} min", c.id, c.kind.as_str(), c.t)
+        }
     }
 }
 
@@ -424,31 +455,40 @@ pub fn run(inp: &PlanInputs, out_dir: &Path) -> Result<(), String> {
     let (main_descs, mut rest) = (&descs[..main_pts.len()], &descs[main_pts.len()..]);
 
     let near_refuge = |x: f64, y: f64| refuges.iter().any(|rf| dist((x, y), (rf.x, rf.y)) <= SHELTER_RADIUS_M);
-    let shelter_json = |id: &str, x: f64, y: f64, target: (f64, f64), metres: f64, minutes: f64, heading: f64| -> Value {
+    let shelter_json = |id: &str, label: &str, x: f64, y: f64, target: (f64, f64), metres: f64, minutes: f64, heading: f64| -> Value {
         let az = if dist((x, y), target) < 0.5 { heading } else { bearing((x, y), target) };
-        json!({ "id": id, "az": r(az, 1), "distance": r(metres, 1), "minutes": r(minutes, 2) })
+        json!({ "id": id, "label": label, "az": r(az, 1), "distance": r(metres, 1), "minutes": r(minutes, 2) })
     };
     // Doses in minutes at the open-ground rate: the main route at the normal rate, each reroute
     // from its main waypoint's dose at the storm multiplier. The budget makes the largest 0.9.
     let total_minutes = main_pts.last().unwrap().minutes;
     let main_rates: Vec<f64> = main_descs.iter().map(|d| planner::dose_rate(d.blocked, cfg)).collect();
     let main_minutes: Vec<f64> = main_pts.iter().map(|p| p.minutes).collect();
-    let main_dose = planner::accumulate_dose(&main_rates, &main_minutes, 0.0, 1.0);
+    let main_dose = dose::accumulate(&main_rates, &main_minutes, 0.0, None);
     let mut reroute_descs: Vec<&[Desc]> = Vec::new();
     let mut reroute_dose: Vec<Vec<f64>> = Vec::new();
+    let mut reroute_rates: Vec<Vec<f64>> = Vec::new();
+    // A reroute starts when the storm is declared at its main waypoint; the storm arrives leadMinutes later.
+    let reroute_storm = |k: usize| dose::Storm {
+        arrival: main_pts[k].minutes + inp.storm.lead_minutes,
+        length: inp.storm.storm_minutes,
+        multiplier: inp.storm.dose_multiplier,
+    };
     for (k, rr) in reroutes_plan.iter().enumerate() {
         let (d_here, d_rest) = rest.split_at(rr.pts.len());
         rest = d_rest;
         let rates: Vec<f64> = d_here.iter().map(|d| planner::dose_rate(d.blocked, cfg)).collect();
         let minutes: Vec<f64> = rr.pts.iter().map(|p| p.minutes).collect();
-        reroute_dose.push(planner::accumulate_dose(&rates, &minutes, main_dose[k], inp.storm.dose_multiplier));
+        reroute_dose.push(dose::accumulate(&rates, &minutes, main_dose[k], Some(&reroute_storm(k))));
+        reroute_rates.push(rates);
         reroute_descs.push(d_here);
     }
     let largest = main_dose.iter().chain(reroute_dose.iter().flatten()).fold(0.0f64, |a, &b| a.max(b));
     let budget = (largest / LARGEST_DOSE_FRACTION).max(1e-6);
-    let ugy = |dose: f64| inp.dose_rate_ugy_h.map(|rate| r(dose * rate / 60.0, 1));
+    let ugy = |d: f64| inp.dose_rate_ugy_h.map(|rate| r(dose::micro_gray(d, rate), 3));
 
-    let waypoint = |id: String, label: &str, p: &PlanPoint, d: &Desc, heading: f64, shelter: Value, dose: f64, is_shelter: bool, science: bool| -> Value {
+    // `rate` is the relative dose rate at the point: its site factor times the storm multiplier then.
+    let waypoint = |id: String, label: &str, p: &PlanPoint, d: &Desc, heading: f64, shelter: Value, dose: f64, rate: f64, is_shelter: bool, science: bool| -> Value {
         let mut w = json!({
             "id": id,
             "label": label,
@@ -466,8 +506,9 @@ pub fn run(inp: &PlanInputs, out_dir: &Path) -> Result<(), String> {
             "isShelter": is_shelter,
             "isScienceStop": science,
         });
-        if let Some(v) = ugy(dose) {
+        if let (Some(v), Some(quiet)) = (ugy(dose), inp.dose_rate_ugy_h) {
             w["doseMicroGray"] = json!(v);
+            w["doseRateMicroGrayPerHour"] = json!(r(rate * quiet, 2));
         }
         w
     };
@@ -485,8 +526,9 @@ pub fn run(inp: &PlanInputs, out_dir: &Path) -> Result<(), String> {
             p,
             &main_descs[i],
             main_head[i],
-            shelter_json(&rr.id, p.x, p.y, target, rr.remaining_m[0], rr.total_minutes, main_head[i]),
+            shelter_json(&rr.id, &refuges[rr.refuge].label, p.x, p.y, target, rr.remaining_m[0], rr.total_minutes, main_head[i]),
             main_dose[i],
+            main_rates[i],
             near_refuge(p.x, p.y),
             stop.is_some_and(|s| s.science),
         ));
@@ -511,8 +553,8 @@ pub fn run(inp: &PlanInputs, out_dir: &Path) -> Result<(), String> {
             .map(|(j, p)| {
                 let last = j == rr.pts.len() - 1;
                 let left = (rr.total_minutes - (p.minutes - start_minutes)).max(0.0);
-                let shelter = shelter_json(&rr.id, p.x, p.y, target, if last { 0.0 } else { rr.remaining_m[j] }, if last { 0.0 } else { left }, head[j]);
-                waypoint(format!("r{k:02}-{j:02}"), if last { end_label } else { "" }, p, &d_here[j], head[j], shelter, dose[j], last || near_refuge(p.x, p.y), false)
+                let shelter = shelter_json(&rr.id, &refuges[rr.refuge].label, p.x, p.y, target, if last { 0.0 } else { rr.remaining_m[j] }, if last { 0.0 } else { left }, head[j]);
+                waypoint(format!("r{k:02}-{j:02}"), if last { end_label } else { "" }, p, &d_here[j], head[j], shelter, dose[j], reroute_rates[k][j] * reroute_storm(k).at(p.minutes), last || near_refuge(p.x, p.y), false)
             })
             .collect();
         reroutes.insert(k.to_string(), Value::Array(list));
@@ -533,7 +575,7 @@ pub fn run(inp: &PlanInputs, out_dir: &Path) -> Result<(), String> {
         .iter()
         .map(|rf| {
             json!({
-                "id": rf.id, "kind": if rf.is_base { "base" } else { "shelter" },
+                "id": rf.id, "label": rf.label, "kind": if rf.is_base { "base" } else { "shelter" },
                 "x": r(rf.x, 2), "y": r(rf.y, 2), "blocked": r(g.blocked[rf.cell] as f64, 3),
                 "baseLink": rf.is_base || g.base_link[rf.cell], "sunlit": g.sunlit[rf.cell], "earthLink": g.earth_link[rf.cell],
             })
@@ -575,7 +617,11 @@ pub fn run(inp: &PlanInputs, out_dir: &Path) -> Result<(), String> {
         briefing["spaceWeather"] = sw.clone();
     }
     if let Some(c) = &inp.conditions {
+        // "conditions" is the earlier name, kept so existing readers still work.
         briefing["conditions"] = c.clone();
+        let mut report = c.clone();
+        report["ageDays"] = c["daysBeforeSkyTime"].clone();
+        briefing["latestWeatherReport"] = report;
     }
 
     // Write files.
@@ -601,12 +647,13 @@ pub fn run(inp: &PlanInputs, out_dir: &Path) -> Result<(), String> {
             Some(json!({
                 "id": s.id, "label": s.label, "waypoint": w["id"], "x": w["pos"]["x"], "y": w["pos"]["y"],
                 "minutesFromStart": w["minutesFromStart"], "openSky": w["openSky"], "baseLink": w["base"]["visible"],
+                "shelter": { "id": w["shelter"]["id"], "label": w["shelter"]["label"], "minutes": w["shelter"]["minutes"] },
                 "isScienceStop": s.science, "images": images,
             }))
         })
         .collect();
     write("stops.json", &json!({ "version": 1, "stops": stops_json }))?;
-    write_minutes_layer(g, field, &out_dir.join("layers"))?;
+    write_minutes_layer(g, field, &inp.region, &out_dir.join("layers"))?;
 
     // Report.
     println!("Main route: {} legs, {} smoothed points put back on passable ground; {} waypoints; {} reroutes; done in {:.2} s\n",
@@ -633,12 +680,12 @@ pub fn run(inp: &PlanInputs, out_dir: &Path) -> Result<(), String> {
     }
 
     println!("\nStorm choice from every main waypoint (limit {} min to cover)", inp.storm.max_minutes_to_cover);
-    println!("  {:<4} {:<17} {:<6} {:<8} {:>7} {:>9}", "wp", "label", "site", "kind", "minutes", "base min");
+    println!("  {:<4} {:<17} {:<12} {:<8} {:>7} {:>9}", "wp", "label", "site", "kind", "minutes", "base min");
     for (i, rr) in reroutes_plan.iter().enumerate() {
         let base_min = rr.info["base"]["minutes"].as_f64().unwrap_or(f64::NAN);
         let late = rr.minutes_late.map_or(String::new(), |l| format!("  LATE by {l:.2} min"));
         println!(
-            "  m{i:02}  {:<17} {:<6} {:<8} {:>7.2} {:>9.2}{late}",
+            "  m{i:02}  {:<17} {:<12} {:<8} {:>7.2} {:>9.2}{late}",
             main_json[i]["label"].as_str().unwrap_or(""), rr.id, rr.kind.as_str(), rr.total_minutes, base_min
         );
     }
@@ -650,11 +697,11 @@ pub fn run(inp: &PlanInputs, out_dir: &Path) -> Result<(), String> {
 
 /// minutesToShelter at layer resolution: plain walking minutes to the nearest refuge of any kind.
 /// Cells outside the planner bounds (or unreachable) get the maximum.
-fn write_minutes_layer(g: &PlanGrid, field: &RefugeField, dir: &Path) -> Result<(), String> {
-    let n = layers::CELLS;
+fn write_minutes_layer(g: &PlanGrid, field: &RefugeField, region: &layers::Region, dir: &Path) -> Result<(), String> {
+    let n = region.cells;
     let bytes: Vec<u8> = (0..n * n)
         .map(|i| {
-            let (x, y) = layers::cell_centre(i % n, i / n);
+            let (x, y) = region.cell_centre(i % n, i / n);
             let minutes = g.cell_at(x, y).map(|c| field.minutes[c]).filter(|m| m.is_finite()).unwrap_or(MINUTES_LAYER_MAX);
             ((minutes / MINUTES_LAYER_MAX).clamp(0.0, 1.0) * 255.0).round() as u8
         })
@@ -669,12 +716,19 @@ fn write_minutes_layer(g: &PlanGrid, field: &RefugeField, dir: &Path) -> Result<
         json!({ "file": "minutesToShelter.png", "min": 0.0, "max": MINUTES_LAYER_MAX,
                 "validBounds": { "xMin": b.x_min, "xMax": b.x_max, "yMin": b.y_min, "yMax": b.y_max } }),
     );
-    layers::update_meta(dir, entry)
+    layers::update_meta(dir, region, entry)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn shelter_ids_come_from_position() {
+        assert_eq!(shelter_id(1475.0, 1497.0), "s-1475-1497");
+        assert_eq!(shelter_id(1474.6, 1497.4), "s-1475-1497");
+        assert_ne!(shelter_id(1475.0, 1497.0), shelter_id(1477.0, 1497.0)); // neighbouring 2 m cells differ
+    }
 
     #[test]
     fn resample_keeps_ends_and_spacing() {
