@@ -1,0 +1,6 @@
+# Unity writes empty YAML values with a space after the colon.
+apps/quest/**/*.asset whitespace=-blank-at-eol
+apps/quest/**/*.meta whitespace=-blank-at-eol
+apps/quest/**/*.unity whitespace=-blank-at-eol
+# Preserve the bundled TextMesh Pro resources exactly as Unity distributes them.
+"apps/quest/Assets/TextMesh Pro/**" -whitespace

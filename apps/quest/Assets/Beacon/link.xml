@@ -1,0 +1,10 @@
+<linker>
+  <assembly fullname="Assembly-CSharp">
+    <type fullname="Beacon.MissionState" preserve="all" />
+    <type fullname="Beacon.MissionSession" preserve="all" />
+    <type fullname="Beacon.RouteDocument" preserve="all" />
+    <type fullname="Beacon.Waypoint" preserve="all" />
+    <type fullname="Beacon.SitePosition" preserve="all" />
+    <type fullname="Beacon.Shelter" preserve="all" />
+  </assembly>
+</linker>
