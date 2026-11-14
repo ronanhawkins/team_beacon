@@ -145,9 +145,10 @@ export function createMap(glCanvas, ovCanvas, { terrain: T, sun, exaggeration = 
     // Images have row 0 at the north edge and cover the whole crop, with samples at pixel centres (shared/conventions.md).
     setOrtho(image) { upload(0, image, true); hasOrtho = 1; },
     // domain = [lo, hi] as fractions of the 0..255 pixel range that the colour ramp spans.
-    // widthM, heightM = ground the layer images cover, measured from the south-west origin.
-    setLayer(i, image, { domain, stops, widthM = T.W, heightM = T.H }) {
-      upload(i + 1, image, false); uvLayer = [T.W / widthM, T.H / heightM, 0, 1 - T.H / heightM];
+    // widthM, heightM = ground the layer images cover; originX, originY = local metres of their south-west
+    // corner (meta.json, shared/layers.md; 0 when absent). vUV runs 0..1 east and 0..1 from the north edge.
+    setLayer(i, image, { domain, stops, widthM = T.W, heightM = T.H, originX = 0, originY = 0 }) {
+      upload(i + 1, image, false); uvLayer = [T.W / widthM, T.H / heightM, -originX / widthM, 1 + (originY - T.H) / heightM];
       Object.assign(layers[i], { mode: 1, dom: domain || [0, 1], c: stops || layers[i].c });
     },
     setLayerOn(i, on) { layers[i].target = on ? 1 : 0; },

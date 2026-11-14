@@ -7,7 +7,8 @@ const DATA = location.pathname.startsWith('/apps/hub') ? '/data/out/' : '/data/'
 export const CONFIG = {
   // Engine exports. The hub uses each real file when it exists and the fake one otherwise,
   // the same rule the relay uses for waypoints. Add ?fake=1 to the address to force everything fake.
-  REAL: { waypoints: DATA + 'waypoints.json', layers: DATA + 'layers/', terrain: DATA + 'terrain/' },
+  REAL: { waypoints: DATA + 'waypoints.json', layers: DATA + 'layers/', terrain: DATA + 'terrain/',
+    briefing: DATA + 'briefing.json', stops: DATA + 'stops.json', media: DATA },
   FAKE: { waypoints: '/shared/fake/waypoints.json', layers: '/shared/fake/layers/', terrain: './dev/fake-terrain/' },
 
   // Relay socket. null = shared/client.js's default, wss://<this page's host>/ws.
@@ -35,7 +36,7 @@ export const CONFIG = {
   LAYERS: [
     { id: 'exposure', label: 'Radiation exposure', domain: [0.60, 0.97],
       stops: [[0.16, 0.30, 0.95, 0.92], [0.10, 0.78, 0.74, 0.62], [0.10, 0.78, 0.74, 0.0]],
-      lo: 'Sheltered', hi: 'Open sky', source: 'Open-sky fraction from orbiter elevation' },
+      lo: 'Sheltered', hi: 'Open sky', source: 'Open-sky fraction from orbiter elevation; the dose rate rises with it' },
     { id: 'sunlight', label: 'Sunlight', domain: [0, 1],
       stops: [[0.01, 0.02, 0.06, 0.72], [0.01, 0.02, 0.06, 0.35], [0, 0, 0, 0]],
       lo: 'In shadow', hi: 'Sunlit', source: 'Sun position on orbiter elevation' },
@@ -68,6 +69,7 @@ export const CONFIG = {
     hrHigh: 150, hrAlarm: 175,                  // bpm
     spo2Low: 0.92, spo2Alarm: 0.88,             // fraction
     skinTempHigh: 37.0,                         // °C
+    doseRateHigh: 20,                           // microgray per hour: about 3 x Curiosity's quiet open-ground rate (6.3); a storm reads about 200
     restHr: 70, restW: 120, wPerBpm: 4.5,       // metabolic rate estimate: restW at restHr, plus wPerBpm per beat above it
     nominalW: 300, metHighW: 500,               // W. Supplies below last their full time at nominalW
     oxygenMinutes: 480, coolingMinutes: 480, drinkMinutes: 480, suitBatteryMinutes: 480,
@@ -80,11 +82,15 @@ export const CONFIG = {
   },
 
   // Readiness check for the planned walk. All four are assumptions for the demo, not medical limits.
-  //   weeklyDose: dose allowed in seven days, in walk budgets (a doseFraction of 1 is one budget)
+  //   weeklyDoseMicroGray: absorbed dose allowed in seven days, microgray, counting the background dose of
+  //     living in the base (habitatMicroGrayPerDay) plus every walk. Used when the route carries microgray.
+  //   habitatMicroGrayPerDay: 6.3 microgray per hour measured by Curiosity on open ground, x 0.5 base
+  //     shielding (data/site.json base.doseFactor), x 24 hours
+  //   weeklyDose: the same limit for routes without microgray, in walk budgets (a doseFraction of 1 is one budget)
   //   weeklyWalkMin: walking minutes allowed in seven days
   //   minRestHours: rest wanted since the last walk
   //   marginalAt: fraction of a limit at which the verdict becomes "marginal"
-  CREW_LIMITS: { weeklyDose: 3.0, weeklyWalkMin: 90, minRestHours: 12, marginalAt: 0.8 },
+  CREW_LIMITS: { weeklyDoseMicroGray: 1000, habitatMicroGrayPerDay: 75.6, weeklyDose: 3.0, weeklyWalkMin: 90, minRestHours: 12, marginalAt: 0.8 },
 
   PLAN_TIMEOUT_MS: 6000,         // how long to wait for a route after "Send to planner"
 };

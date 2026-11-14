@@ -9,6 +9,8 @@ function waypoint(w) {
     base: w.base ? { az: w.base.az, distM: w.base.distance, visible: w.base.visible } : null,
     shelter: w.shelter ? { az: w.shelter.az, distM: w.shelter.distance, min: w.shelter.minutes } : null,
     t: w.minutesFromStart ?? 0, dose: w.doseFraction, oxygen: w.oxygenFraction,
+    // Optional engine additions (shared/waypoints.md): absolute dose and dose rate, null in older or fake files.
+    doseUgy: w.doseMicroGray ?? null, doseRate: w.doseRateMicroGrayPerHour ?? null,
     isShelter: !!w.isShelter, isScienceStop: !!w.isScienceStop,
   };
 }
@@ -38,12 +40,16 @@ export function readWaypoints(doc, cfg) {
     distanceM += d; if (d > 0.5 && a.z != null && b.z != null) maxSlopeDeg = Math.max(maxSlopeDeg, Math.atan(Math.abs(b.z - a.z) / d) / RAD);
   }
   const first = waypoints[0] || {}, last = waypoints[waypoints.length - 1] || {};
+  // Worst storm dose: from the waypoint where a storm costs most, walking to cover and sitting it out (rerouteInfo).
+  const stormDoses = Object.values(doc.rerouteInfo || {}).map((r) => r && r.stormDoseMicroGray).filter((v) => typeof v === 'number');
   return {
     version: doc.version, waypoints, reroutes, stops, shelters, base,
     totals: {
       timeMin: last.t ?? null, distanceM,
       oxygenUsed: first.oxygen != null && last.oxygen != null ? first.oxygen - last.oxygen : null,
       dose: last.dose ?? null,
+      doseUgy: last.doseUgy ?? null,
+      stormDoseUgy: stormDoses.length ? Math.max(...stormDoses) : null,
       worstShelterMin: waypoints.length ? Math.max(...waypoints.map((w) => (w.shelter && w.shelter.min) || 0)) : null,
       maxSlopeDeg,
     },
@@ -78,6 +84,7 @@ export function readState(raw, route, prev) {
     storm: !!raw.storm, panic: !!raw.panic, rerouteRequested: !!raw.rerouteRequested,
     headingDeg: raw.headingDeg, shelterBearingDeg: raw.shelterBearingDeg, shelterMin: raw.minutesToShelter,
     openSky: raw.openSky, dose: raw.doseFraction, oxygen: raw.oxygenFraction,
+    doseUgy: raw.doseMicroGray ?? null, doseRate: raw.doseRateMicroGrayPerHour ?? null,
     sunlit: raw.sunlit, baseLink: raw.baseLink, earthLink: raw.earthLink, earthDelayMin: raw.earthDelayMinutes,
     // Proposed additions, not in shared/state.md yet (see README). Missing until the relay carries them.
     heartRate: raw.heartRateBpm ?? null, wristBattery: raw.wristBatteryFraction ?? null,

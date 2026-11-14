@@ -14,6 +14,8 @@ export function saveChoice(key, v) { try { localStorage.setItem('beacon.hub.' + 
 // engine's route, and the rover's real track from the site file last.
 export function buildWalks(crew, route, recorded, rover, now) {
   const w = route.waypoints, out = [];
+  // Microgray when the route carries it, otherwise fractions of the walk budget (see doseUnits).
+  const ugy = doseUnits(route) === 'uGy', doseOf = (p) => (ugy ? p.doseUgy : p.dose) ?? 0;
   for (const m of crew) (m.walks || []).forEach((s, k) => {
     let i = s.to === 'end' ? w.length - 1 : w.findIndex((p) => p.id === s.to || p.label === s.to);
     if (i < 1) i = Math.max(1, Math.round((w.length - 1) * (s.fraction ?? 1)));
@@ -22,7 +24,7 @@ export function buildWalks(crew, route, recorded, rover, now) {
     out.push({
       id: `${m.id}-${k}`, who: m.id, kind: 'sample', at: now - s.daysAgo * DAY,
       label: `${w[0].label || 'Start'} to ${end.label || 'waypoint ' + i}${back ? ' and back' : ''}`,
-      distanceM: pathLength(pts), minutes: ((end.t ?? 0) - (w[0].t ?? 0)) * n, dose: ((end.dose ?? 0) - (w[0].dose ?? 0)) * n,
+      distanceM: pathLength(pts), minutes: ((end.t ?? 0) - (w[0].t ?? 0)) * n, dose: (doseOf(end) - doseOf(w[0])) * n,
       hrAvg: s.hrAvg ?? null, hrPeak: s.hrPeak ?? null, outcome: s.outcome || 'Completed', pts,
       stops: leg.filter((p) => p.isScienceStop).map(xy),
     });
@@ -33,6 +35,9 @@ export function buildWalks(crew, route, recorded, rover, now) {
   return out;
 }
 
+// 'uGy' when every main waypoint has an absolute dose (engine with Curiosity RAD data), else 'budget'.
+export const doseUnits = (route) => (route.waypoints.length && route.waypoints.every((p) => p.doseUgy != null) ? 'uGy' : 'budget');
+
 // Totals over the last seven days for one astronaut.
 export function weekStats(walks, id, now) {
   const mine = walks.filter((k) => k.who === id && k.at != null), week = mine.filter((k) => now - k.at <= 7 * DAY);
@@ -40,11 +45,16 @@ export function weekStats(walks, id, now) {
   return { walks: week.length, minutes: sum((k) => k.minutes), distanceM: sum((k) => k.distanceM), dose: sum((k) => k.dose), lastAt: mine.length ? Math.max(...mine.map((k) => k.at)) : null };
 }
 
-// Readiness for the planned walk. `plan` is { minutes, dose } of the route on the map; `lim` is CONFIG.CREW_LIMITS.
-// Returns level 'fit', 'marginal' or 'no', with the reasons in words, worst first.
+// Readiness for the planned walk. `plan` is { minutes, dose, stormDose } of the route on the map, in the units of
+// `lim.weeklyDose`; `lim` is CONFIG.CREW_LIMITS with weeklyDose (and the week's background dose, `background`)
+// in those units. Returns level 'fit', 'marginal' or 'no', with the reasons in words, worst first.
+// `doseStorm` (the week if a solar storm hits during the walk) is shown, not judged: a storm's dose alone is
+// near the weekly limit, so judging it would mark every walk marginal.
 export function readiness(member, st, plan, lim, now, extra = {}) {
-  const no = [], warn = [], pc = (f) => Math.round(f * 100) + '%';
-  const doseAfter = (st.dose + (plan.dose || 0)) / lim.weeklyDose, timeAfter = (st.minutes + (plan.minutes || 0)) / lim.weeklyWalkMin;
+  const no = [], warn = [], pc = (f) => Math.round(f * 100) + '%', bg = lim.background || 0;
+  const doseNow = (bg + st.dose) / lim.weeklyDose, doseAfter = (bg + st.dose + (plan.dose || 0)) / lim.weeklyDose;
+  const doseStorm = plan.stormDose != null ? (bg + st.dose + (plan.dose || 0) + plan.stormDose) / lim.weeklyDose : null;
+  const timeAfter = (st.minutes + (plan.minutes || 0)) / lim.weeklyWalkMin;
   const restH = st.lastAt != null ? (now - st.lastAt) / 36e5 : null;
   if (member.condition === 'injured' || member.condition === 'ill') no.push(`${member.condition === 'ill' ? 'Ill' : 'Injured'}: not cleared to walk`);
   if (doseAfter > 1) no.push(`This walk would take the weekly dose to ${pc(doseAfter)} of the limit`);
@@ -55,5 +65,5 @@ export function readiness(member, st, plan, lim, now, extra = {}) {
   if (restH != null && restH < lim.minRestHours) warn.push(`Only ${restH < 1 ? 'minutes' : Math.round(restH) + ' h'} of rest since the last walk (${lim.minRestHours} h wanted)`);
   if (extra.batteryLow) warn.push('Wristband battery is low');
   const level = no.length ? 'no' : warn.length ? 'marginal' : 'fit';
-  return { level, reasons: no.length || warn.length ? [...no, ...warn] : ['Rested and inside the weekly limits'], doseAfter, timeAfter, doseNow: st.dose / lim.weeklyDose, timeNow: st.minutes / lim.weeklyWalkMin, restH };
+  return { level, reasons: no.length || warn.length ? [...no, ...warn] : ['Rested and inside the weekly limits'], doseAfter, doseStorm, timeAfter, doseNow, timeNow: st.minutes / lim.weeklyWalkMin, restH };
 }

@@ -9,7 +9,7 @@ import { createMap } from './map.js';
 import { drawRing } from './ring.js';
 import { drawOverlay } from './overlay.js';
 import { CREW } from './crew-data.js';
-import { buildWalks, weekStats, readiness, loadRecorded, saveRecorded, loadChoice, saveChoice } from './crew.js';
+import { buildWalks, weekStats, readiness, doseUnits, loadRecorded, saveRecorded, loadChoice, saveChoice } from './crew.js';
 import { createVitals, ITEMS, GROUPS, worse } from './vitals.js';
 
 const $ = (id) => document.getElementById(id);
@@ -19,6 +19,7 @@ const fmt = (n, d = 0) => (n == null || Number.isNaN(n) ? '--' : (+n).toFixed(d)
 const RAD = Math.PI / 180;
 const fmt1 = (n) => (n == null ? '--' : n < 10 ? (+n).toFixed(1) : String(Math.round(n)));
 const pct = (f) => (f == null ? '--' : String(Math.round(f * 100)));   // contracts carry fractions 0..1; the screen shows percent
+const ugy = (v) => (v == null ? '--' : v < 10 ? (+v).toFixed(2) : v < 100 ? (+v).toFixed(1) : String(Math.round(v))); // microgray
 const hm = (min) => { const m = Math.max(0, Math.round(min || 0)); return `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}`; };
 const ICON = {
   ok: '<svg aria-hidden="true" viewBox="0 0 24 24" class="ic ok"><path d="M5 12l5 5L20 7"/></svg>',
@@ -38,6 +39,7 @@ const app = {
   crewId: null, crewSel: null, walks: [], recorded: [], rover: null, histSel: null, histAll: false, walk: null,
   vitals: createVitals(CONFIG.VITALS), vit: { levels: {}, overall: 'ok', marginLevel: 'ok' }, battLow: false, alarm: null,
   u: 16,
+  briefing: null, stopNotes: {}, // data/out/briefing.json and photos per waypoint id from data/out/stops.json (shared/outputs.md)
 };
 window.hub = app; // handy in the browser console while integrating
 
@@ -60,6 +62,7 @@ function live() {
   return {
     w, x: w.x, y: w.y, elapsedMin: nn(w.t, 0),
     oxygen: nn(s.oxygen, w.oxygen), dose: nn(s.dose, w.dose), openSky: nn(s.openSky, w.openSky),
+    doseUgy: nn(s.doseUgy, w.doseUgy), doseRate: nn(s.doseRate, w.doseRate),
     sunlit: nn(s.sunlit, w.sun ? w.sun.visible : null), baseLink: nn(s.baseLink, w.base ? w.base.visible : null), earthLink: nn(s.earthLink, w.earth ? w.earth.visible : null),
     headingDeg: nn(s.headingDeg, w.headingDeg), shelterBearingDeg: nn(s.shelterBearingDeg, w.shelter ? w.shelter.az : null),
     shelterMin: nn(s.shelterMin, w.shelter ? w.shelter.min : null), shelter, atShelter: !!w.isShelter,
@@ -352,9 +355,24 @@ function renderLeft() {
     <div><dt>Walk time</dt><dd>${fmt(t.timeMin)} min</dd></div>
     <div><dt>Distance</dt><dd>${t.distanceM >= 1000 ? (t.distanceM / 1000).toFixed(2) + ' km' : fmt(t.distanceM) + ' m'}</dd></div>
     <div><dt>Oxygen used</dt><dd>${pct(t.oxygenUsed)}% of supply</dd></div>
-    <div><dt>Radiation dose</dt><dd>${pct(t.dose)}% of budget</dd></div>
+    <div><dt>Radiation dose</dt><dd>${t.doseUgy != null ? `${ugy(t.doseUgy)} µGy · ` : ''}${pct(t.dose)}% of budget</dd></div>
+    ${t.stormDoseUgy != null ? `<div><dt>If a solar storm hits</dt><dd>up to ${ugy(t.stormDoseUgy)} µGy</dd></div>` : ''}
     <div><dt>Worst case to shelter</dt><dd>${fmt1(t.worstShelterMin)} min</dd></div>
-    <div><dt>Steepest leg</dt><dd class="${over ? 'over' : ''}">${over ? ICON.warn + ' ' : ''}${fmt(t.maxSlopeDeg)}° / ${CONFIG.MAX_SLOPE_DEG}° max</dd></div></dl>${briefCrew()}`;
+    <div><dt>Steepest leg</dt><dd class="${over ? 'over' : ''}">${over ? ICON.warn + ' ' : ''}${fmt(t.maxSlopeDeg)}° / ${CONFIG.MAX_SLOPE_DEG}° max</dd></div>${briefExtra()}</dl>${briefCrew()}`;
+}
+// Space weather and the latest Curiosity weather report, from the engine's briefing.json when it is there.
+function briefExtra() {
+  const b = app.briefing; if (!b) return '';
+  const sw = b.spaceWeather, wr = b.latestWeatherReport || b.conditions, out = [];
+  if (sw) {
+    const n = sw.nearest, when = n ? `${n.isGlancingBlow ? 'glancing, ' : ''}${Math.abs(n.hoursFromSkyTime).toFixed(0)} h ${n.hoursFromSkyTime < 0 ? 'before' : 'after'} the walk` : '';
+    out.push(`<div><dt>Space weather</dt><dd title="Coronal mass ejections forecast to reach Mars${when ? ': ' + esc(when) : ''}. ${esc(sw.source || '')}">${sw.marsArrivals ? `${sw.marsArrivals} CME${sw.marsArrivals === 1 ? '' : 's'} near walk` : 'No CMEs forecast'}</dd></div>`);
+  }
+  if (wr) {
+    const age = wr.ageDays ?? wr.daysBeforeSkyTime;
+    out.push(`<div><dt>Weather at Gale</dt><dd title="Curiosity REMS, sol ${esc(wr.sol)}, ${fmt(wr.pressurePa)} Pa, ${esc(wr.opacity || '')}${age != null ? `, ${fmt(age)} days old` : ''}. ${esc(wr.disclaimer || '')}">${fmt(wr.minAirTempC)} to ${fmt(wr.maxAirTempC)} °C</dd></div>`);
+  }
+  return out.join('');
 }
 // Who is assigned to the walk and whether they are fit for it. Opens the Crew screen.
 function briefCrew() {
@@ -367,20 +385,20 @@ function renderRight() {
   const tk = (v, yes, no) => (v == null ? '' : `<span class="tk ${v ? 'yes' : 'nope'}">${v ? ICON.ok : ICON.no}${v ? yes : no}</span>`);
   const num = (label, val, unit, cls = '') => `<div class="num ${cls}"><span class="lbl">${label}</span><span class="val mono">${val}<small>${unit}</small></span></div>`;
   $('astroPanel').innerHTML = `<div class="who"><span class="name">${esc(name())}</span><span class="suit">${esc(suit())}</span><span class="doing">${esc(doing())}</span></div>
-    <div class="nums">${num('Oxygen left', pct(L.oxygen), '%')}${num('To shelter', fmt1(L.shelterMin), 'min', em ? 'hot' : '')}${num('Dose so far', pct(L.dose), '% of budget')}${num('Open sky', pct(L.openSky), '%')}</div>
+    <div class="nums">${num('Oxygen left', pct(L.oxygen), '%')}${num('To shelter', fmt1(L.shelterMin), 'min', em ? 'hot' : '')}${L.doseUgy != null ? num('Dose so far', ugy(L.doseUgy), 'µGy') : num('Dose so far', pct(L.dose), '% of budget')}${L.doseRate != null ? num('Dose rate', fmt1(L.doseRate), 'µGy/h', L.doseRate > CONFIG.VITALS.doseRateHigh ? 'hot' : '') : num('Open sky', pct(L.openSky), '%')}</div>
     <div class="ticks">${tk(L.baseLink, 'Base link', 'No base link')}${tk(L.earthLink, 'Earth link', 'No Earth link')}${tk(L.sunlit, 'In sunlight', 'In shadow')}${s.earthDelayMin != null ? `<span class="tk">Earth delay ${fmt(s.earthDelayMin)} min</span>` : ''}</div>
     <div id="vitals" class="vsum" data-act="vitals" role="button" tabindex="0" title="Astronaut status (V)"></div>`;
   renderVitals();
   const i = app.focusStop != null ? app.focusStop : si.at >= 0 ? si.at : si.next, st = i >= 0 ? app.route.stops[i] : null;
   if (!st) $('stopPanel').innerHTML = `<h2>Science stop</h2><p class="note">${app.route.stops.length ? 'All science stops visited.' : 'No science stops on this route. Add them in Plan mode.'}</p>`;
   else {
-    const done = s.wp > st.wp || (si.rr && s.wp === st.wp), at = si.at === i, eta = st.etaMin != null ? Math.max(0, st.etaMin - L.elapsedMin) : null, note = CONFIG.STOP_NOTES[st.id] || {};
+    const done = s.wp > st.wp || (si.rr && s.wp === st.wp), at = si.at === i, eta = st.etaMin != null ? Math.max(0, st.etaMin - L.elapsedMin) : null, note = CONFIG.STOP_NOTES[st.id] || app.stopNotes[st.id] || {};
     $('stopPanel').innerHTML = `<h2>${at ? 'Science stop · here now' : done ? 'Science stop · done' : si.rr ? 'Science stop · on hold' : `Science stop · in ${fmt(eta)} min`}</h2>
       <div class="stop">${note.photo ? `<img src="${esc(note.photo)}" alt="View on arrival at ${esc(st.name)}">` : '<div class="nophoto">No arrival photo yet</div>'}
       <div><div class="sname">${esc(st.name)}</div><p>${esc(note.task || 'No science task written for this stop yet.')}</p>${note.credit ? `<p class="credit">${esc(note.credit)}</p>` : ''}</div></div>`;
   }
   $('mirrorTitle').textContent = `What ${name()} sees`;
-  $('hudLine').textContent = `Shelter ${fmt1(L.shelterMin)} min · ${L.baseLink === false ? 'no base link' : 'base link'} · O2 ${pct(L.oxygen)}% · dose ${pct(L.dose)}%`;
+  $('hudLine').textContent = `Shelter ${fmt1(L.shelterMin)} min · ${L.baseLink === false ? 'no base link' : 'base link'} · O2 ${pct(L.oxygen)}% · dose ${L.doseUgy != null ? ugy(L.doseUgy) + ' µGy' : pct(L.dose) + '%'}`;
   // shared/state.md: the arrow is drawn at shelterBearingDeg - headingDeg, so 0 is straight ahead
   const arrow = L.shelterBearingDeg != null && L.headingDeg != null ? L.shelterBearingDeg - L.headingDeg : 0;
   $('wrist').className = 'wrist' + (em ? ' em' : '');
@@ -417,7 +435,7 @@ function tickVitals() {
   const L = live(), s = app.state, walking = onWalk() && !L.atShelter && !stopInfo().last;
   const prev = app.vit, r = app.vit = app.vitals.step(
     { heartRate: s.heartRate, battery: s.wristBattery, spo2: s.spo2, skinTemp: s.skinTemp },
-    { walking, effort: effort(), emergency: emergency(), sunlit: L.sunlit, shelterMin: L.shelterMin, oxygen: L.oxygen, dose: L.dose, openSky: L.openSky });
+    { walking, effort: effort(), emergency: emergency(), sunlit: L.sunlit, shelterMin: L.shelterMin, oxygen: L.oxygen, dose: L.dose, doseRate: L.doseRate, openSky: L.openSky });
   const W = app.walk, v = r.v;
   if (W && v.hr != null) { W.hrSum += v.hr; W.hrN++; W.hrPeak = Math.max(W.hrPeak, v.hr); }
   if (W && v.spo2 != null) W.spo2Min = Math.min(W.spo2Min ?? 1, v.spo2);
@@ -481,9 +499,17 @@ const COND = { fit: 'Fit', fatigued: 'Fatigued', injured: 'Injured', ill: 'Ill' 
 const km = (m) => (m >= 1000 ? (m / 1000).toFixed(2) + ' km' : fmt(m) + ' m');
 const ago = (at) => { const h = (Date.now() - at) / 36e5; return h < 1 ? `${Math.max(1, Math.round(h * 60))} min ago` : h < 24 ? `${Math.round(h)} h ago` : `${Math.round(h / 24)} sol${Math.round(h / 24) === 1 ? '' : 's'} ago`; };
 function rebuildWalks() { if (app.route) app.walks = buildWalks(CREW, app.route, app.recorded, app.rover, Date.now()); }
+// Weekly dose limit in the route's units: microgray with the base's background dose, or walk budgets.
+function doseLimits() {
+  const c = CONFIG.CREW_LIMITS;
+  return doseUnits(app.route) === 'uGy'
+    ? { ...c, units: 'uGy', weeklyDose: c.weeklyDoseMicroGray, background: c.habitatMicroGrayPerDay * 7 }
+    : { ...c, units: 'budget', background: 0 };
+}
 function verdictFor(m) {
-  const t = app.route.totals, st = weekStats(app.walks, m.id, Date.now());
-  return { st, ...readiness(m, st, { minutes: t.timeMin, dose: t.dose }, CONFIG.CREW_LIMITS, Date.now(), { batteryLow: m.id === app.crewId && app.battLow }) };
+  const t = app.route.totals, st = weekStats(app.walks, m.id, Date.now()), lim = doseLimits(), u = lim.units === 'uGy';
+  const plan = { minutes: t.timeMin, dose: u ? t.doseUgy : t.dose, stormDose: u ? t.stormDoseUgy : null };
+  return { st, lim, ...readiness(m, st, plan, lim, Date.now(), { batteryLow: m.id === app.crewId && app.battLow }) };
 }
 function historyList() { return app.walks.filter((k) => app.histAll || k.kind === 'rover' || k.who === app.crewSel); }
 // What the map draws: every listed walk faintly while the Crew screen is open, and the picked walk in any mode.
@@ -511,7 +537,10 @@ function renderCrew() {
       <div><dt>Last walk</dt><dd>${st.lastAt != null ? ago(st.lastAt) : 'None logged'}</dd></div>
       <div><dt>Walk time this week</dt><dd>${hm(st.minutes)} h</dd></div>
       <div><dt>Distance this week</dt><dd>${km(st.distanceM)}</dd></div></dl>
-    <div class="lim"><span class="lbl">Weekly dose</span><span class="mono">${pct(v.doseNow)}% now · ${pct(v.doseAfter)}% after this walk</span>${bar(v.doseNow, v.doseAfter)}</div>
+    <div class="lim"><span class="lbl">Weekly dose</span><span class="mono">${v.lim.units === 'uGy'
+      ? `${ugy(v.doseNow * v.lim.weeklyDose)} of ${fmt(v.lim.weeklyDose)} µGy now · ${ugy(v.doseAfter * v.lim.weeklyDose)} after${v.doseStorm != null ? ` · ${ugy(v.doseStorm * v.lim.weeklyDose)} if a storm hits` : ''}`
+      : `${pct(v.doseNow)}% now · ${pct(v.doseAfter)}% after this walk`}</span>${bar(v.doseNow, v.doseAfter)}</div>
+    ${v.lim.units === 'uGy' ? `<p class="note">Includes ${fmt(v.lim.background)} µGy of background in the base this week (${v.lim.habitatMicroGrayPerDay} µGy a day).</p>` : ''}
     <div class="lim"><span class="lbl">Weekly walk time</span><span class="mono">${fmt(st.minutes)} of ${L.weeklyWalkMin} min · ${fmt(st.minutes + (t.timeMin || 0))} after</span>${bar(v.timeNow, v.timeAfter)}</div>
     <div class="tools"><button type="button" class="${assigned ? '' : 'primary'}" data-act="assign" ${assigned || onWalk() ? 'disabled' : ''}>${assigned ? 'Assigned to this walk' : onWalk() ? 'Walk in progress' : `Assign ${esc(m.name.split(' ')[0])} to this walk`}</button></div>`;
 
@@ -716,7 +745,7 @@ async function boot() {
     const loaded = await Promise.all(wanted.map((l) => loadImage(layersUrl + meta.layers[l.id].file).then((im) => ({ l, im })).catch(() => null)));
     loaded.filter(Boolean).forEach(({ l, im }, i) => {
       const { min, max } = meta.layers[l.id], span = (max - min) || 1; // pixel 0 = min, 255 = max (shared/layers.md)
-      app.map.setLayer(i, im, { domain: [(l.domain[0] - min) / span, (l.domain[1] - min) / span], stops: l.stops, widthM: meta.width * meta.metresPerPixel, heightM: meta.height * meta.metresPerPixel });
+      app.map.setLayer(i, im, { domain: [(l.domain[0] - min) / span, (l.domain[1] - min) / span], stops: l.stops, widthM: meta.width * meta.metresPerPixel, heightM: meta.height * meta.metresPerPixel, originX: meta.originX || 0, originY: meta.originY || 0 });
       app.layers.push(l);
       if (l.id === 'slope') { const c = document.createElement('canvas'); c.width = im.width; c.height = im.height; const g = c.getContext('2d', { willReadFrequently: true }); g.drawImage(im, 0, 0); app.slope = { data: g.getImageData(0, 0, im.width, im.height).data, w: im.width, h: im.height, min, max, mpp: meta.metresPerPixel }; }
     });
@@ -724,6 +753,15 @@ async function boot() {
   // Crew: who is assigned (kept between visits), walks recorded earlier on this laptop, and the rover's real track.
   app.crewId = (member(loadChoice('crew')) || CREW.find((m) => m.condition === 'fit') || CREW[0] || {}).id || null; app.crewSel = app.crewId;
   app.recorded = loadRecorded(); app.rover = forceFake ? null : readSite(await getJSON(CONFIG.SITE).catch(() => null));
+  // Engine extras (shared/outputs.md): the briefing's space weather and weather report, and Curiosity photos per stop.
+  if (!wp.fake) {
+    app.briefing = await getJSON(R.briefing).catch(() => null);
+    const stops = await getJSON(R.stops).catch(() => null);
+    for (const s of (stops && stops.stops) || []) {
+      const im = (s.images || [])[0];
+      if (im && s.waypoint) app.stopNotes[s.waypoint] = { photo: R.media + im.file, credit: im.credit, task: `Curiosity's view: ${im.title} (${im.date}).` };
+    }
+  }
   setUnit(); window.addEventListener('resize', setUnit);
   setRoute(doc, false); renderLayers(); renderAll();
   app.map.onDraw = (g, now) => {
