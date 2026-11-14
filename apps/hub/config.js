@@ -61,8 +61,23 @@ export const CONFIG = {
   // Storm and panic alarm: the beeps repeat for this many seconds, or until the emergency ends or it is silenced.
   ALARM: { seconds: 20, everyMs: 1100 },
 
-  // Heart rate and wristband battery. `simulate` shows made-up values, labelled as simulated, until the relay state carries real ones.
-  VITALS: { simulate: true, hrHigh: 150, batteryLow: 0.2, historySeconds: 90 },
+  // Astronaut status (vitals.js). `simulate` shows made-up wrist values, labelled as simulated, until the relay
+  // state carries real ones. Every limit here is a demo assumption, not a medical or suit specification.
+  VITALS: {
+    simulate: true, historySeconds: 90,
+    hrHigh: 150, hrAlarm: 175,                  // bpm
+    spo2Low: 0.92, spo2Alarm: 0.88,             // fraction
+    skinTempHigh: 37.0,                         // °C
+    restHr: 70, restW: 120, wPerBpm: 4.5,       // metabolic rate estimate: restW at restHr, plus wPerBpm per beat above it
+    nominalW: 300, metHighW: 500,               // W. Supplies below last their full time at nominalW
+    oxygenMinutes: 480, coolingMinutes: 480, drinkMinutes: 480, suitBatteryMinutes: 480,
+    co2High: 7.6, co2Alarm: 15,                 // mmHg
+    suitTempHigh: 27, suitTempAlarm: 31,        // °C
+    supplyLow: 0.25, supplyAlarm: 0.1,          // fraction left
+    batteryLow: 0.2, staleSeconds: 10,          // wristband
+    turnBackMin: 15,                            // safety margin (minutes) below which the hub says turn back
+    leakPerMin: 0.35,                           // cooling water lost per minute in the simulated leak (key L)
+  },
 
   // Readiness check for the planned walk. All four are assumptions for the demo, not medical limits.
   //   weeklyDose: dose allowed in seven days, in walk budgets (a doseFraction of 1 is one budget)

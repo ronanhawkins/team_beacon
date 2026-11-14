@@ -82,6 +82,7 @@ export function readState(raw, route, prev) {
     sunlit: raw.sunlit, baseLink: raw.baseLink, earthLink: raw.earthLink, earthDelayMin: raw.earthDelayMinutes,
     // Proposed additions, not in shared/state.md yet (see README). Missing until the relay carries them.
     heartRate: raw.heartRateBpm ?? null, wristBattery: raw.wristBatteryFraction ?? null,
+    spo2: raw.spo2Fraction ?? null, skinTemp: raw.skinTempC ?? null,
   };
 }
 

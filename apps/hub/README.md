@@ -35,7 +35,8 @@ uses for waypoints. The header says which is which.
 | Route | `data/out/waypoints.json` | `shared/fake/waypoints.json` |
 | Layers | `data/out/layers/meta.json` | none over real terrain; `shared/fake/layers/` with fake terrain |
 
-| Heart rate, wristband battery | `heartRateBpm`, `wristBatteryFraction` in the relay state (proposed, question 6) | simulated values, labelled "simulated" (`VITALS.simulate` in `config.js`) |
+| Heart rate, SpO2, skin temperature, wristband battery | `heartRateBpm`, `spo2Fraction`, `skinTempC`, `wristBatteryFraction` in the relay state (proposed, question 6) | simulated values, labelled "simulated" (`VITALS.simulate` in `config.js`) |
+| CO2, cooling and drinking water, suit temperature, suit battery, metabolic rate | none: a model in `vitals.js` driven by heart rate | always modelled, labelled "Modelled" |
 | Rover track in the route history | `data/site.json` `routeNearButtes` (Curiosity, sols 1446 to 1471) | not shown |
 | Crew and their past walks | none: sample people in `crew-data.js` | each past walk's path, distance, time and dose are worked out from the route above |
 
@@ -60,7 +61,7 @@ with no code change.
 - `terrain.js`: loads `terrain.json` and the height grid; height sampling
 - `crew-data.js`: the sample crew, their condition and which walks they did. **Edit this to change the people.**
 - `crew.js`: walk log, weekly totals and the readiness check (no drawing)
-- `vitals.js`: heart rate and wristband battery, real from the state or simulated
+- `vitals.js`: astronaut status: every tracked value, its alert limits, the suit model and the safety margin
 - `config.js`: file locations, layer colours, stop notes, alarm length, vitals alerts, readiness limits. **Edit this, not the code.**
 - `style.css`: page styles
 - `dev/`: fake terrain built from `tools/fake_scene.py` (`python3 apps/hub/dev/make_fake_terrain.py`)
@@ -75,7 +76,8 @@ with no code change.
 | S | `storm` on, then off | M | Sound on or off |
 | P | `panic` | H | Hide presenter controls |
 | R twice | `reset` | Esc | Stop placing, unselect |
-| C | Crew screen and back | | |
+| C | Crew screen and back | V | Astronaut status details |
+| L | Simulated cooling leak on or off | | |
 
 Map: drag to rotate, Shift-drag or right-drag to move, scroll to zoom.
 
@@ -83,8 +85,17 @@ Map: drag to rotate, Shift-drag or right-drag to move, scroll to zoom.
 
 - **Alarm.** A storm or panic repeats its beeps for `ALARM.seconds` (20) or until the emergency ends.
   "Silence alarm" in the banner or M stops it. Panic beeps are higher and faster than storm beeps.
-- **Vitals.** The astronaut panel shows heart rate with a trend line and the wristband's battery. Heart
-  rate above `VITALS.hrHigh` or battery below `VITALS.batteryLow` raises a caution and a log line.
+- **Astronaut status.** A card in the astronaut panel shows the worst problem in words, heart rate,
+  SpO2, skin temperature, the safety margin and the wrist link. Click it (or V) for the detail view over
+  the map: every tracked value by group (body, life support, exposure, wristband) with its trend, its
+  alert limit and where it comes from (Wrist, Engine, Modelled or Simulated).
+- **Safety margin.** How long the scarcest supply (oxygen, cooling water, drinking water, suit battery)
+  lasts at the current effort, minus the walk to shelter. Below `VITALS.turnBackMin` the banner says
+  TURN BACK NOW. Effort comes from heart rate, so a hard climb shortens the margin.
+- **Cooling leak (L).** A demo fault: the cooling water drains, the margin collapses and the suit
+  warms up, so the turn-back alert can be shown on stage. The detail view has the same switch.
+- **Alerts.** Any value past its limit raises a caution banner and a log line. All limits are in
+  `VITALS` in `config.js`; they are demo assumptions, not medical or suit specifications.
 - **Readiness.** Each astronaut gets Fit, Marginal or Not fit for the route on the map, from their
   condition, rest since the last walk, and weekly dose and walk time including this walk. The limits are
   `CREW_LIMITS` in `config.js`; they are demo assumptions, not medical limits. The assigned astronaut's
@@ -121,6 +132,8 @@ Map: drag to rotate, Shift-drag or right-drag to move, scroll to zoom.
    The hub works out the base position from the waypoints' `base.az` and `base.distance`, and takes
    the astronaut's name and the start time from `config.js`.
 5. **Science tasks and arrival photos** per stop live in the hub's `config.js` for now.
-6. **Heart rate and wristband battery.** Not in `state.md` yet. The hub reads two proposed state
-   fields, `heartRateBpm` (number) and `wristBatteryFraction` (0 to 1), and simulates them until the
-   wrist sends them and the relay adds them to the state. Different names are a one-line change in `route.js`.
+6. **Wrist readings.** Not in `state.md` yet. The hub reads four proposed state fields and simulates
+   them until the wrist sends them and the relay adds them to the state:
+   `heartRateBpm` (number), `spo2Fraction` (0 to 1), `skinTempC` (degrees Celsius) and
+   `wristBatteryFraction` (0 to 1). Any the wrist module cannot measure can be left out. The hub works
+   out the wrist link's age from when the values last changed. Different names are a one-line change in `route.js`.

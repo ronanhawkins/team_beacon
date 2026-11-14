@@ -10,7 +10,7 @@ import { drawRing } from './ring.js';
 import { drawOverlay } from './overlay.js';
 import { CREW } from './crew-data.js';
 import { buildWalks, weekStats, readiness, loadRecorded, saveRecorded, loadChoice, saveChoice } from './crew.js';
-import { createVitals } from './vitals.js';
+import { createVitals, ITEMS, GROUPS, worse } from './vitals.js';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -36,7 +36,7 @@ const app = {
   focusStop: null, follow: false, log: [], sound: true, emergencyAt: 0, resetArmed: 0, warned: {},
   astro: { x: 0, y: 0, seg: 0, anim: null, wA: null, wB: null, f: 0 }, listKey: '', listIdx: 0,
   crewId: null, crewSel: null, walks: [], recorded: [], rover: null, histSel: null, histAll: false, walk: null,
-  vitals: createVitals(CONFIG.VITALS), vit: { hr: null, battery: null }, hrHigh: false, battLow: false, alarm: null,
+  vitals: createVitals(CONFIG.VITALS), vit: { levels: {}, overall: 'ok', marginLevel: 'ok' }, battLow: false, alarm: null,
   u: 16,
 };
 window.hub = app; // handy in the browser console while integrating
@@ -292,10 +292,12 @@ function bannerModel() {
       actions: [...(app.alarm && app.sound ? [['silence', 'Silence alarm']] : []), ...(s.storm ? [['endstorm', 'End storm']] : [])] };
   }
   if (app.link && !local && app.relayStatus !== 'open') return { level: 'caution', icon: ICON.warn, html: `<b>Relay offline</b><span class="sub">Reconnecting to ${esc(app.relayUrl)}. Values on screen may be out of date.</span>`, actions: [['local', 'Run locally without the relay']] };
+  if (app.vit.marginLevel && app.vit.marginLevel !== 'ok' && onWalk()) { const vp = vitalsProblem(); return { level: 'caution', icon: ICON.warn, html: `<b>${esc(vp.title.toUpperCase())}</b><span class="sub">${esc(name())}: ${esc(vp.text)}</span>`, actions: [['vitals', 'Astronaut status']] }; }
   if (s.rerouteRequested) return { level: 'caution', icon: ICON.warn, html: `<b>${esc(name())} requested a reroute</b><span class="sub">${L.atShelter ? 'Now in shelter.' : `Heading to shelter · ${fmt1(L.shelterMin)} min away.`} Reset returns to the main route.</span>`, actions: [] };
   if (s.reroute) return { level: 'caution', icon: ICON.info, html: `<b>On the reroute</b><span class="sub">${L.atShelter ? 'In shelter.' : `${fmt1(L.shelterMin)} min to shelter.`} Reset returns to the main route.</span>`, actions: [] };
   if (s.mode === 'warning') return { level: 'caution', icon: ICON.warn, html: `<b>Warning</b><span class="sub">${L.baseLink === false ? 'No line of sight to base. ' : ''}${fmt1(L.shelterMin)} min from shelter.</span>`, actions: [] };
-  if (app.hrHigh) return { level: 'caution', icon: ICON.warn, html: `<b>High heart rate</b><span class="sub">${esc(name())} is at ${fmt(app.vit.hr)} bpm, above ${CONFIG.VITALS.hrHigh}. ${esc(doing())}.</span>`, actions: [] };
+  const vp = vitalsProblem();
+  if (vp) return { level: 'caution', icon: ICON.warn, html: `<b>${vp.level === 'alarm' ? esc(vp.title.toUpperCase()) : esc(vp.title)}</b><span class="sub">${esc(name())}: ${esc(vp.text)}</span>`, actions: [['vitals', 'Astronaut status']] };
   if (app.mode === 'crew') { const m = member(), v = m ? verdictFor(m) : null; return { level: 'ok', icon: ICON.info, html: `<b>Crew</b><span class="sub">${m ? `${esc(m.name)} is assigned to the planned walk: ${WORD[v.level].toLowerCase()}.` : 'No crew listed.'} Pick a name to see the profile and past walks.</span>`, actions: [] }; }
   if (app.mode === 'plan') return { level: 'ok', icon: ICON.info, html: `<b>Planning</b><span class="sub">Set the start, science stops and end on the map, then send them to the planner.</span>`, actions: [] };
   const si = stopInfo(), nx = si.next >= 0 ? app.route.stops[si.next] : null;
@@ -367,7 +369,7 @@ function renderRight() {
   $('astroPanel').innerHTML = `<div class="who"><span class="name">${esc(name())}</span><span class="suit">${esc(suit())}</span><span class="doing">${esc(doing())}</span></div>
     <div class="nums">${num('Oxygen left', pct(L.oxygen), '%')}${num('To shelter', fmt1(L.shelterMin), 'min', em ? 'hot' : '')}${num('Dose so far', pct(L.dose), '% of budget')}${num('Open sky', pct(L.openSky), '%')}</div>
     <div class="ticks">${tk(L.baseLink, 'Base link', 'No base link')}${tk(L.earthLink, 'Earth link', 'No Earth link')}${tk(L.sunlit, 'In sunlight', 'In shadow')}${s.earthDelayMin != null ? `<span class="tk">Earth delay ${fmt(s.earthDelayMin)} min</span>` : ''}</div>
-    <div id="vitals" class="vitals"></div>`;
+    <div id="vitals" class="vsum" data-act="vitals" role="button" tabindex="0" title="Astronaut status (V)"></div>`;
   renderVitals();
   const i = app.focusStop != null ? app.focusStop : si.at >= 0 ? si.at : si.next, st = i >= 0 ? app.route.stops[i] : null;
   if (!st) $('stopPanel').innerHTML = `<h2>Science stop</h2><p class="note">${app.route.stops.length ? 'All science stops visited.' : 'No science stops on this route. Add them in Plan mode.'}</p>`;
@@ -386,35 +388,92 @@ function renderRight() {
     <div class="big mono">${fmt1(L.shelterMin)}</div><div class="cap">min to shelter</div>
     <div class="bar" title="Oxygen"><i style="width:${Math.max(0, Math.min(1, L.oxygen || 0)) * 100}%"></i></div><div class="bar dose" title="Dose"><i style="width:${Math.max(0, Math.min(1, L.dose || 0)) * 100}%"></i></div>`;
 }
-// ---------- heart rate and wristband battery ----------
+// ---------- astronaut status: body, life support, exposure, wristband ----------
 function effort() { // 0 to 1 from the slope of the leg being walked
   const a = activeList(), w = a.list[a.idx], n = a.list[a.idx + 1]; if (!w || !n || w.z == null || n.z == null) return 0;
   const d = Math.hypot(n.x - w.x, n.y - w.y); return d > 0.5 ? Math.min(1, Math.atan(Math.abs(n.z - w.z) / d) / RAD / 20) : 0;
 }
-function tickVitals() {
-  const L = live(), walking = onWalk() && !L.atShelter && !stopInfo().last;
-  const v = app.vit = app.vitals.step({ heartRate: app.state.heartRate, battery: app.state.wristBattery }, { walking, effort: effort(), emergency: emergency() });
-  const W = app.walk; if (W && v.hr != null) { W.hrSum += v.hr; W.hrN++; W.hrPeak = Math.max(W.hrPeak, v.hr); }
-  const high = v.hr != null && v.hr > CONFIG.VITALS.hrHigh, low = v.battery != null && v.battery < CONFIG.VITALS.batteryLow;
-  if (high && !app.hrHigh) log(`High heart rate: ${name()} at ${fmt(v.hr)} bpm.`, 'caution');
-  if (low && !app.battLow) log(`Wristband battery low: ${pct(v.battery)}%.`, 'caution');
-  const changed = high !== app.hrHigh || low !== app.battLow; app.hrHigh = high; app.battLow = low;
-  renderVitals(); if (changed) { renderBanner(); renderCrew(); }
+const VC = CONFIG.VITALS, LVL_ICON = { ok: ICON.ok, caution: ICON.warn, alarm: ICON.warn };
+const itemByKey = Object.fromEntries(ITEMS.map((it) => [it.key, it]));
+function vval(it, x) {
+  if (x == null) return '--';
+  if (it.bool) return x ? it.bool[0] : it.bool[1];
+  return it.pct ? fmt(x * 100, it.d) : fmt(x, it.d);
 }
+const dur = (min) => (min == null ? '--' : !isFinite(min) ? '∞' : min >= 60 ? `${Math.floor(min / 60)} h ${String(Math.round(min % 60)).padStart(2, '0')}` : `${Math.max(0, Math.round(min))} min`);
+// The most important problem in words, or null when everything is normal.
+function vitalsProblem(r = app.vit) {
+  if (!r || !r.v) return null;
+  if (r.marginLevel !== 'ok' && onWalk()) return { level: r.marginLevel, key: 'margin', title: r.margin < 0 ? 'Not enough supply to reach shelter' : 'Turn back now',
+    text: `${r.scarce.label} lasts ${dur(r.scarce.min)} at this effort; shelter is ${dur(r.toSafety)} away.` };
+  let best = null;
+  for (const it of ITEMS) { const l = r.levels[it.key]; if (l !== 'ok' && (!best || (l === 'alarm' && best.level !== 'alarm'))) best = { level: l, key: it.key, it }; }
+  if (!best) return null;
+  const it = best.it, x = r.v[it.key];
+  return { ...best, title: it.key === 'linkAge' ? 'Wristband not updating' : `${it.label} ${it.supply || it.key === 'battery' || it.key === 'spo2' ? 'low' : 'high'}`,
+    text: `${vval(it, x)} ${it.unit}. ${it.limit(VC)}.` };
+}
+function tickVitals() {
+  const L = live(), s = app.state, walking = onWalk() && !L.atShelter && !stopInfo().last;
+  const prev = app.vit, r = app.vit = app.vitals.step(
+    { heartRate: s.heartRate, battery: s.wristBattery, spo2: s.spo2, skinTemp: s.skinTemp },
+    { walking, effort: effort(), emergency: emergency(), sunlit: L.sunlit, shelterMin: L.shelterMin, oxygen: L.oxygen, dose: L.dose, openSky: L.openSky });
+  const W = app.walk, v = r.v;
+  if (W && v.hr != null) { W.hrSum += v.hr; W.hrN++; W.hrPeak = Math.max(W.hrPeak, v.hr); }
+  if (W && v.spo2 != null) W.spo2Min = Math.min(W.spo2Min ?? 1, v.spo2);
+  if (W && r.margin != null && isFinite(r.margin)) W.marginMin = Math.min(W.marginMin ?? Infinity, r.margin);
+  // log each value the first time it leaves normal, and again if it gets worse
+  for (const it of ITEMS) { const was = (prev && prev.levels && prev.levels[it.key]) || 'ok', now = r.levels[it.key]; if (now !== 'ok' && now !== was && worse(was, now) === now) log(`${it.label} ${now === 'alarm' ? 'ALARM' : 'caution'}: ${vval(it, v[it.key])} ${it.unit}.`, now === 'alarm' ? 'emergency' : 'caution'); }
+  const pm = (prev && prev.marginLevel) || 'ok';
+  if (r.marginLevel !== 'ok' && r.marginLevel !== pm && onWalk()) log(`Turn back: ${r.scarce.label.toLowerCase()} lasts ${dur(r.scarce.min)}, shelter is ${dur(r.toSafety)} away.`, r.marginLevel === 'alarm' ? 'emergency' : 'caution');
+  app.battLow = r.levels.battery !== 'ok';
+  const problemKey = (p) => (p ? p.key + p.level : '');
+  const changed = !prev || !prev.v || prev.overall !== r.overall || problemKey(vitalsProblem(prev)) !== problemKey(vitalsProblem(r));
+  renderVitals(); renderVitalsDrawer(); if (changed) { renderBanner(); renderCrew(); }
+}
+function spark(key, it, cls = 'spark') {
+  const h = app.vitals.hist[key] || [], [lo, hi] = it.range || [0, 1], n = Math.max(1, VC.historySeconds - 1), y = (b) => (30 - (Math.max(lo, Math.min(hi, b)) - lo) / (hi - lo) * 30).toFixed(1);
+  const lim = it.line ? `<line x1="0" x2="100" y1="${y(it.line(VC))}" y2="${y(it.line(VC))}" class="limit"/>` : '';
+  return `<svg class="${cls}" viewBox="0 0 100 30" preserveAspectRatio="none" aria-hidden="true">${lim}<polyline points="${h.map((b, i) => `${(i / n * 100).toFixed(1)},${y(b)}`).join(' ')}"/></svg>`;
+}
+// Summary card in the astronaut panel: the worst problem, four key numbers and the wrist link. Click for detail.
 function renderVitals() {
   const el = $('vitals'); if (!el) return;
-  const v = app.vit, h = app.vitals.hist, sim = (on) => (on ? '<em class="sim">simulated</em>' : '');
-  const lo = 50, hi = 190, pts = h.map((b, i) => `${(i / Math.max(1, CONFIG.VITALS.historySeconds - 1) * 100).toFixed(1)},${(30 - (Math.max(lo, Math.min(hi, b)) - lo) / (hi - lo) * 30).toFixed(1)}`).join(' ');
-  const lim = (30 - (CONFIG.VITALS.hrHigh - lo) / (hi - lo) * 30).toFixed(1), b = v.battery;
-  el.innerHTML = `<div class="vit ${app.hrHigh ? 'warn' : ''}"><span class="lbl">${ICON.heart} Heart rate</span>
-      <div class="vrow"><span class="val mono">${v.hr == null ? '--' : fmt(v.hr)}<small>bpm</small></span>
-        <svg class="spark" viewBox="0 0 100 30" preserveAspectRatio="none" aria-hidden="true"><line x1="0" x2="100" y1="${lim}" y2="${lim}" class="limit"/><polyline points="${pts}"/></svg></div>
-      <span class="vnote">${sim(v.hrSim)}${v.hr == null ? 'No wristband data yet' : app.hrHigh ? `${ICON.warn} Above ${CONFIG.VITALS.hrHigh} bpm` : `Alert above ${CONFIG.VITALS.hrHigh}`}</span></div>
-    <div class="vit ${app.battLow ? 'warn' : ''}"><span class="lbl">Wristband battery</span>
-      <div class="vrow"><span class="val mono">${b == null ? '--' : pct(b)}<small>%</small></span>
-        <div class="batt"><i style="width:${Math.max(0, Math.min(1, b || 0)) * 100}%"></i></div></div>
-      <span class="vnote">${sim(v.batterySim)}${b == null ? 'No wristband data yet' : app.battLow ? `${ICON.warn} Low, below ${pct(CONFIG.VITALS.batteryLow)}%` : `Alert below ${pct(CONFIG.VITALS.batteryLow)}%`}</span></div>`;
+  const r = app.vit, v = r.v || {}, sim = r.sim || {}, p = vitalsProblem(r), lv = r.overall || 'ok', star = (k) => (sim[k] ? '<sup>*</sup>' : '');
+  const cell = (k, label, val, unit) => `<div class="vc ${r.levels && r.levels[k] !== 'ok' ? r.levels[k] : ''}"><span class="lbl">${label}</span><span class="mono">${val}${star(k)}<small>${unit}</small></span></div>`;
+  const anySim = Object.values(sim).some(Boolean), wrist = v.battery == null ? 'Wrist: no data' : `Wrist ${pct(v.battery)}%${v.linkAge != null ? ` · ${v.linkAge < 3 ? 'live' : fmt(v.linkAge) + ' s ago'}` : ''}`;
+  el.className = 'vsum ' + lv;
+  el.innerHTML = `<div class="vs-head">${LVL_ICON[lv]}<b>${p ? esc(p.title) : 'All readings normal'}</b><span class="vs-more">Details <kbd>V</kbd></span></div>
+    <div class="vs-row">${cell('hr', 'Heart', fmt(v.hr), 'bpm')}${cell('spo2', 'SpO2', pct(v.spo2), '%')}${cell('skinTemp', 'Skin', fmt(v.skinTemp, 1), '°C')}
+      <div class="vc ${r.marginLevel !== 'ok' ? r.marginLevel : ''}" title="Scarcest supply minus time to shelter"><span class="lbl">Margin</span><span class="mono">${r.margin == null ? '--' : !isFinite(r.margin) ? '∞' : r.margin >= 60 ? (r.margin / 60).toFixed(1) + '<small>h</small>' : Math.max(0, Math.round(r.margin)) + '<small>min</small>'}</span></div></div>
+    <div class="vs-foot"><span>${esc(wrist)}</span>${anySim ? '<span class="simnote">* simulated</span>' : ''}</div>`;
 }
+// Detail drawer over the map: safety margin and every tracked value by group.
+function renderVitalsDrawer() {
+  const el = $('vitalsDrawer'); if (!el || el.hidden) return;
+  const r = app.vit, v = r.v || {}, sim = r.sim || {}, p = vitalsProblem(r);
+  const src = (it) => it.group === 'exposure' || it.key === 'oxygen' ? ['engine', 'Engine'] : it.group === 'life' || it.key === 'metW' ? ['model', 'Modelled'] : sim[it.key] ? ['sim', 'Simulated'] : ['wrist', 'Wrist'];
+  const span = Math.max(30, ...((r.left || []).map((s) => (isFinite(s.min) ? s.min : 0))), r.toSafety * 1.5);
+  const supplies = (r.left || []).map((s) => {
+    const w = isFinite(s.min) ? Math.min(100, s.min / span * 100) : 100, short = s.min - r.toSafety < VC.turnBackMin;
+    return `<li class="${short ? 'short' : ''}"><span>${esc(s.label)}</span><div class="sbar"><i style="width:${w}%"></i><b style="left:${Math.min(100, r.toSafety / span * 100)}%"></b></div><span class="mono">${dur(s.min)}</span></li>`;
+  }).join('');
+  const groups = GROUPS.map((g) => `<section class="vg"><h3>${g.label}</h3>${ITEMS.filter((it) => it.group === g.id).map((it) => {
+    const x = v[it.key], l = r.levels ? r.levels[it.key] : 'ok', [sc, sl] = src(it);
+    return `<div class="vi ${l}"><div class="vi-l"><span class="vi-name">${l !== 'ok' ? LVL_ICON[l] : ''}${esc(it.label)}</span><span class="vi-lim">${esc(it.note ? it.note + '. ' : '')}${esc(it.limit(VC))}</span></div>
+      <span class="vi-v mono">${vval(it, x)}<small>${x == null || it.bool ? '' : esc(it.unit)}</small></span>${it.bool ? '<span></span>' : spark(it.key, it)}<span class="src ${sc}">${sl}</span></div>`;
+  }).join('')}</section>`).join('');
+  el.innerHTML = `<header><div><h2>Astronaut status</h2><div class="dname">${esc(name())} <span class="suit">${esc(suit())}</span></div></div><button type="button" data-act="vitals" aria-label="Close">Close <kbd>V</kbd></button></header>
+    <div class="vbox ${r.marginLevel === 'ok' ? 'fit' : r.marginLevel === 'alarm' ? 'no' : 'marginal'}"><b>${r.marginLevel === 'ok' ? ICON.ok : ICON.warn}${r.margin == null ? 'Safety margin' : r.marginLevel === 'ok' ? `Safety margin ${dur(r.margin)}` : p && p.key === 'margin' ? esc(p.title) : 'Safety margin ' + dur(r.margin)}</b>
+      <span class="planned">How long each supply lasts at the current effort. The white mark is the ${dur(r.toSafety)} walk to shelter. Turn back below ${VC.turnBackMin} min spare.</span>
+      <ul class="supplies">${supplies}</ul></div>
+    ${p && p.key !== 'margin' ? `<p class="dprob ${p.level}">${ICON.warn}<b>${esc(p.title)}.</b> ${esc(p.text)}</p>` : ''}
+    <div class="vgrid">${groups}</div>
+    <div class="tools small"><button type="button" data-act="leak" aria-pressed="${r.leak ? 'true' : 'false'}">${r.leak ? 'Fix cooling leak' : 'Simulate cooling leak'} <kbd>L</kbd></button></div>
+    <p class="note">Wrist: heart rate, SpO2, skin temperature, battery. Engine: oxygen, dose, open sky, sunlight. Modelled: suit supplies and metabolic rate, driven by heart rate. Limits are demo assumptions (config.js).</p>`;
+}
+function toggleVitalsDrawer(force) { const el = $('vitalsDrawer'), open = force ?? el.hidden; el.hidden = !open; if (open) renderVitalsDrawer(); }
+function toggleLeak() { app.vitals.setLeak(!app.vitals.leak); log(app.vitals.leak ? 'Simulated cooling leak started.' : 'Simulated cooling leak fixed.', app.vitals.leak ? 'caution' : ''); if (app.vitals.leak) toggleVitalsDrawer(true); tickVitals(); }
 
 // ---------- crew readiness and route history ----------
 const WORD = { fit: 'Fit', marginal: 'Marginal', no: 'Not fit' }, VICON = { fit: ICON.ok, marginal: ICON.warn, no: ICON.no };
@@ -464,7 +523,7 @@ function renderCrew() {
       return `<li class="${k.id === app.histSel ? 'sel' : ''}" data-act="walk" data-id="${esc(k.id)}" tabindex="0">
         <div class="h1"><span class="hl">${esc(k.label)}</span><span class="tag ${k.kind}" title="${esc(tag[k.kind][1])}">${tag[k.kind][0]}</span></div>
         <div class="h2 mono">${esc(who)} · ${k.at != null ? ago(k.at) + ' · ' : ''}${km(k.distanceM)}${k.minutes != null ? ` · ${fmt(k.minutes)} min · dose ${pct(k.dose)}%` : ''}</div>
-        <div class="h3">${k.kind === 'rover' ? esc(k.source) : `${ICON.heart} ${k.hrAvg != null ? `avg ${fmt(k.hrAvg)} · peak ${fmt(k.hrPeak)} bpm` : 'no heart rate'} · ${esc(k.outcome || '')}`}</div></li>`;
+        <div class="h3">${k.kind === 'rover' ? esc(k.source) : `${ICON.heart} ${k.hrAvg != null ? `avg ${fmt(k.hrAvg)} · peak ${fmt(k.hrPeak)} bpm${k.spo2Min != null ? ` · SpO2 min ${pct(k.spo2Min)}%` : ''}` : 'no heart rate'} · ${esc(k.outcome || '')}`}</div></li>`;
     }).join('') || '<li class="none">No walks logged.</li>'}</ol>
     ${sel ? `<div class="tools small"><button type="button" data-act="walk-plan">Use as plan</button><button type="button" data-act="walk-clear">Hide on map</button></div>` : '<p class="note">Pick a walk to show it on the map.</p>'}
     ${app.recorded.length ? '<div class="tools small"><button type="button" data-act="hist-wipe">Clear recorded walks</button></div>' : ''}`;
@@ -493,7 +552,7 @@ function trackWalk(ns) {
   const W = app.walk; if (!W) return;
   const save = (outcome) => {
     W.outcome = outcome;
-    const rec = { id: 'r' + W.at, who: W.who, at: W.at, ...W.snap, hrAvg: W.hrN ? Math.round(W.hrSum / W.hrN) : null, hrPeak: W.hrN ? W.hrPeak : null, outcome };
+    const rec = { id: 'r' + W.at, who: W.who, at: W.at, ...W.snap, hrAvg: W.hrN ? Math.round(W.hrSum / W.hrN) : null, hrPeak: W.hrN ? W.hrPeak : null, spo2Min: W.spo2Min ?? null, marginMin: isFinite(W.marginMin) ? W.marginMin : null, outcome };
     app.recorded = [rec, ...app.recorded.filter((r) => r.id !== rec.id)]; saveRecorded(app.recorded); rebuildWalks(); log(`Walk saved to route history: ${outcome.toLowerCase()}.`);
   };
   if (onWalk(ns)) {
@@ -504,7 +563,7 @@ function trackWalk(ns) {
     const done = !rr && stopInfo().last, inShelter = !!rr && L.atShelter; if (inShelter) W.sheltered = true;
     const outcome = done ? (W.sheltered ? 'Completed after sheltering' : 'Completed') : inShelter ? (ns.panic ? 'Sheltered after panic button' : ns.storm ? 'Sheltered from storm' : 'Sheltered on reroute') : '';
     if (outcome && outcome !== W.outcome) save(outcome);
-  } else { if (!W.outcome && W.snap) save('Ended early'); app.walk = null; }
+  } else { if (!W.outcome && W.snap) save('Ended early'); app.walk = null; app.vitals.reset(); }
 }
 
 function renderMirror() { drawRing($('ring'), ringData(), { emergency: emergency() }); }
@@ -535,6 +594,8 @@ function act(a, el) {
     case 'endstorm': if (app.state.storm) command('storm'); break;
     case 'local': startLocal(); break;
     case 'silence': stopAlarm(); break;
+    case 'vitals': toggleVitalsDrawer(); break;
+    case 'leak': toggleLeak(); break;
     case 'open-crew': setMode('crew'); break;
     case 'crew': pickCrew(el.dataset.id); break;
     case 'assign': assignCrew(); break;
@@ -564,8 +625,8 @@ function wireInput() {
     const keys = { ArrowRight: () => command(e.shiftKey ? 'nextstop' : 'next'), ' ': () => command('next'), ArrowLeft: () => command('back'), n: () => command('nextstop'),
       s: () => command('storm'), p: () => command('panic'), r: () => command('reset'),
       t: () => app.map.view('top'), f: routeView, g: () => $('viewFollow').click(), m: () => $('soundBtn').click(),
-      c: () => setMode(app.mode === 'crew' ? 'live' : 'crew'),
-      h: () => document.body.classList.toggle('noPresenter'), Escape: () => { app.placing = null; app.focusStop = null; app.histSel = null; renderAll(); } };
+      c: () => setMode(app.mode === 'crew' ? 'live' : 'crew'), v: () => toggleVitalsDrawer(), l: toggleLeak,
+      h: () => document.body.classList.toggle('noPresenter'), Escape: () => { if (!$('vitalsDrawer').hidden) return toggleVitalsDrawer(false); app.placing = null; app.focusStop = null; app.histSel = null; renderAll(); } };
     if (/^[1-9]$/.test(k)) { toggleLayer(+k - 1); return e.preventDefault(); }
     if (keys[k]) { keys[k](); e.preventDefault(); }
   });
