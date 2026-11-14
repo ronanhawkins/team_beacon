@@ -163,6 +163,13 @@ function switchToReroute() {
 
 // Applies one event to sim. Returns false if the event is unknown or invalid.
 function applyEvent(ev) {
+  // Native walking acknowledges a specific sample. A delayed/replayed packet
+  // must not advance a route selected meanwhile by the hub or an emergency.
+  if (ev.expected !== undefined) {
+    const expected = ev.expected;
+    if (!expected || expected.route !== sim.route || expected.waypointIndex !== sim.waypointIndex ||
+        expected.rerouteFrom !== (sim.route === 'reroute' ? sim.rerouteFrom : null)) return false;
+  }
   switch (ev.type) {
     case 'next': sim.waypointIndex = clampIndex(sim.waypointIndex + 1); return true;
     case 'back': sim.waypointIndex = clampIndex(sim.waypointIndex - 1); return true;
@@ -180,7 +187,15 @@ function applyEvent(ev) {
       }
       return true;
     case 'panic': sim.panic = true; switchToReroute(); return true;
-    case 'requestReroute': sim.rerouteRequested = true; switchToReroute(); return true;
+    case 'requestReroute':
+      // Optional VR position match; the engine still selects the entire shelter
+      // route. Clients cannot submit replacement paths or shelter decisions.
+      if (ev.atIndex !== undefined) {
+        if (sim.route !== 'main' || !Number.isInteger(ev.atIndex) || ev.atIndex < 0 || ev.atIndex >= waypoints.main.length ||
+            !waypoints.reroutes?.[String(ev.atIndex)]?.length) return false;
+        sim.waypointIndex = ev.atIndex;
+      }
+      sim.rerouteRequested = true; switchToReroute(); return true;
     case 'reset':
       Object.assign(sim, { route: 'main', waypointIndex: 0, storm: false, panic: false, rerouteRequested: false, rerouteFrom: 0 });
       return true;

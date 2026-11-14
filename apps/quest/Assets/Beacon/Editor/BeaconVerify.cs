@@ -72,7 +72,22 @@ public static class BeaconVerify
         for(int i=25;i<=28;i++) Check(!exported.main[i].@base.visible, "outcrop base link loss");
         var decisionState=new MissionState { route="reroute",rerouteFrom=30 };
         string why=MissionPresentation.Decision(decisionState,exported);
-        Check(why.Contains("S03") && why.Contains("4.5 min") && why.Contains("9.7 min") && why.Contains("base link kept") && why.Contains("out of reach"), "far point explanation comes from current decision, not screenshot S04");
+        Check(why.Contains("Butte M12 shelter") && why.Contains("4.5 min") && why.Contains("9.7 min") && why.Contains("base link kept") && why.Contains("out of reach"), "far point explanation uses the current stable shelter name and engine decision");
+        Check(MissionPresentation.ShelterName("s-1475-1497")=="Shelter S-1475-1497" && MissionPresentation.ShelterName("base")=="Base","unnamed shelters and base retain meaningful fallbacks");
+        foreach(var path in exported.reroutes)
+        {
+            for(int i=0;i<path.Value.Count-1;i++)
+            {
+                var selection=new MissionSelection(path.Value,i,true);var next=selection.Next;if(next==null) continue;
+                Check(WalkNavigation.ReachedNext(selection,next.pos),"walking reaches every exported next sample");
+                Check(WalkNavigation.Remaining(selection,next.pos)<=selection.Remaining+.001,"remaining supplied route does not grow on arrival");
+            }
+            var final=new MissionSelection(path.Value,path.Value.Count-1,true);
+            Check(WalkNavigation.InShelter(final,final.Point.pos) && WalkNavigation.TargetIndex(final,final.Point.pos)==-1,"actual arrival clears navigation");
+            var outside=new SitePosition {x=final.Point.pos.x+10,y=final.Point.pos.y};
+            Check(!WalkNavigation.InShelter(final,outside) && WalkNavigation.TargetIndex(final,outside)==final.Index,"leaving shelter cannot keep claiming arrival");
+        }
+        for(int i=0;i<exported.main.Count;i++) Check(WalkNavigation.ClosestMain(exported,exported.main[i].pos)==i,"shelter request matches the current physical route location");
         Check(MissionPresentation.Decision(decisionState,route)=="", "optional decision missing does not invent a reason");
         var arrival=exported.reroutes["30"][exported.reroutes["30"].Count-1];
         Check(arrival.isShelter && arrival.shelter.minutes==0 && arrival.@base.visible && Math.Abs(arrival.openSky-.746)<.001, "arrival uses sheltered skyline, zero minutes and retained base link");

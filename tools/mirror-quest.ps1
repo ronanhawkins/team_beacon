@@ -15,21 +15,17 @@ if ($power -notmatch 'mWakefulness=Awake\b') {
     return
 }
 $env:ADB = $adb
-if (!$Crop -and $Eye -ne 'Both') {
-    $sizeText = (& $adb -s $Serial shell wm size) -join "`n"
-    if ($LASTEXITCODE -ne 0) { throw 'Could not read Quest capture dimensions.' }
-    $sizeMatch = [regex]::Match($sizeText,'Override size:\s*(\d+)x(\d+)')
-    if (!$sizeMatch.Success) { $sizeMatch = [regex]::Match($sizeText,'Physical size:\s*(\d+)x(\d+)') }
-    if (!$sizeMatch.Success) { throw 'Quest capture dimensions are unavailable; supply -Crop or -Eye Both.' }
-    $captureWidth = [int]$sizeMatch.Groups[1].Value; $captureHeight = [int]$sizeMatch.Groups[2].Value
-    $eyeWidth = [int][math]::Floor($captureWidth / 4) * 2
-    $offset = if ($Eye -eq 'Right') { $captureWidth - $eyeWidth } else { 0 }
-    $Crop = '{0}:{1}:{2}:0' -f $eyeWidth,$captureHeight,$offset
-    Write-Host ('Mirroring ' + $Eye.ToLowerInvariant() + ' eye (' + $Crop + ').')
-}
 if ($null -eq $Angle) {
     $model = (& $adb -s $Serial shell getprop ro.product.model).Trim()
     $Angle = if ($model -eq 'Quest 3' -and $Eye -eq 'Left') { 22.0 } elseif ($model -eq 'Quest 3' -and $Eye -eq 'Right') { -22.0 } else { 0.0 }
+}
+# Close only our previous video windows; their helpers clean up their USB ports.
+Get-Process -Name scrcpy,ffplay -ErrorAction SilentlyContinue | Where-Object {
+    $_.MainWindowTitle -eq 'Beacon Quest Demo' -and $_.Path.StartsWith((Join-Path $repo '.local\'),[StringComparison]::OrdinalIgnoreCase)
+} | ForEach-Object {if(!$_.CloseMainWindow()) {Stop-Process -Id $_.Id}}
+if($Eye -ne 'Both' -or $Crop -or $Angle -ne 0) {
+    & (Join-Path $PSScriptRoot 'mirror-quest-client.ps1') -Serial $Serial -Eye $Eye -Crop $Crop -Angle $Angle -Record $Record -Seconds $Seconds -Diagnostics:$Diagnostics
+    return
 }
 # The live laptop check recovered after restarting with software H.264 decoding.
 # Keep that verified playback path; this does not change headset rendering.

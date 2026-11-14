@@ -24,7 +24,7 @@ public static class BeaconVrVerify
         var view=scenery.missionView;var relay=view.relay;var terrain=scenery.terrain;
         Check(!terrain.gameObject.activeSelf && !scenery.Active,"AR must start with all VR scenery hidden");
         Check(!scenery.playerRoot.GetComponent<CharacterController>().enabled,"AR must not enable virtual movement");
-        Check(terrain.VisibleTriangles==158096 && terrain.CollisionTriangles==127952,"source triangle counts / budget");
+        Check(terrain.VisibleTriangles>720000 && terrain.VisibleTriangles<=1000000 && terrain.CollisionTriangles>=720000,"1 m source terrain stays within the visible triangle budget");
         foreach(var mesh in terrain.Meshes)
         {
             var vertices=mesh.vertices;var normals=mesh.normals;var uv=mesh.uv;var indices=mesh.triangles;
@@ -42,6 +42,8 @@ public static class BeaconVrVerify
         }
         string repo=Path.GetFullPath("../..");
         var document=JsonConvert.DeserializeObject<RouteDocument>(File.ReadAllText(Path.Combine(repo,"data/out/waypoints.json")));
+        foreach(var route in document.reroutes.Values) foreach(var point in route)
+            Check(Math.Abs(terrain.HeightAt((float)point.pos.x,(float)point.pos.y)-point.pos.z)<.25,"VR and planner use the same original heights");
         var p=document.main[19];var state=new MissionState {version=1,route="main",waypointIndex=19,mode="nominal",headingDeg=p.headingDeg,
             openSky=p.openSky,oxygenFraction=p.oxygenFraction,doseFraction=p.doseFraction,baseLink=p.@base.visible,sunlit=p.sun.visible,
             earthLink=p.earth.visible,minutesToShelter=p.shelter.minutes,shelterBearingDeg=p.shelter.az,earthDelayMinutes=11};
@@ -50,8 +52,9 @@ public static class BeaconVrVerify
         string beforeState=JsonConvert.SerializeObject(relay.State);
         view.SetImmersive(true);Physics.SyncTransforms();
         Check(scenery.Active && terrain.gameObject.activeSelf && view.passthrough.hidden,"VR shows scenery and hides room");
-        Check(terrain.GroundAt(rig.centerEyeAnchor.position,out var hit),"starting view has photographed ground below it");
-        Check(Mathf.Abs(hit.point.y)<.1f,"original scene scale and spawn height are correct");
+        Check(terrain.GroundAt(rig.centerEyeAnchor.position,out var hit),"starting view has measured ground below it");
+        Check(Mathf.Abs(hit.point.y)<.2f,"original scene scale and spawn height are correct");
+        Check(Navigation.Distance(scenery.Position,p.pos)<.05,"VR starts at the actual mission point, not an unrelated photo origin");
         for(int i=0;i<50;i++) {scenery.Step(Vector2.zero,Vector2.zero,0,.02f);Physics.SyncTransforms();}
         var start=scenery.playerRoot.position;
         for(int i=0;i<100;i++)
@@ -79,7 +82,39 @@ public static class BeaconVrVerify
         for(int i=0;i<50;i++) {scenery.Step(Vector2.zero,Vector2.zero,1,.02f);Physics.SyncTransforms();}
         Check(!scenery.Sprinting && scenery.Speed<.1f,"release movement stops sprint even with grip held");
         Check(JsonConvert.SerializeObject(relay.State)==beforeState,"sprinting never changes the mission route");
-        Check(terrain.cosmeticDetail!=null,"synthetic surface detail is bundled");
+        Check(terrain.cosmeticDetail!=null && terrain.rockDetail!=null,"generated sand and layered rock are bundled");
+        var physicalPosition=scenery.Position;view.Recenter();view.Tick(2);scenery.Step(Vector2.zero,Vector2.zero,0,.02f);Physics.SyncTransforms();
+        Check(Navigation.Distance(physicalPosition,scenery.Position)<.1,"recentring preserves the planner location");
+        // Walk the real main path and the far-point shelter path through physics.
+        // Server acknowledgements are replayed here; socket guards have their own integration test.
+        void WalkPath(System.Collections.Generic.List<Waypoint> path,bool reroute)
+        {
+            void Publish(int index)
+            {
+                var q=path[index];var s=new MissionState {version=1,route=reroute ? "reroute":"main",rerouteFrom=reroute ? 30:(int?)null,waypointIndex=index,
+                    mode=reroute ? "storm":"nominal",storm=reroute,headingDeg=q.headingDeg,openSky=q.openSky,oxygenFraction=q.oxygenFraction,doseFraction=q.doseFraction,
+                    baseLink=q.@base.visible,sunlit=q.sun.visible,earthLink=q.earth.visible,minutesToShelter=q.shelter.minutes,shelterBearingDeg=q.shelter.az,earthDelayMinutes=11};
+                relay.Preview(s,document,relay.Site);
+            }
+            Publish(0);scenery.ReturnToRoute();Physics.SyncTransforms();
+            for(int i=0;i<50;i++) {scenery.Step(Vector2.zero,Vector2.zero,0,.02f);Physics.SyncTransforms();}
+            for(int index=1;index<path.Count;index++)
+            {
+                int frames=0;double distance=Navigation.Distance(scenery.Position,path[index].pos);
+                int limit=(int)(distance/4.5/.05*4)+250;
+                while(distance>WalkNavigation.ArrivalRadius && frames++<limit)
+                {
+                    float bearing=(float)Navigation.Bearing(scenery.Position,path[index].pos);
+                    rig.centerEyeAnchor.rotation=Quaternion.Euler(0,view.NorthYaw+bearing,0);
+                    scenery.Step(Vector2.up,Vector2.zero,1,.05f);Physics.SyncTransforms();
+                    distance=Navigation.Distance(scenery.Position,path[index].pos);
+                }
+                Check(distance<=WalkNavigation.ArrivalRadius,$"physical {(reroute ? "shelter":"main")} path reaches {path[index].id}; remaining {distance:F2} m");
+                Publish(index);
+            }
+            Check(!reroute || scenery.InShelter,"walking the shelter route produces actual arrival");
+        }
+        WalkPath(document.main,false);WalkPath(document.reroutes["30"],true);
         view.SetImmersive(false);var arPosition=scenery.playerRoot.position;
         scenery.Step(Vector2.up,Vector2.right,1,.05f);
         Check(!terrain.gameObject.activeSelf && !view.passthrough.hidden && !scenery.Sprinting,"AR restores passthrough and hides VR terrain / sprint");

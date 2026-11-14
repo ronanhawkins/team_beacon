@@ -5,7 +5,7 @@ The supplied screenshots are the functional checklist. The user's later native U
 | Item | Implementation / evidence |
 | --- | --- |
 | Readable, less peripheral HUD | Compass at 16°; 0.10 moves the bottom readings to two columns at ±24°, with brief feedback below the left column. Wearer fit confirmation remains necessary for the new arrangement. |
-| AR and VR fallback | Starts in Quest passthrough. Left X switches to the Access Mars Murray Buttes 3D scenery and warm sky, then back to the room. The terrain and walking controller are disabled in AR. |
+| AR and VR fallback | Starts in Quest passthrough. Left X switches to planner-aligned Murray Buttes terrain and warm sky, then back to the room. The terrain and walking controller are disabled in AR. |
 | 72-sample skyline, N/E/S/W, smooth transitions | Native dynamic mesh from the exact selected waypoint; smooth sample interpolation and stable calibrated north. 0.10 removes the contour in both modes, retains faint AR shading, and removes the VR fill. No blue baseline or ground fill. Y hides the ring in AR. |
 | Sun/Earth/base/shelter markers | Supplied azimuths/elevations in a fixed frame; visibility and base-link dimming; Earth delay and base distance; shelter minutes. Base/shelter markers hide at arrival. No local sky calculation. |
 | Main readings | Open sky from `openSky`; left column adds oxygen and dose; right column shows shelter, base link and sunlight. Fractions displayed as percentages. |
@@ -17,7 +17,21 @@ The supplied screenshots are the functional checklist. The user's later native U
 | Visual QA | Unity previews for base, Quela, northwest skyline, warning, storm, arrival and VR fallback. Preview caught missing CanvasRenderer on custom UI; fixed and covered by a regression check. |
 | Laptop/projector | USB mirror previously confirmed by wearer. Physical HDMI projector rehearsal still needs the actual projector. |
 | Full recording and frame rate | Completed on 0.5: 31 main points, all 13 S03 diversion points, arrival and reset. USB recording 85.54 s; Unity reported mean 72.0 fps, p95 13.9 ms throughout sampled windows, including storm and recording. These measure app-frame pacing. |
-| Ground-level 3D scenery in VR | Access Mars's real glTF/Draco model and 64 photo tiles, converted offline to 158,096 visible triangles. Apache 2.0 licence/attribution bundled. Continuous sticks move only the viewpoint; no mission events. Older panorama remains in source; real DEM remains available in `data/out/terrain/`. |
+| Navigable 3D scenery in VR | Version 0.11 uses the real 1 m DEM in the planner frame, up to 834,976 visible triangles with detail levels. Generated materials are cosmetic. Continuous walking acknowledges reached route samples. Previous Access Mars model remains archived with its licence. |
+
+## Version 0.11 verification
+
+Merged `origin/main` through `d28ae32`, including stable shelter ids/labels, current dose outputs and multi-site relay support. The far-point diversion now names **Butte M12 shelter**, rather than relying on the old S03/S04 ids.
+
+The active VR scene now uses the original 1 m DEM in the planner's coordinates: a 600 m vertex-span detail tile, matching HiRISE image and coarse 3 km distant terrain. All 268 exported Gale route points lie inside the detail tile. The maximum visible budget is **834,976 triangles**, with automatic detail reduction. Generated sand/layered-rock materials, decorative stones and a scenario-Sun shadow bake improve appearance without replacing measured heights or planner calculations. Seven VR comparison previews and eleven mission previews rendered; the updated terrain and lighting were visually inspected. This remains a heightfield with illustrative detail, not a complete ground-level photogrammetric reconstruction.
+
+VR arrival sends a guarded relay step only when the wearer reaches the next sample. B selects the existing diversion from the nearest main sample. The compass uses physical VR position and shows metres; shelter arrival requires physical proximity and guidance returns if the wearer walks away. Ordinary movement and route changes do not teleport. Y explicitly returns to the selected mission point. AR remains presenter-driven, with sticks disabled.
+
+**1,321 mission checks**, **8,450 VR checks**, **21 Node integration tests**, **9 fixture checks** and the web build passed. Native checks cover DEM alignment for every exported point, an end-to-end continuous physics walk of the main route and far-point diversion, walking/sprint/collision, arrival, leaving shelter, north and AR restoration. Relay integration tests traverse every exported diversion for both Gale and Jezero and reject duplicate/stale events, invalid origins and main-route steps delayed across a storm. Rust engine tests were not run; the engine itself was not modified. The web build retains its existing large-bundle advisory.
+
+The mirror now crops and rotates the full unmodified Quest capture on the laptop, avoiding device-side crop/rotation. A synthetic 1920 by 1240 input successfully produced a one-second 1356 by 1510 filtered file. PowerShell parsing passed. This validates the filter, not the live headset picture. The new optional filtered-recording path also needs a hardware rehearsal.
+
+The final APK built successfully, includes the terrain provenance notice, and is installed over USB as **0.11.0 / code 11**, independently confirmed by the device package manager. The local relay was restarted with the merged data and guarded-event handling. The Quest reports **Asleep**, so the launcher correctly did not claim to open the app. Frame pacing, wearer navigation/readability and live single-eye presentation remain pending. Previous versions' hardware results below are historical and do not establish 0.11 performance. No new passthrough recording was made.
 
 ## Version 0.10 verification
 
@@ -58,7 +72,7 @@ Installed over USB and independently confirmed as version 0.7.0 / code 7. **816 
 | m00, Base | 92.4% open sky, nominal; already under cover at base |
 | m19, Quela drill site | 81.5%, northwest butte, Sun marker dim and Sun disc hidden, named science card |
 | m25–m28 | Amber “Base link lost” |
-| m30 then storm | Reroute 30 → S03, initially 4.52 min; base 9.73 min and excluded by limit; base link retained at chosen shelter |
+| m30 then storm | Reroute 30 → Butte M12 shelter, initially 4.52 min; base 9.73 min and excluded by limit; base link retained at chosen shelter |
 | End of reroute 30 | “In shelter”, 0 remaining minutes, 74.6% open sky, base link retained |
 
 The screenshots' approximate base 95% and shelter S04 are older values. They are not hard-coded into the headset. “Initial” in the decision line distinguishes the original choice time from the changing remaining minutes in the shelter card.

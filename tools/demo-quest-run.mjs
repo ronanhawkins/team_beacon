@@ -38,7 +38,8 @@ try {
     await send({type:'storm',on:true});
     assert.equal(state.rerouteFrom,30); assert.equal(state.route,'reroute');
     const chosen=doc.rerouteInfo['30'];
-    assert.equal(chosen.chosen.id,'s03'); assert.equal(chosen.base.excludedByLimit,true);
+    assert.equal(chosen.chosen.id,doc.reroutes['30'].at(-1).shelter.id);
+    assert.equal(chosen.chosen.label,'Butte M12 shelter'); assert.equal(chosen.base.excludedByLimit,true);
     await hold(6000);
     let arrival;
     for(let i=1;i<doc.reroutes['30'].length;i++) { arrival=await send({type:'next'}); await hold(1000); }

@@ -20,6 +20,7 @@ namespace Beacon
         public bool Immersive { get; private set; }
         public bool RingVisible { get; private set; } = true;
         public event Action Recentered;
+        public event Action<string> ActionFeedback;
         float EyeYaw => Mathf.Atan2(rig.centerEyeAnchor.forward.x,rig.centerEyeAnchor.forward.z) * Mathf.Rad2Deg;
         Transform ring;
         Mesh mesh;
@@ -99,6 +100,8 @@ namespace Beacon
         }
         public void SetImmersive(bool enabled)
         {
+            if(enabled && (relay.Selection==null || !relay.Connected || vrScenery==null || !vrScenery.MatchesMission))
+            {ActionFeedback?.Invoke("VR NEEDS MATCHING MISSION DATA");return;}
             Immersive=enabled;
             if(passthrough!=null) passthrough.hidden=enabled;
             if(atmosphere!=null) atmosphere.SetImmersive(enabled);
@@ -108,7 +111,11 @@ namespace Beacon
         void Update()
         {
             if(OVRInput.GetDown(OVRInput.Button.One,OVRInput.Controller.LTouch)) SetImmersive(!Immersive);
-            if(OVRInput.GetDown(OVRInput.Button.Two,OVRInput.Controller.LTouch)) RingVisible=!RingVisible;
+            if(OVRInput.GetDown(OVRInput.Button.Two,OVRInput.Controller.LTouch))
+            {
+                if(Immersive) {vrScenery.ReturnToRoute();ActionFeedback?.Invoke("RETURNED TO ROUTE");}
+                else RingVisible=!RingVisible;
+            }
             if(OVRInput.GetDown(OVRInput.Button.PrimaryThumbstick,OVRInput.Controller.LTouch)) Recenter();
         }
         void LateUpdate()
@@ -148,10 +155,28 @@ namespace Beacon
             mesh.vertices=vertices; mesh.colors=colours;
             Place(sun,(float)p.sun.az,(float)p.sun.el,"Sun",new Color(1,.83f,.43f),p.sun.visible && s.sunlit);
             Place(earth,(float)p.earth.az,(float)p.earth.el,earthText,new Color(.56f,.76f,1),p.earth.visible && s.earthLink);
-            Place(baseMarker,(float)p.@base.az,-1,baseText,Color.white,p.@base.visible && s.baseLink);
-            Place(shelter,(float)s.shelterBearingDeg,4,shelterText,tone,true);
-            baseMarker.root.gameObject.SetActive(MissionPresentation.ShowBaseMarker(p));
-            shelter.root.gameObject.SetActive(MissionPresentation.ShowShelterMarker(p));
+            float baseAz=(float)p.@base.az,shelterAz=(float)s.shelterBearingDeg;
+            bool showBase=MissionPresentation.ShowBaseMarker(p),showShelter=MissionPresentation.ShowShelterMarker(p);
+            string baseLabel=baseText,shelterLabel=shelterText;
+            if(Immersive && vrScenery.Active)
+            {
+                vrScenery.terrain.SetSun(SkyDirection(p.sun));var position=vrScenery.Position;
+                if(relay.Site?.@base!=null)
+                {
+                    baseAz=(float)Navigation.Bearing(position,relay.Site.@base);double distance=Navigation.Distance(position,relay.Site.@base);
+                    baseLabel="Base · "+Navigation.DistanceText(distance);showBase=distance>WalkNavigation.ArrivalRadius;
+                }
+                var destination=vrScenery.ShelterPosition;
+                if(destination!=null)
+                {
+                    shelterAz=(float)Navigation.Bearing(position,destination);double distance=Navigation.Distance(position,destination);
+                    shelterLabel=MissionPresentation.ShelterName(p.shelter.id,p.shelter.label)+" · "+Navigation.DistanceText(distance);
+                    showShelter=distance>WalkNavigation.ArrivalRadius;
+                }
+            }
+            Place(baseMarker,baseAz,-1,baseLabel,Color.white,p.@base.visible && s.baseLink);
+            Place(shelter,shelterAz,4,shelterLabel,tone,true);
+            baseMarker.root.gameObject.SetActive(showBase);shelter.root.gameObject.SetActive(showShelter);
             shelter.root.localScale *= s.Emergency ? 1+.06f*Mathf.Sin(Time.unscaledTime*4) : 1;
             for(int i=0;i<4;i++) Place(cardinal[i],i*90,-5,Cardinals[i],Color.white,true,true);
         }

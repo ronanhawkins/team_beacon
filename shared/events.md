@@ -19,6 +19,12 @@ Every message is one JSON object with a `type` field.
 
 ## Relay to devices
 
+### Optional native walking guards
+
+Native VR can attach `"expected": { "route": "main", "waypointIndex": 3, "rerouteFrom": null }` to an event. The relay ignores the entire event if those three values no longer match. This makes repeated arrival messages harmless and prevents an in-flight main-route step from skipping a newly activated emergency waypoint. Existing clients can omit this field.
+
+`requestReroute` can also carry `"atIndex": 3`. On the main route, this selects the nearest exported main waypoint to the VR wearer's position before requesting its existing engine-provided diversion. The relay accepts only an integer main index with an exported reroute. It does not calculate a new path. The native app sends both `atIndex` and `expected`; other clients retain the existing request format.
+
 | Message | When |
 |---|---|
 | `{ "type": "state", "state": { ... } }` | On every change, and to each device when it connects |

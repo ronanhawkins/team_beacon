@@ -1,0 +1,16 @@
+Beacon 0.11 Murray Buttes VR scenery
+
+Terrain and colour sources: NASA/JPL/University of Arizona/USGS.
+https://planetarymaps.usgs.gov/mosaic/Mars/MSL/MSL_Gale_DEM_Mosaic_1m_v3.tif
+https://asc-pds-services.s3.us-west-2.amazonaws.com/mosaic/Mars/MSL/MSL_Gale_HiRISE-LRGB_78quads_sharp_cog.tif
+
+Beacon derives a 600 m vertex-span detail mesh, a coarse distant mesh and a
+static visual shadow mask from these sources. Geometry remains aligned to
+the mission's exported coordinates. The shader blends generated sand and
+layered-rock textures; small stones are illustrative procedural scenery.
+Generated appearance is not new scientific data and does not alter the
+engine's route, shelter selection, skyline, dose or sunlight calculations.
+
+Full provenance, generation prompts and conversion instructions are in
+Assets/Beacon/Art/MissionTerrain/README.md, MarsLayeredRock.md and
+MarsCosmeticDetail.md in the source repository.

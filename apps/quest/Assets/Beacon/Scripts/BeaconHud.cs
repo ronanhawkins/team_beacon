@@ -18,7 +18,7 @@ namespace Beacon
         readonly TMP_Text[] readingCaptions=new TMP_Text[5];
         static readonly string[] Captions={"SHELTER","BASE","SUNLIGHT","OXYGEN","DOSE USED"};
         static readonly string[] LastCaptions={"SHELTER","LAST BASE","LAST SUN","LAST O2","LAST DOSE"};
-        TMP_Text openSky,skyCaption,science,scienceCaption,alert,decision,credit,viewMode;
+        TMP_Text openSky,skyCaption,science,scienceCaption,alert,decision,credit,viewMode,nextDistance;
         RectTransform sciencePanel,decisionPanel;
         RectTransform feedbackPanel,holdBar;
         TMP_Text feedback;
@@ -75,6 +75,7 @@ namespace Beacon
             }
             waypoint=BeaconUi.Rect("Single waypoint arrow",tape,0,-27,23,23);
             waypointGraphic=waypoint.gameObject.AddComponent<ArrowGraphic>(); waypointGraphic.raycastTarget=false;
+            nextDistance=Text(tape,"",0,-50,140,24,18,White);
             viewMode=Text(tape,"AR · X: VR",0,58,250,23,18,Muted);
 
             var alertPanel=Surface("Emergency status",0,9,780,54,.90f);
@@ -94,7 +95,7 @@ namespace Beacon
             var progress=BeaconUi.Backing(feedbackPanel,0,4,Mint); holdBar=progress.rectTransform;
             holdBar.pivot=new Vector2(0,.5f); holdBar.anchoredPosition=new Vector2(-145,-36);
             sound=gameObject.AddComponent<AudioSource>(); sound.spatialBlend=0; sound.volume=.15f; sound.clip=Chime();
-            relay.Changed+=Refresh; missionView.Recentered+=OnRecenter; Refresh(); Tick();
+            relay.Changed+=Refresh; missionView.Recentered+=OnRecenter;missionView.ActionFeedback+=OnFeedback; Refresh(); Tick();
         }
         public void Refresh()
         {
@@ -146,14 +147,30 @@ namespace Beacon
                 bearings[i].gameObject.SetActive(visible);
                 if(visible) bearings[i].rectTransform.anchoredPosition=new Vector2(relative/CompassHalfSpan*CompassWidth*.5f,13);
             }
-            if(relay.Connected && relay.Selection?.Next!=null)
+            bool walking=missionView.Immersive && missionView.vrScenery!=null && missionView.vrScenery.Active;
+            bool hasTarget=relay.Connected && (walking ? missionView.vrScenery.TargetIndex>=0 : relay.Selection?.Next!=null);
+            waypoint.gameObject.SetActive(hasTarget);nextDistance.gameObject.SetActive(hasTarget && walking);
+            if(hasTarget)
             {
-                float relative=(float)Navigation.Relative(relay.State.headingDeg,heading);
+                float relative=(float)Navigation.Relative(walking ? missionView.vrScenery.GuidanceBearing : relay.State.headingDeg,heading);
                 waypoint.anchoredPosition=new Vector2(Mathf.Clamp(relative/CompassHalfSpan,-.96f,.96f)*CompassWidth*.5f,-27);
                 waypoint.localEulerAngles=new Vector3(0,0,Mathf.Abs(relative)>CompassHalfSpan ? -Mathf.Sign(relative)*90 : 0);
+                nextDistance.text=Navigation.DistanceText(missionView.vrScenery?.GuidanceDistance ?? 0);
+                nextDistance.rectTransform.anchoredPosition=new Vector2(Mathf.Clamp(waypoint.anchoredPosition.x,-290,290),-50);
+            }
+            if(walking && relay.Connected && relay.Selection!=null)
+            {
+                bool atShelter=missionView.vrScenery.InShelter;
+                if(relay.Selection.Point.isShelter)
+                {
+                    readings[0].text=atShelter ? "IN SHELTER" : relay.Selection.Reroute ? "RETURN TO SHELTER" : "BASE · "+Navigation.DistanceText(Navigation.Distance(missionView.vrScenery.Position,relay.Selection.Point.pos));
+                    readings[0].fontSize=atShelter || !relay.Selection.Reroute ? 28:21;
+                }
+                readingCaptions[0].text=relay.Selection.Reroute && !atShelter ? "SHELTER · "+Navigation.DistanceText(missionView.vrScenery.Remaining):"SHELTER";
+                if(relay.State.Emergency) alert.text=MissionPresentation.Alert(relay.State,true,atShelter);
             }
             viewMode.text=missionView.Immersive ? "VR · X: AR" : "AR · X: VR";
-            credit.text=missionView.Immersive ? "Access Mars · NASA/JPL-Caltech + Google · Synthetic surface detail" : MissionPresentation.Credit(relay.Site);
+            credit.text=missionView.Immersive ? "HiRISE / USGS terrain · Generated materials + illustrative stones" : MissionPresentation.Credit(relay.Site);
             if(alertGroup.gameObject.activeSelf) alertGroup.alpha=Time.unscaledTime<pulseUntil ? .88f+.12f*Mathf.Sin(Time.unscaledTime*5) : 1;
             if(requestPending && Time.unscaledTime>=requestDeadline) { requestPending=false; ShowFeedback("NO REPLY · TRY B AGAIN"); }
             bool holding=requestHeld>0 && !requestSent;
@@ -165,14 +182,17 @@ namespace Beacon
         }
         void ShowFeedback(string text,float seconds=2.5f) { feedback.text=text; feedbackUntil=Time.unscaledTime+seconds; }
         void OnRecenter() => ShowFeedback("VIEW RECENTERED");
+        void OnFeedback(string text) => ShowFeedback(text,4);
         async Task RequestShelterWithFeedback()
         {
             if(!relay.Connected) { ShowFeedback("OFFLINE · CHECK USB"); return; }
             if(requestPending) { ShowFeedback("WAITING FOR SHELTER ROUTE"); return; }
-            if(relay.Selection?.Point.isShelter==true) { ShowFeedback("ALREADY IN SHELTER"); return; }
+            bool walking=missionView.Immersive && missionView.vrScenery?.Active==true;
+            if(walking ? missionView.vrScenery.InShelter : relay.Selection?.Point.isShelter==true) { ShowFeedback("ALREADY IN SHELTER",4); return; }
             if(relay.State?.route=="reroute") { ShowFeedback("SHELTER ROUTE ACTIVE"); return; }
             requestPending=true; requestDeadline=Time.unscaledTime+5; ShowFeedback("REQUESTING SHELTER…",5);
-            bool sent=await relay.RequestShelter();
+            int? from=walking ? WalkNavigation.ClosestMain(relay.Document,missionView.vrScenery.Position):(int?)null;
+            bool sent=await relay.RequestShelter(from);
             if(this==null) return;
             if(!sent) { requestPending=false; ShowFeedback("REQUEST FAILED · TRY B AGAIN"); }
             else if(requestPending) { requestDeadline=Time.unscaledTime+5; ShowFeedback("REQUEST SENT · WAITING FOR ROUTE",5); }
@@ -192,6 +212,7 @@ namespace Beacon
         {
             if(relay!=null) relay.Changed-=Refresh;
             if(missionView!=null) missionView.Recentered-=OnRecenter;
+            if(missionView!=null) missionView.ActionFeedback-=OnFeedback;
             if(sound!=null && sound.clip!=null) { if(Application.isPlaying) Destroy(sound.clip); else DestroyImmediate(sound.clip); }
         }
         static AudioClip Chime()

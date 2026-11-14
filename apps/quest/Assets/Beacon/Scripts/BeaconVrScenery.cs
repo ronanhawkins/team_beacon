@@ -1,4 +1,5 @@
 using System;
+using System.Threading.Tasks;
 using UnityEngine;
 
 namespace Beacon
@@ -7,11 +8,8 @@ namespace Beacon
     {
         public OVRCameraRig rig;
         public BeaconMissionView missionView;
-        public AccessMarsTerrain terrain;
+        public MissionTerrain terrain;
         public Transform playerRoot;
-        public Vector2 sourceStart=new Vector2(12.25f,-4.39f);
-        // Visual registration to the Quela waypoint, not a geodetic transform.
-        public float alignmentYaw=257.8f;
         public float walkSpeed=1.4f,fastSpeed=4.5f,turnSpeed=40;
         public bool Active { get; private set; }
         public float Speed { get; private set; }
@@ -21,32 +19,77 @@ namespace Beacon
         Vector3 velocity;
         float falling,lastNorth,diagnosticAt;
         bool initialized;
+        bool advancePending;
+        float retryAdvanceAt;
+        string advanceKey;
+        public SitePosition Position => terrain.MissionPosition(rig.centerEyeAnchor.position);
+        public bool InShelter => Active && WalkNavigation.InShelter(missionView.relay.Selection,Position);
+        public int TargetIndex => Active ? WalkNavigation.TargetIndex(missionView.relay.Selection,Position):-1;
+        public double GuidanceBearing
+        {
+            get {int target=TargetIndex;return target<0 ? missionView.Heading : Navigation.Bearing(Position,missionView.relay.Selection.Points[target].pos);}
+        }
+        public double GuidanceDistance
+        {
+            get {int target=TargetIndex;return target<0 ? 0 : Navigation.Distance(Position,missionView.relay.Selection.Points[target].pos);}
+        }
+        public double Remaining => WalkNavigation.Remaining(missionView.relay.Selection,Position);
+        public bool MatchesMission
+        {
+            get
+            {
+                Create();var relay=missionView.relay;var p=relay.Selection?.Point.pos;
+                return p!=null && (relay.Site?.site==null || relay.Site.site.Contains("Gale")) &&
+                    Math.Abs(p.z-terrain.HeightAt((float)p.x,(float)p.y))<5;
+            }
+        }
+        public SitePosition ShelterPosition
+        {
+            get
+            {
+                var relay=missionView.relay;var selection=relay.Selection;if(selection==null) return null;
+                if(selection.Reroute) return selection.Points[selection.Points.Count-1].pos;
+                if(selection.Point.shelter.id=="base") return relay.Site?.@base;
+                foreach(var route in relay.Document.reroutes.Values)
+                    if(route.Count>0 && route[route.Count-1].shelter.id==selection.Point.shelter.id) return route[route.Count-1].pos;
+                return null;
+            }
+        }
         public void Create()
         {
             if(initialized) return;
             terrain.Create();
             body=playerRoot.GetComponent<CharacterController>();body.enabled=false;
             body.radius=.22f;body.skinWidth=.025f;body.stepOffset=.3f;body.slopeLimit=45;body.minMoveDistance=0;
-            initialized=true;terrain.gameObject.SetActive(false);
+            initialized=true;terrain.gameObject.SetActive(false);missionView.relay.Changed+=MissionChanged;
         }
+        void MissionChanged() {if(Active && missionView.relay.Connected && !MatchesMission) missionView.SetImmersive(false);}
+        void OnDestroy() {if(missionView?.relay!=null) missionView.relay.Changed-=MissionChanged;}
         void Start() {Create();SetActive(missionView.Immersive);}
         public void SetActive(bool active)
         {
             Create();if(Active==active) return;
             body.enabled=false;Active=active;velocity=Vector3.zero;falling=0;Speed=0;Sprinting=false;AtBoundary=false;
-            // Reset only when crossing AR/VR modes. Stick locomotion never
-            // teleports, advances a waypoint, or sends a route-change event.
+            // Mode changes restore the physical room frame. Ordinary stick
+            // movement stays continuous and advances only reached route samples.
             playerRoot.SetLocalPositionAndRotation(Vector3.zero,Quaternion.identity);
             terrain.gameObject.SetActive(active);
             if(active)
             {
-                terrain.transform.SetPositionAndRotation(Vector3.zero,Quaternion.Euler(0,missionView.NorthYaw+alignmentYaw,0));
-                var start=terrain.transform.TransformPoint(new Vector3(sourceStart.x,0,sourceStart.y));Physics.SyncTransforms();
-                if(!terrain.GroundAt(start,out var ground)) throw new InvalidOperationException("Access Mars start is outside the photographed ground");
-                terrain.transform.position=-ground.point;lastNorth=missionView.NorthYaw;Physics.SyncTransforms();
-                UpdateCapsule();body.enabled=true;
+                ReturnToRoute();
             }
-            Debug.Log("BEACON_VR_SCENERY: "+(active ? "Access Mars walking" : "AR room restored"));
+            Debug.Log("BEACON_VR_SCENERY: "+(active ? "Planner-aligned Mars walking" : "AR room restored"));
+        }
+        public void ReturnToRoute()
+        {
+            if(!Active || missionView.relay.Selection==null) return;
+            body.enabled=false;velocity=Vector3.zero;falling=0;advancePending=false;
+            playerRoot.SetLocalPositionAndRotation(Vector3.zero,Quaternion.identity);
+            terrain.transform.SetPositionAndRotation(Vector3.zero,Quaternion.Euler(0,missionView.NorthYaw,0));
+            var start=terrain.WorldPoint(missionView.relay.Selection.Point.pos);
+            var eye=rig.centerEyeAnchor.position;terrain.transform.position=new Vector3(eye.x,0,eye.z)-start;
+            lastNorth=missionView.NorthYaw;Physics.SyncTransforms();UpdateCapsule();body.enabled=true;
+            Debug.Log("BEACON_VR_ORIGIN: "+missionView.relay.Selection.Point.id);
         }
         public static Vector2 Stick(Vector2 input)
         {
@@ -67,12 +110,25 @@ namespace Beacon
                 OVRInput.Get(OVRInput.Axis2D.PrimaryThumbstick,OVRInput.Controller.RTouch),
                 Mathf.Max(OVRInput.Get(OVRInput.Axis1D.PrimaryHandTrigger,OVRInput.Controller.LTouch),
                     OVRInput.Get(OVRInput.Axis1D.PrimaryIndexTrigger,OVRInput.Controller.RTouch)),Time.deltaTime);
+            var relay=missionView.relay;
+            if(relay.Selection?.Point.sun!=null) terrain.SetSun(missionView.SkyDirection(relay.Selection.Point.sun));
+            string key=relay.State?.route+":"+relay.State?.rerouteFrom+":"+relay.State?.waypointIndex;
+            if(advanceKey!=key) {advancePending=false;retryAdvanceAt=0;advanceKey=key;}
+            if(advancePending && Time.unscaledTime>=retryAdvanceAt) advancePending=false;
+            if(relay.Connected && WalkNavigation.ReachedNext(relay.Selection,Position) && !advancePending && Time.unscaledTime>=retryAdvanceAt)
+            {advanceKey=key;_=Advance();}
             if(Time.unscaledTime>=diagnosticAt)
             {
                 diagnosticAt=Time.unscaledTime+5;
-                var p=terrain.transform.InverseTransformPoint(rig.centerEyeAnchor.position);
-                Debug.Log($"BEACON_VR_MOVE: x={p.x:F2} z={p.z:F2} speed={Speed:F2} sprint={Sprinting} grounded={body.isGrounded} edge={AtBoundary}");
+                var p=Position;
+                Debug.Log($"BEACON_VR_MOVE: x={p.x:F2} north={p.y:F2} speed={Speed:F2} sprint={Sprinting} grounded={body.isGrounded} edge={AtBoundary} next={TargetIndex}");
             }
+        }
+        async Task Advance()
+        {
+            advancePending=true;retryAdvanceAt=Time.unscaledTime+2;
+            bool sent=await missionView.relay.AdvanceWaypoint();
+            if(this!=null && !sent) advancePending=false;
         }
         public void Step(Vector2 move,Vector2 turn,float boost,float dt)
         {

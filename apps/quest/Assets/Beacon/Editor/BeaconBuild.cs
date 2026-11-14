@@ -26,7 +26,7 @@ public static class BeaconBuild
         Directory.CreateDirectory("Assets/Beacon/Scenes"); Directory.CreateDirectory("Assets/XR");
         PlayerSettings.companyName = "Team Beacon"; PlayerSettings.productName = "Beacon AR";
         PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, "com.teambeacon.ar");
-        PlayerSettings.bundleVersion = "0.10.0"; PlayerSettings.Android.bundleVersionCode = 10;
+        PlayerSettings.bundleVersion = "0.11.0"; PlayerSettings.Android.bundleVersionCode = 11;
         PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android, ScriptingImplementation.IL2CPP);
         PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64;
         PlayerSettings.Android.minSdkVersion = AndroidSdkVersions.AndroidApiLevel32;
@@ -106,34 +106,28 @@ public static class BeaconBuild
         missionView.skylineShader=AssetDatabase.LoadAssetAtPath<Shader>("Assets/Beacon/Shaders/Skyline.shader");
         if(missionView.skylineShader==null) throw new Exception("Skyline shader is missing");
         hud.missionView=missionView;
-        var terrain=new GameObject("Access Mars VR scenery").AddComponent<AccessMarsTerrain>();
-        const string accessPath="Assets/Beacon/Art/AccessMars/";
-        terrain.geometry=AssetDatabase.LoadAssetAtPath<TextAsset>(accessPath+"terrain.bytes");
-        terrain.metadata=AssetDatabase.LoadAssetAtPath<TextAsset>(accessPath+"terrain.json");
-        terrain.surfaceShader=AssetDatabase.LoadAssetAtPath<Shader>("Assets/Beacon/Shaders/AccessMars.shader");
-        const string detailPath="Assets/Beacon/Art/MarsCosmeticDetail.png";
-        var detailImporter=AssetImporter.GetAtPath(detailPath) as TextureImporter;
-        if(detailImporter==null) throw new Exception("Cosmetic Mars detail texture is missing");
-        detailImporter.textureType=TextureImporterType.Default;detailImporter.sRGBTexture=true;
-        detailImporter.mipmapEnabled=true;detailImporter.wrapMode=TextureWrapMode.Repeat;detailImporter.anisoLevel=8;
-        detailImporter.maxTextureSize=1024;detailImporter.isReadable=false;
-        detailImporter.SetPlatformTextureSettings(new TextureImporterPlatformSettings {name="Android",overridden=true,maxTextureSize=1024,format=TextureImporterFormat.ASTC_6x6});
-        detailImporter.SaveAndReimport();terrain.cosmeticDetail=AssetDatabase.LoadAssetAtPath<Texture2D>(detailPath);
-        if(terrain.geometry==null || terrain.metadata==null || terrain.surfaceShader==null) throw new Exception("Access Mars scenery is missing; run tools/prepare-access-mars.py");
-        var records=(JArray)JObject.Parse(terrain.metadata.text)["meshes"];
-        terrain.photographs=new Texture2D[records.Count];
-        for(int i=0;i<records.Count;i++)
+        var terrain=new GameObject("Planner-aligned Mars terrain").AddComponent<MissionTerrain>();
+        const string terrainPath="Assets/Beacon/Art/MissionTerrain/";
+        terrain.heights=AssetDatabase.LoadAssetAtPath<TextAsset>(terrainPath+"height.bytes");
+        terrain.backgroundHeights=AssetDatabase.LoadAssetAtPath<TextAsset>(terrainPath+"background.bytes");
+        terrain.shadowData=AssetDatabase.LoadAssetAtPath<TextAsset>(terrainPath+"shadow.bytes");
+        terrain.metadata=AssetDatabase.LoadAssetAtPath<TextAsset>(terrainPath+"terrain.json");
+        terrain.surfaceShader=AssetDatabase.LoadAssetAtPath<Shader>("Assets/Beacon/Shaders/MissionTerrain.shader");
+        Texture2D Texture(string path,int size,bool repeat)
         {
-            string photo=(string)records[i]["texture"];if(photo==null) continue;
-            string path=accessPath+"Textures/"+photo;
             var importer=AssetImporter.GetAtPath(path) as TextureImporter;
-            if(importer==null) throw new Exception("Missing Access Mars photograph: "+photo);
+            if(importer==null) throw new Exception("Missing terrain texture: "+path);
             importer.textureType=TextureImporterType.Default;importer.sRGBTexture=true;
-            importer.maxTextureSize=2048;importer.mipmapEnabled=true;importer.isReadable=false;
-            importer.wrapMode=TextureWrapMode.Clamp;importer.anisoLevel=8;
-            importer.SetPlatformTextureSettings(new TextureImporterPlatformSettings {name="Android",overridden=true,maxTextureSize=2048,format=TextureImporterFormat.ASTC_6x6});
-            importer.SaveAndReimport();terrain.photographs[i]=AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+            importer.maxTextureSize=size;importer.mipmapEnabled=true;importer.isReadable=false;
+            importer.wrapMode=repeat ? TextureWrapMode.Repeat:TextureWrapMode.Clamp;importer.anisoLevel=8;
+            importer.SetPlatformTextureSettings(new TextureImporterPlatformSettings {name="Android",overridden=true,maxTextureSize=size,format=TextureImporterFormat.ASTC_6x6});
+            importer.SaveAndReimport();return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
         }
+        terrain.orbital=Texture(terrainPath+"orbital.jpg",4096,false);
+        terrain.backgroundPhoto=Texture(terrainPath+"background.jpg",2048,false);
+        terrain.cosmeticDetail=Texture("Assets/Beacon/Art/MarsCosmeticDetail.png",2048,true);
+        terrain.rockDetail=Texture("Assets/Beacon/Art/MarsLayeredRock.png",2048,true);
+        if(terrain.heights==null || terrain.metadata==null || terrain.backgroundHeights==null) throw new Exception("Run tools/prepare-mission-vr.py first");
         terrain.gameObject.SetActive(false);
         var scenery=app.AddComponent<BeaconVrScenery>();scenery.rig=rig;scenery.missionView=missionView;
         scenery.terrain=terrain;scenery.playerRoot=playerRoot.transform;missionView.vrScenery=scenery;
@@ -197,7 +191,7 @@ public static class BeaconBuild
         if (!File.Exists(ScenePath)) Prepare();
         PlayerSettings.productName="Beacon AR";
         PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android,"com.teambeacon.ar");
-        PlayerSettings.bundleVersion="0.10.0"; PlayerSettings.Android.bundleVersionCode=10;
+        PlayerSettings.bundleVersion="0.11.0"; PlayerSettings.Android.bundleVersionCode=11;
         Directory.CreateDirectory("Builds");
         var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions {
             scenes = new[] { ScenePath }, target = BuildTarget.Android,

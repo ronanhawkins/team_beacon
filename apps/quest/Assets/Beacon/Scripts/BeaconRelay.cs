@@ -115,12 +115,23 @@ namespace Beacon
             try { await ws.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(text)), WebSocketMessageType.Text, true, cancel); }
             finally { sendLock.Release(); }
         }
-        public Task<bool> RequestShelter() => SendEvent("requestReroute");
-        async Task<bool> SendEvent(string type)
+        JObject Expected() => new JObject { ["route"]=State.route,["waypointIndex"]=State.waypointIndex,["rerouteFrom"]=State.rerouteFrom.HasValue ? (JToken)State.rerouteFrom.Value:JValue.CreateNull() };
+        public Task<bool> RequestShelter(int? mainIndex=null)
+        {
+            var message=new JObject {["type"]="requestReroute"};
+            if(mainIndex.HasValue && State!=null) {message["atIndex"]=mainIndex.Value;message["expected"]=Expected();}
+            return SendEvent(message);
+        }
+        public Task<bool> AdvanceWaypoint()
+        {
+            if(State==null) return Task.FromResult(false);
+            return SendEvent(new JObject {["type"]="next",["expected"]=Expected()});
+        }
+        async Task<bool> SendEvent(JObject message)
         {
             var ws = socket;
             if (!Connected || ws?.State != WebSocketState.Open) return false;
-            try { await SendText(ws, "{\"type\":\""+type+"\"}", lifetime.Token); return true; }
+            try { await SendText(ws,message.ToString(Formatting.None),lifetime.Token); return true; }
             catch (Exception error) { Debug.LogWarning("Mission request failed: " + error.Message); return false; }
         }
     }
