@@ -80,17 +80,8 @@ pub struct Decision {
     pub ranked: Vec<Scored>,
 }
 
-/// Relative dose rate at a shelter with this blocked fraction (the planner's formula).
-pub fn site_factor(blocked: f64, dose_shielding_factor: f64, open_blocked: f64) -> f64 {
-    (1.0 - dose_shielding_factor * (blocked - open_blocked)).clamp(0.5, 1.05)
-}
-
 pub fn score(c: &Candidate, s: &StormConfig) -> Scored {
-    let (l, d, m) = (s.lead_minutes, s.storm_minutes, s.dose_multiplier);
-    let late = (c.t - l).max(0.0); // minutes walked after the storm arrives
-    let walking = c.t.min(l) + late * m;
-    let waiting = (l - c.t).max(0.0) * c.f;
-    let storm = (d - late).max(0.0) * m * c.f;
+    let (walking, waiting, storm) = crate::dose::cover(c.t, c.f, s.lead_minutes, s.storm_minutes, s.dose_multiplier);
     let dose = walking + waiting + storm;
     let score = dose * if c.base_link { 1.0 } else { 1.0 + s.no_link_penalty };
     Scored { candidate: c.clone(), walking, waiting, storm, dose, score, reachable: c.t <= s.max_minutes_to_cover }
@@ -117,6 +108,7 @@ pub fn decide(candidates: &[Candidate], s: &StormConfig) -> Decision {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::dose::site_factor;
 
     const SHIELD: f64 = 0.5;
     const OPEN: f64 = 0.06;

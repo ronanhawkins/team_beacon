@@ -6,6 +6,7 @@ use std::time::Instant;
 use rayon::prelude::*;
 use serde_json::{json, Map, Value};
 
+use crate::dose;
 use crate::decision::{self, Candidate, Decision, Kind, Scored, StormConfig};
 use crate::layers::{self, Base};
 use crate::planner::{self, Bounds, PlanGrid, PlannerConfig, RefugeField, SiteSky};
@@ -257,7 +258,7 @@ pub fn options_from(ctx: &Context, inp: &PlanInputs, x: f64, y: f64) -> Result<O
             f: if rf.is_base {
                 inp.base_dose_factor
             } else {
-                decision::site_factor(blocked, inp.cfg.dose_shielding_factor, inp.cfg.open_blocked)
+                dose::site_factor(blocked, inp.cfg.dose_shielding_factor, inp.cfg.open_blocked)
             },
             base_link: rf.is_base || g.base_link[rf.cell],
         });
@@ -433,22 +434,31 @@ pub fn run(inp: &PlanInputs, out_dir: &Path) -> Result<(), String> {
     let total_minutes = main_pts.last().unwrap().minutes;
     let main_rates: Vec<f64> = main_descs.iter().map(|d| planner::dose_rate(d.blocked, cfg)).collect();
     let main_minutes: Vec<f64> = main_pts.iter().map(|p| p.minutes).collect();
-    let main_dose = planner::accumulate_dose(&main_rates, &main_minutes, 0.0, 1.0);
+    let main_dose = dose::accumulate(&main_rates, &main_minutes, 0.0, None);
     let mut reroute_descs: Vec<&[Desc]> = Vec::new();
     let mut reroute_dose: Vec<Vec<f64>> = Vec::new();
+    let mut reroute_rates: Vec<Vec<f64>> = Vec::new();
+    // A reroute starts when the storm is declared at its main waypoint; the storm arrives leadMinutes later.
+    let reroute_storm = |k: usize| dose::Storm {
+        arrival: main_pts[k].minutes + inp.storm.lead_minutes,
+        length: inp.storm.storm_minutes,
+        multiplier: inp.storm.dose_multiplier,
+    };
     for (k, rr) in reroutes_plan.iter().enumerate() {
         let (d_here, d_rest) = rest.split_at(rr.pts.len());
         rest = d_rest;
         let rates: Vec<f64> = d_here.iter().map(|d| planner::dose_rate(d.blocked, cfg)).collect();
         let minutes: Vec<f64> = rr.pts.iter().map(|p| p.minutes).collect();
-        reroute_dose.push(planner::accumulate_dose(&rates, &minutes, main_dose[k], inp.storm.dose_multiplier));
+        reroute_dose.push(dose::accumulate(&rates, &minutes, main_dose[k], Some(&reroute_storm(k))));
+        reroute_rates.push(rates);
         reroute_descs.push(d_here);
     }
     let largest = main_dose.iter().chain(reroute_dose.iter().flatten()).fold(0.0f64, |a, &b| a.max(b));
     let budget = (largest / LARGEST_DOSE_FRACTION).max(1e-6);
-    let ugy = |dose: f64| inp.dose_rate_ugy_h.map(|rate| r(dose * rate / 60.0, 1));
+    let ugy = |d: f64| inp.dose_rate_ugy_h.map(|rate| r(dose::micro_gray(d, rate), 3));
 
-    let waypoint = |id: String, label: &str, p: &PlanPoint, d: &Desc, heading: f64, shelter: Value, dose: f64, is_shelter: bool, science: bool| -> Value {
+    // `rate` is the relative dose rate at the point: its site factor times the storm multiplier then.
+    let waypoint = |id: String, label: &str, p: &PlanPoint, d: &Desc, heading: f64, shelter: Value, dose: f64, rate: f64, is_shelter: bool, science: bool| -> Value {
         let mut w = json!({
             "id": id,
             "label": label,
@@ -466,8 +476,9 @@ pub fn run(inp: &PlanInputs, out_dir: &Path) -> Result<(), String> {
             "isShelter": is_shelter,
             "isScienceStop": science,
         });
-        if let Some(v) = ugy(dose) {
+        if let (Some(v), Some(quiet)) = (ugy(dose), inp.dose_rate_ugy_h) {
             w["doseMicroGray"] = json!(v);
+            w["doseRateMicroGrayPerHour"] = json!(r(rate * quiet, 2));
         }
         w
     };
@@ -487,6 +498,7 @@ pub fn run(inp: &PlanInputs, out_dir: &Path) -> Result<(), String> {
             main_head[i],
             shelter_json(&rr.id, p.x, p.y, target, rr.remaining_m[0], rr.total_minutes, main_head[i]),
             main_dose[i],
+            main_rates[i],
             near_refuge(p.x, p.y),
             stop.is_some_and(|s| s.science),
         ));
@@ -512,7 +524,7 @@ pub fn run(inp: &PlanInputs, out_dir: &Path) -> Result<(), String> {
                 let last = j == rr.pts.len() - 1;
                 let left = (rr.total_minutes - (p.minutes - start_minutes)).max(0.0);
                 let shelter = shelter_json(&rr.id, p.x, p.y, target, if last { 0.0 } else { rr.remaining_m[j] }, if last { 0.0 } else { left }, head[j]);
-                waypoint(format!("r{k:02}-{j:02}"), if last { end_label } else { "" }, p, &d_here[j], head[j], shelter, dose[j], last || near_refuge(p.x, p.y), false)
+                waypoint(format!("r{k:02}-{j:02}"), if last { end_label } else { "" }, p, &d_here[j], head[j], shelter, dose[j], reroute_rates[k][j] * reroute_storm(k).at(p.minutes), last || near_refuge(p.x, p.y), false)
             })
             .collect();
         reroutes.insert(k.to_string(), Value::Array(list));

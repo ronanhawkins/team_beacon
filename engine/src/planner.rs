@@ -336,24 +336,9 @@ pub fn astar(g: &PlanGrid, start: usize, goal: usize, cfg: &PlannerConfig, mult:
     None
 }
 
-/// Relative dose rate at a point with this blocked-sky fraction.
+/// Relative dose rate at a point with this blocked-sky fraction (dose.rs).
 pub fn dose_rate(blocked: f64, cfg: &PlannerConfig) -> f64 {
-    (1.0 - cfg.dose_shielding_factor * (blocked - cfg.open_blocked)).clamp(0.5, 1.05)
-}
-
-/// Dose at each point along a route in minutes at the open-ground rate: starts at `start`,
-/// adds the mean rate of each leg times its minutes times `multiplier`.
-pub fn accumulate_dose(rates: &[f64], minutes: &[f64], start: f64, multiplier: f64) -> Vec<f64> {
-    let mut out = Vec::with_capacity(rates.len());
-    let mut dose = start;
-    for i in 0..rates.len() {
-        if i > 0 {
-            let dt = (minutes[i] - minutes[i - 1]).max(0.0);
-            dose += 0.5 * (rates[i] + rates[i - 1]) * multiplier * dt;
-        }
-        out.push(dose);
-    }
-    out
+    crate::dose::site_factor(blocked, cfg.dose_shielding_factor, cfg.open_blocked)
 }
 
 #[cfg(test)]
@@ -480,16 +465,10 @@ mod tests {
     }
 
     #[test]
-    fn dose_never_decreases() {
+    fn dose_rate_stays_in_range() {
         let c = cfg();
-        let blocked = [0.02, 0.3, 0.6, 0.1, 0.0, 0.25, 0.9];
-        let rates: Vec<f64> = blocked.iter().map(|&b| dose_rate(b, &c)).collect();
-        assert!(rates.iter().all(|&r| (0.5..=1.05).contains(&r)));
-        let minutes = [0.0, 1.0, 1.0, 2.5, 4.0, 4.1, 9.0];
-        for mult in [1.0, 2.0] {
-            let dose = accumulate_dose(&rates, &minutes, 0.1, mult);
-            assert!(dose.windows(2).all(|w| w[1] >= w[0]), "{dose:?}");
-            assert_eq!(dose[0], 0.1);
+        for b in [0.02, 0.3, 0.6, 0.1, 0.0, 0.25, 0.9] {
+            assert!((0.5..=1.05).contains(&dose_rate(b, &c)));
         }
     }
 }

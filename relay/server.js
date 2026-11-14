@@ -107,6 +107,9 @@ function buildState() {
     minutesToShelter: wp.shelter.minutes,
     openSky: wp.openSky,
     doseFraction: wp.doseFraction,
+    // Optional (shared/state.md): present when the waypoint file has them.
+    ...(wp.doseMicroGray != null && { doseMicroGray: wp.doseMicroGray }),
+    ...(wp.doseRateMicroGrayPerHour != null && { doseRateMicroGrayPerHour: wp.doseRateMicroGrayPerHour }),
     oxygenFraction: wp.oxygenFraction,
     sunlit: wp.sun.visible,
     baseLink: wp.base.visible,

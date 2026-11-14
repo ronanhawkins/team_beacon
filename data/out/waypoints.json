@@ -8,6 +8,7 @@
       },
       "doseFraction": 0.0,
       "doseMicroGray": 0.0,
+      "doseRateMicroGrayPerHour": 6.3,
       "earth": {
         "az": 305.5,
         "el": 43.1,
@@ -118,8 +119,9 @@
         "distance": 15.6,
         "visible": true
       },
-      "doseFraction": 0.0021,
-      "doseMicroGray": 0.0,
+      "doseFraction": 0.0226,
+      "doseMicroGray": 0.039,
+      "doseRateMicroGrayPerHour": 6.3,
       "earth": {
         "az": 305.5,
         "el": 43.1,
@@ -230,8 +232,9 @@
         "distance": 31.2,
         "visible": true
       },
-      "doseFraction": 0.0041,
-      "doseMicroGray": 0.1,
+      "doseFraction": 0.0453,
+      "doseMicroGray": 0.078,
+      "doseRateMicroGrayPerHour": 6.3,
       "earth": {
         "az": 305.5,
         "el": 43.1,
@@ -342,8 +345,9 @@
         "distance": 46.8,
         "visible": true
       },
-      "doseFraction": 0.006,
-      "doseMicroGray": 0.1,
+      "doseFraction": 0.0661,
+      "doseMicroGray": 0.114,
+      "doseRateMicroGrayPerHour": 6.3,
       "earth": {
         "az": 305.5,
         "el": 43.1,
@@ -454,8 +458,9 @@
         "distance": 62.4,
         "visible": true
       },
-      "doseFraction": 0.0079,
-      "doseMicroGray": 0.1,
+      "doseFraction": 0.0869,
+      "doseMicroGray": 0.15,
+      "doseRateMicroGrayPerHour": 6.3,
       "earth": {
         "az": 305.5,
         "el": 43.1,
@@ -566,8 +571,9 @@
         "distance": 78.0,
         "visible": true
       },
-      "doseFraction": 0.0098,
-      "doseMicroGray": 0.2,
+      "doseFraction": 0.1079,
+      "doseMicroGray": 0.186,
+      "doseRateMicroGrayPerHour": 6.3,
       "earth": {
         "az": 305.5,
         "el": 43.1,
@@ -678,8 +684,9 @@
         "distance": 93.4,
         "visible": true
       },
-      "doseFraction": 0.0117,
-      "doseMicroGray": 0.2,
+      "doseFraction": 0.1288,
+      "doseMicroGray": 0.222,
+      "doseRateMicroGrayPerHour": 6.3,
       "earth": {
         "az": 305.5,
         "el": 43.1,
@@ -790,8 +797,9 @@
         "distance": 108.4,
         "visible": true
       },
-      "doseFraction": 0.0138,
-      "doseMicroGray": 0.3,
+      "doseFraction": 0.1512,
+      "doseMicroGray": 0.26,
+      "doseRateMicroGrayPerHour": 6.3,
       "earth": {
         "az": 305.5,
         "el": 43.1,
@@ -902,8 +910,9 @@
         "distance": 124.0,
         "visible": true
       },
-      "doseFraction": 0.0159,
+      "doseFraction": 0.1741,
       "doseMicroGray": 0.3,
+      "doseRateMicroGrayPerHour": 6.3,
       "earth": {
         "az": 305.5,
         "el": 43.1,
@@ -1014,8 +1023,9 @@
         "distance": 139.6,
         "visible": true
       },
-      "doseFraction": 0.0179,
-      "doseMicroGray": 0.3,
+      "doseFraction": 0.1964,
+      "doseMicroGray": 0.338,
+      "doseRateMicroGrayPerHour": 6.3,
       "earth": {
         "az": 305.5,
         "el": 43.1,
@@ -1126,8 +1136,9 @@
         "distance": 150.0,
         "visible": true
       },
-      "doseFraction": 0.0196,
-      "doseMicroGray": 0.4,
+      "doseFraction": 0.2152,
+      "doseMicroGray": 0.371,
+      "doseRateMicroGrayPerHour": 6.3,
       "earth": {
         "az": 305.5,
         "el": 43.1,
@@ -1238,8 +1249,9 @@
         "distance": 161.0,
         "visible": true
       },
-      "doseFraction": 0.0213,
-      "doseMicroGray": 0.4,
+      "doseFraction": 0.2336,
+      "doseMicroGray": 0.403,
+      "doseRateMicroGrayPerHour": 6.3,
       "earth": {
         "az": 305.5,
         "el": 43.1,
@@ -1350,8 +1362,9 @@
         "distance": 172.4,
         "visible": true
       },
-      "doseFraction": 0.0232,
-      "doseMicroGray": 0.4,
+      "doseFraction": 0.2544,
+      "doseMicroGray": 0.438,
+      "doseRateMicroGrayPerHour": 6.3,
       "earth": {
         "az": 305.5,
         "el": 43.1,
@@ -1462,8 +1475,9 @@
         "distance": 184.1,
         "visible": true
       },
-      "doseFraction": 0.0249,
-      "doseMicroGray": 0.5,
+      "doseFraction": 0.2726,
+      "doseMicroGray": 0.47,
+      "doseRateMicroGrayPerHour": 6.3,
       "earth": {
         "az": 305.5,
         "el": 43.1,
@@ -1574,8 +1588,9 @@
         "distance": 195.2,
         "visible": true
       },
-      "doseFraction": 0.0265,
-      "doseMicroGray": 0.5,
+      "doseFraction": 0.2909,
+      "doseMicroGray": 0.501,
+      "doseRateMicroGrayPerHour": 6.3,
       "earth": {
         "az": 305.5,
         "el": 43.1,
@@ -1686,8 +1701,9 @@
         "distance": 209.7,
         "visible": true
       },
-      "doseFraction": 0.0286,
-      "doseMicroGray": 0.5,
+      "doseFraction": 0.3133,
+      "doseMicroGray": 0.54,
+      "doseRateMicroGrayPerHour": 6.3,
       "earth": {
         "az": 305.5,
         "el": 43.1,
@@ -1798,8 +1814,9 @@
         "distance": 225.2,
         "visible": true
       },
-      "doseFraction": 0.0305,
-      "doseMicroGray": 0.6,
+      "doseFraction": 0.335,
+      "doseMicroGray": 0.577,
+      "doseRateMicroGrayPerHour": 6.29,
       "earth": {
         "az": 305.5,
         "el": 43.1,
@@ -1910,8 +1927,9 @@
         "distance": 240.4,
         "visible": true
       },
-      "doseFraction": 0.0327,
-      "doseMicroGray": 0.6,
+      "doseFraction": 0.3587,
+      "doseMicroGray": 0.618,
+      "doseRateMicroGrayPerHour": 6.26,
       "earth": {
         "az": 305.5,
         "el": 43.1,
@@ -2022,8 +2040,9 @@
         "distance": 254.7,
         "visible": true
       },
-      "doseFraction": 0.0346,
-      "doseMicroGray": 0.7,
+      "doseFraction": 0.3795,
+      "doseMicroGray": 0.654,
+      "doseRateMicroGrayPerHour": 6.2,
       "earth": {
         "az": 305.5,
         "el": 43.1,
@@ -2134,8 +2153,9 @@
         "distance": 268.7,
         "visible": true
       },
-      "doseFraction": 0.0366,
-      "doseMicroGray": 0.7,
+      "doseFraction": 0.4013,
+      "doseMicroGray": 0.691,
+      "doseRateMicroGrayPerHour": 5.96,
       "earth": {
         "az": 305.5,
         "el": 43.1,
@@ -2246,8 +2266,9 @@
         "distance": 266.3,
         "visible": true
       },
-      "doseFraction": 0.0384,
-      "doseMicroGray": 0.7,
+      "doseFraction": 0.4212,
+      "doseMicroGray": 0.726,
+      "doseRateMicroGrayPerHour": 6.1,
       "earth": {
         "az": 305.5,
         "el": 43.1,
@@ -2358,8 +2379,9 @@
         "distance": 273.2,
         "visible": true
       },
-      "doseFraction": 0.0403,
-      "doseMicroGray": 0.8,
+      "doseFraction": 0.4418,
+      "doseMicroGray": 0.761,
+      "doseRateMicroGrayPerHour": 6.18,
       "earth": {
         "az": 305.5,
         "el": 43.1,
@@ -2470,8 +2492,9 @@
         "distance": 285.3,
         "visible": true
       },
-      "doseFraction": 0.042,
-      "doseMicroGray": 0.8,
+      "doseFraction": 0.4609,
+      "doseMicroGray": 0.794,
+      "doseRateMicroGrayPerHour": 6.23,
       "earth": {
         "az": 305.5,
         "el": 43.1,
@@ -2582,8 +2605,9 @@
         "distance": 298.8,
         "visible": true
       },
-      "doseFraction": 0.044,
-      "doseMicroGray": 0.8,
+      "doseFraction": 0.4828,
+      "doseMicroGray": 0.832,
+      "doseRateMicroGrayPerHour": 6.19,
       "earth": {
         "az": 305.5,
         "el": 43.1,
@@ -2694,8 +2718,9 @@
         "distance": 311.7,
         "visible": true
       },
-      "doseFraction": 0.0459,
-      "doseMicroGray": 0.9,
+      "doseFraction": 0.5037,
+      "doseMicroGray": 0.868,
+      "doseRateMicroGrayPerHour": 6.13,
       "earth": {
         "az": 305.5,
         "el": 43.1,
@@ -2806,8 +2831,9 @@
         "distance": 324.2,
         "visible": false
       },
-      "doseFraction": 0.048,
-      "doseMicroGray": 0.9,
+      "doseFraction": 0.5268,
+      "doseMicroGray": 0.908,
+      "doseRateMicroGrayPerHour": 6.14,
       "earth": {
         "az": 305.5,
         "el": 43.1,
@@ -2918,8 +2944,9 @@
         "distance": 336.9,
         "visible": false
       },
-      "doseFraction": 0.05,
-      "doseMicroGray": 0.9,
+      "doseFraction": 0.5486,
+      "doseMicroGray": 0.945,
+      "doseRateMicroGrayPerHour": 6.16,
       "earth": {
         "az": 305.5,
         "el": 43.1,
@@ -3030,8 +3057,9 @@
         "distance": 350.1,
         "visible": false
       },
-      "doseFraction": 0.0519,
-      "doseMicroGray": 1.0,
+      "doseFraction": 0.5696,
+      "doseMicroGray": 0.981,
+      "doseRateMicroGrayPerHour": 6.16,
       "earth": {
         "az": 305.5,
         "el": 43.1,
@@ -3142,8 +3170,9 @@
         "distance": 363.4,
         "visible": false
       },
-      "doseFraction": 0.0536,
-      "doseMicroGray": 1.0,
+      "doseFraction": 0.5877,
+      "doseMicroGray": 1.013,
+      "doseRateMicroGrayPerHour": 6.18,
       "earth": {
         "az": 305.5,
         "el": 43.1,
@@ -3254,8 +3283,9 @@
         "distance": 376.7,
         "visible": true
       },
-      "doseFraction": 0.0554,
-      "doseMicroGray": 1.0,
+      "doseFraction": 0.6078,
+      "doseMicroGray": 1.047,
+      "doseRateMicroGrayPerHour": 6.22,
       "earth": {
         "az": 305.5,
         "el": 43.1,
@@ -3366,8 +3396,9 @@
         "distance": 390.2,
         "visible": true
       },
-      "doseFraction": 0.0576,
-      "doseMicroGray": 1.1,
+      "doseFraction": 0.6318,
+      "doseMicroGray": 1.088,
+      "doseRateMicroGrayPerHour": 6.23,
       "earth": {
         "az": 305.5,
         "el": 43.1,
@@ -3718,7 +3749,7 @@
         }
       ],
       "plannedDoseMicroGray": 0.0,
-      "stormDoseMicroGray": 419.9
+      "stormDoseMicroGray": 419.924
     },
     "1": {
       "base": {
@@ -3981,8 +4012,8 @@
           "score": 7997.6
         }
       ],
-      "plannedDoseMicroGray": 0.0,
-      "stormDoseMicroGray": 419.9
+      "plannedDoseMicroGray": 0.039,
+      "stormDoseMicroGray": 419.941
     },
     "10": {
       "base": {
@@ -4317,8 +4348,8 @@
           "score": 7996.1
         }
       ],
-      "plannedDoseMicroGray": 0.4,
-      "stormDoseMicroGray": 420.1
+      "plannedDoseMicroGray": 0.371,
+      "stormDoseMicroGray": 420.109
     },
     "11": {
       "base": {
@@ -4662,8 +4693,8 @@
           "score": 7996.0
         }
       ],
-      "plannedDoseMicroGray": 0.4,
-      "stormDoseMicroGray": 420.1
+      "plannedDoseMicroGray": 0.403,
+      "stormDoseMicroGray": 420.125
     },
     "12": {
       "base": {
@@ -5007,8 +5038,8 @@
           "score": 7995.7
         }
       ],
-      "plannedDoseMicroGray": 0.4,
-      "stormDoseMicroGray": 420.1
+      "plannedDoseMicroGray": 0.438,
+      "stormDoseMicroGray": 420.142
     },
     "13": {
       "base": {
@@ -5352,8 +5383,8 @@
           "score": 7995.6
         }
       ],
-      "plannedDoseMicroGray": 0.5,
-      "stormDoseMicroGray": 420.2
+      "plannedDoseMicroGray": 0.47,
+      "stormDoseMicroGray": 420.158
     },
     "14": {
       "base": {
@@ -5697,8 +5728,8 @@
           "score": 7995.3
         }
       ],
-      "plannedDoseMicroGray": 0.5,
-      "stormDoseMicroGray": 420.2
+      "plannedDoseMicroGray": 0.501,
+      "stormDoseMicroGray": 420.172
     },
     "15": {
       "base": {
@@ -6042,8 +6073,8 @@
           "score": 7995.2
         }
       ],
-      "plannedDoseMicroGray": 0.5,
-      "stormDoseMicroGray": 764.7
+      "plannedDoseMicroGray": 0.54,
+      "stormDoseMicroGray": 764.693
     },
     "16": {
       "base": {
@@ -6387,8 +6418,8 @@
           "score": 7995.6
         }
       ],
-      "plannedDoseMicroGray": 0.6,
-      "stormDoseMicroGray": 764.7
+      "plannedDoseMicroGray": 0.577,
+      "stormDoseMicroGray": 764.691
     },
     "17": {
       "base": {
@@ -6732,8 +6763,8 @@
           "score": 7995.6
         }
       ],
-      "plannedDoseMicroGray": 0.6,
-      "stormDoseMicroGray": 764.7
+      "plannedDoseMicroGray": 0.618,
+      "stormDoseMicroGray": 764.688
     },
     "18": {
       "base": {
@@ -7077,8 +7108,8 @@
           "score": 7995.7
         }
       ],
-      "plannedDoseMicroGray": 0.7,
-      "stormDoseMicroGray": 764.7
+      "plannedDoseMicroGray": 0.654,
+      "stormDoseMicroGray": 764.685
     },
     "19": {
       "base": {
@@ -7422,8 +7453,8 @@
           "score": 7996.0
         }
       ],
-      "plannedDoseMicroGray": 0.7,
-      "stormDoseMicroGray": 764.7
+      "plannedDoseMicroGray": 0.691,
+      "stormDoseMicroGray": 764.684
     },
     "2": {
       "base": {
@@ -7695,8 +7726,8 @@
           "score": 7997.3
         }
       ],
-      "plannedDoseMicroGray": 0.1,
-      "stormDoseMicroGray": 420.0
+      "plannedDoseMicroGray": 0.078,
+      "stormDoseMicroGray": 419.961
     },
     "20": {
       "base": {
@@ -8040,8 +8071,8 @@
           "score": 7996.2
         }
       ],
-      "plannedDoseMicroGray": 0.7,
-      "stormDoseMicroGray": 764.7
+      "plannedDoseMicroGray": 0.726,
+      "stormDoseMicroGray": 764.686
     },
     "21": {
       "base": {
@@ -8385,8 +8416,8 @@
           "score": 7996.7
         }
       ],
-      "plannedDoseMicroGray": 0.8,
-      "stormDoseMicroGray": 764.7
+      "plannedDoseMicroGray": 0.761,
+      "stormDoseMicroGray": 764.69
     },
     "22": {
       "base": {
@@ -8730,8 +8761,8 @@
           "score": 7997.2
         }
       ],
-      "plannedDoseMicroGray": 0.8,
-      "stormDoseMicroGray": 764.7
+      "plannedDoseMicroGray": 0.794,
+      "stormDoseMicroGray": 764.692
     },
     "23": {
       "base": {
@@ -9075,8 +9106,8 @@
           "score": 7997.8
         }
       ],
-      "plannedDoseMicroGray": 0.8,
-      "stormDoseMicroGray": 764.7
+      "plannedDoseMicroGray": 0.832,
+      "stormDoseMicroGray": 764.696
     },
     "24": {
       "base": {
@@ -9420,8 +9451,8 @@
           "score": 7998.4
         }
       ],
-      "plannedDoseMicroGray": 0.9,
-      "stormDoseMicroGray": 764.7
+      "plannedDoseMicroGray": 0.868,
+      "stormDoseMicroGray": 764.699
     },
     "25": {
       "base": {
@@ -9765,8 +9796,8 @@
           "score": 7999.0
         }
       ],
-      "plannedDoseMicroGray": 0.9,
-      "stormDoseMicroGray": 764.7
+      "plannedDoseMicroGray": 0.908,
+      "stormDoseMicroGray": 764.702
     },
     "26": {
       "base": {
@@ -10110,8 +10141,8 @@
           "score": 7999.6
         }
       ],
-      "plannedDoseMicroGray": 0.9,
-      "stormDoseMicroGray": 764.7
+      "plannedDoseMicroGray": 0.945,
+      "stormDoseMicroGray": 764.706
     },
     "27": {
       "base": {
@@ -10455,8 +10486,8 @@
           "score": 8000.2
         }
       ],
-      "plannedDoseMicroGray": 1.0,
-      "stormDoseMicroGray": 764.7
+      "plannedDoseMicroGray": 0.981,
+      "stormDoseMicroGray": 764.709
     },
     "28": {
       "base": {
@@ -10800,8 +10831,8 @@
           "score": 8000.8
         }
       ],
-      "plannedDoseMicroGray": 1.0,
-      "stormDoseMicroGray": 764.7
+      "plannedDoseMicroGray": 1.013,
+      "stormDoseMicroGray": 764.712
     },
     "29": {
       "base": {
@@ -11145,8 +11176,8 @@
           "score": 8001.3
         }
       ],
-      "plannedDoseMicroGray": 1.0,
-      "stormDoseMicroGray": 764.7
+      "plannedDoseMicroGray": 1.047,
+      "stormDoseMicroGray": 764.715
     },
     "3": {
       "base": {
@@ -11445,8 +11476,8 @@
           "score": 7997.4
         }
       ],
-      "plannedDoseMicroGray": 0.1,
-      "stormDoseMicroGray": 420.0
+      "plannedDoseMicroGray": 0.114,
+      "stormDoseMicroGray": 419.98
     },
     "30": {
       "base": {
@@ -11790,8 +11821,8 @@
           "score": 8001.9
         }
       ],
-      "plannedDoseMicroGray": 1.1,
-      "stormDoseMicroGray": 764.7
+      "plannedDoseMicroGray": 1.088,
+      "stormDoseMicroGray": 764.719
     },
     "4": {
       "base": {
@@ -12099,8 +12130,8 @@
           "score": 7996.8
         }
       ],
-      "plannedDoseMicroGray": 0.1,
-      "stormDoseMicroGray": 420.0
+      "plannedDoseMicroGray": 0.15,
+      "stormDoseMicroGray": 419.998
     },
     "5": {
       "base": {
@@ -12417,8 +12448,8 @@
           "score": 7996.6
         }
       ],
-      "plannedDoseMicroGray": 0.2,
-      "stormDoseMicroGray": 420.0
+      "plannedDoseMicroGray": 0.186,
+      "stormDoseMicroGray": 420.017
     },
     "6": {
       "base": {
@@ -12744,8 +12775,8 @@
           "score": 7996.4
         }
       ],
-      "plannedDoseMicroGray": 0.2,
-      "stormDoseMicroGray": 420.0
+      "plannedDoseMicroGray": 0.222,
+      "stormDoseMicroGray": 420.034
     },
     "7": {
       "base": {
@@ -13071,8 +13102,8 @@
           "score": 7996.2
         }
       ],
-      "plannedDoseMicroGray": 0.3,
-      "stormDoseMicroGray": 420.1
+      "plannedDoseMicroGray": 0.26,
+      "stormDoseMicroGray": 420.055
     },
     "8": {
       "base": {
@@ -13399,7 +13430,7 @@
         }
       ],
       "plannedDoseMicroGray": 0.3,
-      "stormDoseMicroGray": 420.1
+      "stormDoseMicroGray": 420.073
     },
     "9": {
       "base": {
@@ -13734,8 +13765,8 @@
           "score": 7996.4
         }
       ],
-      "plannedDoseMicroGray": 0.3,
-      "stormDoseMicroGray": 420.1
+      "plannedDoseMicroGray": 0.338,
+      "stormDoseMicroGray": 420.093
     }
   },
   "reroutes": {
@@ -13748,6 +13779,7 @@
         },
         "doseFraction": 0.0,
         "doseMicroGray": 0.0,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -13860,8 +13892,9 @@
           "distance": 15.6,
           "visible": true
         },
-        "doseFraction": 0.0021,
-        "doseMicroGray": 0.0,
+        "doseFraction": 0.0226,
+        "doseMicroGray": 0.039,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -13972,8 +14005,9 @@
           "distance": 0.0,
           "visible": true
         },
-        "doseFraction": 0.0644,
-        "doseMicroGray": 1.2,
+        "doseFraction": 0.0432,
+        "doseMicroGray": 0.074,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -14086,8 +14120,9 @@
           "distance": 150.0,
           "visible": true
         },
-        "doseFraction": 0.0196,
-        "doseMicroGray": 0.4,
+        "doseFraction": 0.2152,
+        "doseMicroGray": 0.371,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -14198,8 +14233,9 @@
           "distance": 136.7,
           "visible": true
         },
-        "doseFraction": 0.0816,
-        "doseMicroGray": 1.5,
+        "doseFraction": 0.2356,
+        "doseMicroGray": 0.406,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -14310,8 +14346,9 @@
           "distance": 121.6,
           "visible": true
         },
-        "doseFraction": 0.1511,
-        "doseMicroGray": 2.9,
+        "doseFraction": 0.2585,
+        "doseMicroGray": 0.445,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -14422,8 +14459,9 @@
           "distance": 106.0,
           "visible": true
         },
-        "doseFraction": 0.2203,
-        "doseMicroGray": 4.2,
+        "doseFraction": 0.2813,
+        "doseMicroGray": 0.485,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -14534,8 +14572,9 @@
           "distance": 92.7,
           "visible": true
         },
-        "doseFraction": 0.2859,
-        "doseMicroGray": 5.4,
+        "doseFraction": 0.3029,
+        "doseMicroGray": 0.522,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -14646,8 +14685,9 @@
           "distance": 77.9,
           "visible": true
         },
-        "doseFraction": 0.3492,
-        "doseMicroGray": 6.6,
+        "doseFraction": 0.3238,
+        "doseMicroGray": 0.558,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -14758,8 +14798,9 @@
           "distance": 62.3,
           "visible": true
         },
-        "doseFraction": 0.4131,
-        "doseMicroGray": 7.8,
+        "doseFraction": 0.3448,
+        "doseMicroGray": 0.594,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -14870,8 +14911,9 @@
           "distance": 46.7,
           "visible": true
         },
-        "doseFraction": 0.4761,
-        "doseMicroGray": 9.0,
+        "doseFraction": 0.3656,
+        "doseMicroGray": 0.63,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -14982,8 +15024,9 @@
           "distance": 31.1,
           "visible": true
         },
-        "doseFraction": 0.5394,
-        "doseMicroGray": 10.2,
+        "doseFraction": 0.3864,
+        "doseMicroGray": 0.666,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -15094,8 +15137,9 @@
           "distance": 15.5,
           "visible": true
         },
-        "doseFraction": 0.608,
-        "doseMicroGray": 11.5,
+        "doseFraction": 0.4091,
+        "doseMicroGray": 0.705,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -15206,8 +15250,9 @@
           "distance": 0.0,
           "visible": true
         },
-        "doseFraction": 0.6722,
-        "doseMicroGray": 12.7,
+        "doseFraction": 0.4302,
+        "doseMicroGray": 0.741,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -15320,8 +15365,9 @@
           "distance": 161.0,
           "visible": true
         },
-        "doseFraction": 0.0213,
-        "doseMicroGray": 0.4,
+        "doseFraction": 0.2336,
+        "doseMicroGray": 0.403,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -15432,8 +15478,9 @@
           "distance": 145.7,
           "visible": true
         },
-        "doseFraction": 0.0854,
-        "doseMicroGray": 1.6,
+        "doseFraction": 0.2548,
+        "doseMicroGray": 0.439,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -15544,8 +15591,9 @@
           "distance": 131.0,
           "visible": true
         },
-        "doseFraction": 0.1486,
-        "doseMicroGray": 2.8,
+        "doseFraction": 0.2756,
+        "doseMicroGray": 0.475,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -15656,8 +15704,9 @@
           "distance": 115.8,
           "visible": true
         },
-        "doseFraction": 0.2151,
-        "doseMicroGray": 4.1,
+        "doseFraction": 0.2975,
+        "doseMicroGray": 0.513,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -15768,8 +15817,9 @@
           "distance": 101.5,
           "visible": true
         },
-        "doseFraction": 0.282,
-        "doseMicroGray": 5.3,
+        "doseFraction": 0.3196,
+        "doseMicroGray": 0.551,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -15880,8 +15930,9 @@
           "distance": 88.6,
           "visible": true
         },
-        "doseFraction": 0.3466,
-        "doseMicroGray": 6.5,
+        "doseFraction": 0.3408,
+        "doseMicroGray": 0.587,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -15992,8 +16043,9 @@
           "distance": 76.3,
           "visible": true
         },
-        "doseFraction": 0.4109,
-        "doseMicroGray": 7.8,
+        "doseFraction": 0.362,
+        "doseMicroGray": 0.624,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -16104,8 +16156,9 @@
           "distance": 61.6,
           "visible": true
         },
-        "doseFraction": 0.4741,
-        "doseMicroGray": 9.0,
+        "doseFraction": 0.3828,
+        "doseMicroGray": 0.66,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -16216,8 +16269,9 @@
           "distance": 46.2,
           "visible": true
         },
-        "doseFraction": 0.5364,
-        "doseMicroGray": 10.1,
+        "doseFraction": 0.4034,
+        "doseMicroGray": 0.695,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -16328,8 +16382,9 @@
           "distance": 30.8,
           "visible": true
         },
-        "doseFraction": 0.5991,
-        "doseMicroGray": 11.3,
+        "doseFraction": 0.424,
+        "doseMicroGray": 0.731,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -16440,8 +16495,9 @@
           "distance": 15.3,
           "visible": true
         },
-        "doseFraction": 0.667,
-        "doseMicroGray": 12.6,
+        "doseFraction": 0.4464,
+        "doseMicroGray": 0.769,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -16552,8 +16608,9 @@
           "distance": 0.0,
           "visible": true
         },
-        "doseFraction": 0.7306,
-        "doseMicroGray": 13.8,
+        "doseFraction": 0.4674,
+        "doseMicroGray": 0.805,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -16666,8 +16723,9 @@
           "distance": 172.4,
           "visible": true
         },
-        "doseFraction": 0.0232,
-        "doseMicroGray": 0.4,
+        "doseFraction": 0.2544,
+        "doseMicroGray": 0.438,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -16778,8 +16836,9 @@
           "distance": 158.6,
           "visible": true
         },
-        "doseFraction": 0.0934,
-        "doseMicroGray": 1.8,
+        "doseFraction": 0.2775,
+        "doseMicroGray": 0.478,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -16890,8 +16949,9 @@
           "distance": 144.4,
           "visible": true
         },
-        "doseFraction": 0.1538,
-        "doseMicroGray": 2.9,
+        "doseFraction": 0.2974,
+        "doseMicroGray": 0.512,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -17002,8 +17062,9 @@
           "distance": 129.8,
           "visible": true
         },
-        "doseFraction": 0.2166,
-        "doseMicroGray": 4.1,
+        "doseFraction": 0.3181,
+        "doseMicroGray": 0.548,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -17114,8 +17175,9 @@
           "distance": 114.9,
           "visible": true
         },
-        "doseFraction": 0.2835,
-        "doseMicroGray": 5.4,
+        "doseFraction": 0.3401,
+        "doseMicroGray": 0.586,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -17226,8 +17288,9 @@
           "distance": 100.6,
           "visible": true
         },
-        "doseFraction": 0.3489,
-        "doseMicroGray": 6.6,
+        "doseFraction": 0.3617,
+        "doseMicroGray": 0.623,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -17338,8 +17401,9 @@
           "distance": 87.9,
           "visible": true
         },
-        "doseFraction": 0.4132,
-        "doseMicroGray": 7.8,
+        "doseFraction": 0.3829,
+        "doseMicroGray": 0.66,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -17450,8 +17514,9 @@
           "distance": 75.6,
           "visible": true
         },
-        "doseFraction": 0.4769,
-        "doseMicroGray": 9.0,
+        "doseFraction": 0.4039,
+        "doseMicroGray": 0.696,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -17562,8 +17627,9 @@
           "distance": 61.1,
           "visible": true
         },
-        "doseFraction": 0.5396,
-        "doseMicroGray": 10.2,
+        "doseFraction": 0.4245,
+        "doseMicroGray": 0.731,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -17674,8 +17740,9 @@
           "distance": 45.8,
           "visible": true
         },
-        "doseFraction": 0.6014,
-        "doseMicroGray": 11.4,
+        "doseFraction": 0.4449,
+        "doseMicroGray": 0.766,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -17786,8 +17853,9 @@
           "distance": 30.5,
           "visible": true
         },
-        "doseFraction": 0.6635,
-        "doseMicroGray": 12.5,
+        "doseFraction": 0.4654,
+        "doseMicroGray": 0.802,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -17898,8 +17966,9 @@
           "distance": 15.2,
           "visible": true
         },
-        "doseFraction": 0.7309,
-        "doseMicroGray": 13.8,
+        "doseFraction": 0.4876,
+        "doseMicroGray": 0.84,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -18010,8 +18079,9 @@
           "distance": 0.0,
           "visible": true
         },
-        "doseFraction": 0.7939,
-        "doseMicroGray": 15.0,
+        "doseFraction": 0.5083,
+        "doseMicroGray": 0.876,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -18124,8 +18194,9 @@
           "distance": 184.1,
           "visible": true
         },
-        "doseFraction": 0.0249,
-        "doseMicroGray": 0.5,
+        "doseFraction": 0.2726,
+        "doseMicroGray": 0.47,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -18236,8 +18307,9 @@
           "distance": 169.5,
           "visible": true
         },
-        "doseFraction": 0.0863,
-        "doseMicroGray": 1.6,
+        "doseFraction": 0.2928,
+        "doseMicroGray": 0.504,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -18348,8 +18420,9 @@
           "distance": 155.3,
           "visible": true
         },
-        "doseFraction": 0.1524,
-        "doseMicroGray": 2.9,
+        "doseFraction": 0.3146,
+        "doseMicroGray": 0.542,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -18460,8 +18533,9 @@
           "distance": 142.3,
           "visible": true
         },
-        "doseFraction": 0.2129,
-        "doseMicroGray": 4.0,
+        "doseFraction": 0.3345,
+        "doseMicroGray": 0.576,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -18572,8 +18646,9 @@
           "distance": 128.5,
           "visible": true
         },
-        "doseFraction": 0.2772,
-        "doseMicroGray": 5.2,
+        "doseFraction": 0.3557,
+        "doseMicroGray": 0.613,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -18684,8 +18759,9 @@
           "distance": 113.6,
           "visible": true
         },
-        "doseFraction": 0.3426,
-        "doseMicroGray": 6.5,
+        "doseFraction": 0.3773,
+        "doseMicroGray": 0.65,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -18796,8 +18872,9 @@
           "distance": 99.8,
           "visible": true
         },
-        "doseFraction": 0.4071,
-        "doseMicroGray": 7.7,
+        "doseFraction": 0.3985,
+        "doseMicroGray": 0.687,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -18908,8 +18985,9 @@
           "distance": 87.5,
           "visible": true
         },
-        "doseFraction": 0.4711,
-        "doseMicroGray": 8.9,
+        "doseFraction": 0.4196,
+        "doseMicroGray": 0.723,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -19020,8 +19098,9 @@
           "distance": 75.1,
           "visible": true
         },
-        "doseFraction": 0.5343,
-        "doseMicroGray": 10.1,
+        "doseFraction": 0.4404,
+        "doseMicroGray": 0.759,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -19132,8 +19211,9 @@
           "distance": 60.7,
           "visible": true
         },
-        "doseFraction": 0.5966,
-        "doseMicroGray": 11.3,
+        "doseFraction": 0.461,
+        "doseMicroGray": 0.794,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -19244,8 +19324,9 @@
           "distance": 45.5,
           "visible": true
         },
-        "doseFraction": 0.658,
-        "doseMicroGray": 12.4,
+        "doseFraction": 0.4812,
+        "doseMicroGray": 0.829,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -19356,8 +19437,9 @@
           "distance": 30.3,
           "visible": true
         },
-        "doseFraction": 0.7198,
-        "doseMicroGray": 13.6,
+        "doseFraction": 0.5016,
+        "doseMicroGray": 0.864,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -19468,8 +19550,9 @@
           "distance": 15.1,
           "visible": true
         },
-        "doseFraction": 0.7868,
-        "doseMicroGray": 14.9,
+        "doseFraction": 0.5236,
+        "doseMicroGray": 0.902,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -19580,8 +19663,9 @@
           "distance": 0.0,
           "visible": true
         },
-        "doseFraction": 0.8494,
-        "doseMicroGray": 16.0,
+        "doseFraction": 0.5443,
+        "doseMicroGray": 0.938,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -19694,8 +19778,9 @@
           "distance": 195.2,
           "visible": true
         },
-        "doseFraction": 0.0265,
-        "doseMicroGray": 0.5,
+        "doseFraction": 0.2909,
+        "doseMicroGray": 0.501,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -19806,8 +19891,9 @@
           "distance": 181.6,
           "visible": true
         },
-        "doseFraction": 0.0867,
-        "doseMicroGray": 1.6,
+        "doseFraction": 0.3107,
+        "doseMicroGray": 0.535,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -19918,8 +20004,9 @@
           "distance": 167.1,
           "visible": true
         },
-        "doseFraction": 0.1464,
-        "doseMicroGray": 2.8,
+        "doseFraction": 0.3304,
+        "doseMicroGray": 0.569,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -20030,8 +20117,9 @@
           "distance": 153.5,
           "visible": true
         },
-        "doseFraction": 0.2101,
-        "doseMicroGray": 4.0,
+        "doseFraction": 0.3514,
+        "doseMicroGray": 0.605,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -20142,8 +20230,9 @@
           "distance": 140.6,
           "visible": true
         },
-        "doseFraction": 0.2699,
-        "doseMicroGray": 5.1,
+        "doseFraction": 0.3711,
+        "doseMicroGray": 0.639,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -20254,8 +20343,9 @@
           "distance": 127.1,
           "visible": true
         },
-        "doseFraction": 0.3339,
-        "doseMicroGray": 6.3,
+        "doseFraction": 0.3922,
+        "doseMicroGray": 0.676,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -20366,8 +20456,9 @@
           "distance": 112.3,
           "visible": true
         },
-        "doseFraction": 0.3995,
-        "doseMicroGray": 7.5,
+        "doseFraction": 0.4138,
+        "doseMicroGray": 0.713,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -20478,8 +20569,9 @@
           "distance": 98.8,
           "visible": true
         },
-        "doseFraction": 0.4622,
-        "doseMicroGray": 8.7,
+        "doseFraction": 0.4345,
+        "doseMicroGray": 0.749,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -20590,8 +20682,9 @@
           "distance": 86.7,
           "visible": true
         },
-        "doseFraction": 0.5257,
-        "doseMicroGray": 9.9,
+        "doseFraction": 0.4554,
+        "doseMicroGray": 0.785,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -20702,8 +20795,9 @@
           "distance": 74.3,
           "visible": true
         },
-        "doseFraction": 0.5882,
-        "doseMicroGray": 11.1,
+        "doseFraction": 0.476,
+        "doseMicroGray": 0.82,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -20814,8 +20908,9 @@
           "distance": 60.1,
           "visible": true
         },
-        "doseFraction": 0.6498,
-        "doseMicroGray": 12.3,
+        "doseFraction": 0.4963,
+        "doseMicroGray": 0.855,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -20926,8 +21021,9 @@
           "distance": 45.0,
           "visible": true
         },
-        "doseFraction": 0.7107,
-        "doseMicroGray": 13.4,
+        "doseFraction": 0.5164,
+        "doseMicroGray": 0.89,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -21038,8 +21134,9 @@
           "distance": 30.0,
           "visible": true
         },
-        "doseFraction": 0.7719,
-        "doseMicroGray": 14.6,
+        "doseFraction": 0.5365,
+        "doseMicroGray": 0.924,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -21150,8 +21247,9 @@
           "distance": 14.9,
           "visible": true
         },
-        "doseFraction": 0.8381,
-        "doseMicroGray": 15.8,
+        "doseFraction": 0.5584,
+        "doseMicroGray": 0.962,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -21262,8 +21360,9 @@
           "distance": 0.0,
           "visible": true
         },
-        "doseFraction": 0.9,
-        "doseMicroGray": 17.0,
+        "doseFraction": 0.5788,
+        "doseMicroGray": 0.997,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -21376,8 +21475,9 @@
           "distance": 209.7,
           "visible": true
         },
-        "doseFraction": 0.0286,
-        "doseMicroGray": 0.5,
+        "doseFraction": 0.3133,
+        "doseMicroGray": 0.54,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -21488,8 +21588,9 @@
           "distance": 223.8,
           "visible": true
         },
-        "doseFraction": 0.0988,
-        "doseMicroGray": 1.9,
+        "doseFraction": 0.3365,
+        "doseMicroGray": 0.58,
+        "doseRateMicroGrayPerHour": 6.29,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -21600,8 +21701,9 @@
           "distance": 235.7,
           "visible": true
         },
-        "doseFraction": 0.1677,
-        "doseMicroGray": 3.2,
+        "doseFraction": 0.3592,
+        "doseMicroGray": 0.619,
+        "doseRateMicroGrayPerHour": 6.25,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -21712,8 +21814,9 @@
           "distance": 250.0,
           "visible": true
         },
-        "doseFraction": 0.229,
-        "doseMicroGray": 4.3,
+        "doseFraction": 0.3794,
+        "doseMicroGray": 0.654,
+        "doseRateMicroGrayPerHour": 6.19,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -21824,8 +21927,9 @@
           "distance": 261.3,
           "visible": true
         },
-        "doseFraction": 0.2902,
-        "doseMicroGray": 5.5,
+        "doseFraction": 0.3995,
+        "doseMicroGray": 0.688,
+        "doseRateMicroGrayPerHour": 6.09,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -21936,8 +22040,9 @@
           "distance": 275.9,
           "visible": true
         },
-        "doseFraction": 0.3581,
-        "doseMicroGray": 6.8,
+        "doseFraction": 0.4219,
+        "doseMicroGray": 0.727,
+        "doseRateMicroGrayPerHour": 5.74,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -22050,8 +22155,9 @@
           "distance": 225.2,
           "visible": true
         },
-        "doseFraction": 0.0305,
-        "doseMicroGray": 0.6,
+        "doseFraction": 0.335,
+        "doseMicroGray": 0.577,
+        "doseRateMicroGrayPerHour": 6.29,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -22162,8 +22268,9 @@
           "distance": 235.2,
           "visible": true
         },
-        "doseFraction": 0.1062,
-        "doseMicroGray": 2.0,
+        "doseFraction": 0.3599,
+        "doseMicroGray": 0.62,
+        "doseRateMicroGrayPerHour": 6.26,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -22274,8 +22381,9 @@
           "distance": 250.7,
           "visible": true
         },
-        "doseFraction": 0.1724,
-        "doseMicroGray": 3.3,
+        "doseFraction": 0.3818,
+        "doseMicroGray": 0.658,
+        "doseRateMicroGrayPerHour": 6.19,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -22386,8 +22494,9 @@
           "distance": 260.0,
           "visible": true
         },
-        "doseFraction": 0.2389,
-        "doseMicroGray": 4.5,
+        "doseFraction": 0.4037,
+        "doseMicroGray": 0.695,
+        "doseRateMicroGrayPerHour": 6.1,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -22498,8 +22607,9 @@
           "distance": 275.9,
           "visible": true
         },
-        "doseFraction": 0.3122,
-        "doseMicroGray": 5.9,
+        "doseFraction": 0.4278,
+        "doseMicroGray": 0.737,
+        "doseRateMicroGrayPerHour": 5.74,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -22612,8 +22722,9 @@
           "distance": 240.4,
           "visible": true
         },
-        "doseFraction": 0.0327,
-        "doseMicroGray": 0.6,
+        "doseFraction": 0.3587,
+        "doseMicroGray": 0.618,
+        "doseRateMicroGrayPerHour": 6.26,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -22724,8 +22835,9 @@
           "distance": 247.1,
           "visible": true
         },
-        "doseFraction": 0.0867,
-        "doseMicroGray": 1.6,
+        "doseFraction": 0.3765,
+        "doseMicroGray": 0.649,
+        "doseRateMicroGrayPerHour": 6.23,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -22836,8 +22948,9 @@
           "distance": 255.4,
           "visible": true
         },
-        "doseFraction": 0.1422,
-        "doseMicroGray": 2.7,
+        "doseFraction": 0.3948,
+        "doseMicroGray": 0.68,
+        "doseRateMicroGrayPerHour": 6.14,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -22948,8 +23061,9 @@
           "distance": 262.7,
           "visible": true
         },
-        "doseFraction": 0.1966,
-        "doseMicroGray": 3.7,
+        "doseFraction": 0.4127,
+        "doseMicroGray": 0.711,
+        "doseRateMicroGrayPerHour": 6.07,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -23060,8 +23174,9 @@
           "distance": 275.9,
           "visible": true
         },
-        "doseFraction": 0.2588,
-        "doseMicroGray": 4.9,
+        "doseFraction": 0.4332,
+        "doseMicroGray": 0.746,
+        "doseRateMicroGrayPerHour": 5.74,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -23174,8 +23289,9 @@
           "distance": 254.7,
           "visible": true
         },
-        "doseFraction": 0.0346,
-        "doseMicroGray": 0.7,
+        "doseFraction": 0.3795,
+        "doseMicroGray": 0.654,
+        "doseRateMicroGrayPerHour": 6.2,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -23286,8 +23402,9 @@
           "distance": 258.7,
           "visible": true
         },
-        "doseFraction": 0.0919,
-        "doseMicroGray": 1.7,
+        "doseFraction": 0.3983,
+        "doseMicroGray": 0.686,
+        "doseRateMicroGrayPerHour": 6.11,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -23398,8 +23515,9 @@
           "distance": 264.3,
           "visible": true
         },
-        "doseFraction": 0.1459,
-        "doseMicroGray": 2.8,
+        "doseFraction": 0.4162,
+        "doseMicroGray": 0.717,
+        "doseRateMicroGrayPerHour": 6.04,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -23510,8 +23628,9 @@
           "distance": 275.9,
           "visible": true
         },
-        "doseFraction": 0.2065,
-        "doseMicroGray": 3.9,
+        "doseFraction": 0.4361,
+        "doseMicroGray": 0.751,
+        "doseRateMicroGrayPerHour": 5.74,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -23624,8 +23743,9 @@
           "distance": 268.7,
           "visible": true
         },
-        "doseFraction": 0.0366,
-        "doseMicroGray": 0.7,
+        "doseFraction": 0.4013,
+        "doseMicroGray": 0.691,
+        "doseRateMicroGrayPerHour": 5.96,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -23736,8 +23856,9 @@
           "distance": 268.4,
           "visible": true
         },
-        "doseFraction": 0.1027,
-        "doseMicroGray": 1.9,
+        "doseFraction": 0.423,
+        "doseMicroGray": 0.729,
+        "doseRateMicroGrayPerHour": 5.94,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -23848,8 +23969,9 @@
           "distance": 275.9,
           "visible": true
         },
-        "doseFraction": 0.172,
-        "doseMicroGray": 3.2,
+        "doseFraction": 0.4459,
+        "doseMicroGray": 0.768,
+        "doseRateMicroGrayPerHour": 5.74,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -23962,8 +24084,9 @@
           "distance": 31.2,
           "visible": true
         },
-        "doseFraction": 0.0041,
-        "doseMicroGray": 0.1,
+        "doseFraction": 0.0453,
+        "doseMicroGray": 0.078,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -24074,8 +24197,9 @@
           "distance": 15.5,
           "visible": true
         },
-        "doseFraction": 0.0723,
-        "doseMicroGray": 1.4,
+        "doseFraction": 0.0677,
+        "doseMicroGray": 0.117,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -24186,8 +24310,9 @@
           "distance": 0.0,
           "visible": true
         },
-        "doseFraction": 0.1368,
-        "doseMicroGray": 2.6,
+        "doseFraction": 0.089,
+        "doseMicroGray": 0.153,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -24300,8 +24425,9 @@
           "distance": 266.3,
           "visible": true
         },
-        "doseFraction": 0.0384,
-        "doseMicroGray": 0.7,
+        "doseFraction": 0.4212,
+        "doseMicroGray": 0.726,
+        "doseRateMicroGrayPerHour": 6.1,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -24412,8 +24538,9 @@
           "distance": 261.0,
           "visible": true
         },
-        "doseFraction": 0.0976,
-        "doseMicroGray": 1.8,
+        "doseFraction": 0.4407,
+        "doseMicroGray": 0.759,
+        "doseRateMicroGrayPerHour": 6.09,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -24524,8 +24651,9 @@
           "distance": 266.7,
           "visible": true
         },
-        "doseFraction": 0.1582,
-        "doseMicroGray": 3.0,
+        "doseFraction": 0.4606,
+        "doseMicroGray": 0.794,
+        "doseRateMicroGrayPerHour": 5.98,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -24636,8 +24764,9 @@
           "distance": 275.9,
           "visible": true
         },
-        "doseFraction": 0.225,
-        "doseMicroGray": 4.3,
+        "doseFraction": 0.4827,
+        "doseMicroGray": 0.832,
+        "doseRateMicroGrayPerHour": 5.74,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -24750,8 +24879,9 @@
           "distance": 273.2,
           "visible": true
         },
-        "doseFraction": 0.0403,
-        "doseMicroGray": 0.8,
+        "doseFraction": 0.4418,
+        "doseMicroGray": 0.761,
+        "doseRateMicroGrayPerHour": 6.18,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -24862,8 +24992,9 @@
           "distance": 264.4,
           "visible": true
         },
-        "doseFraction": 0.1042,
-        "doseMicroGray": 2.0,
+        "doseFraction": 0.4628,
+        "doseMicroGray": 0.797,
+        "doseRateMicroGrayPerHour": 6.13,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -24974,8 +25105,9 @@
           "distance": 260.8,
           "visible": true
         },
-        "doseFraction": 0.1615,
-        "doseMicroGray": 3.1,
+        "doseFraction": 0.4817,
+        "doseMicroGray": 0.83,
+        "doseRateMicroGrayPerHour": 6.09,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -25086,8 +25218,9 @@
           "distance": 266.6,
           "visible": true
         },
-        "doseFraction": 0.2232,
-        "doseMicroGray": 4.2,
+        "doseFraction": 0.5021,
+        "doseMicroGray": 0.865,
+        "doseRateMicroGrayPerHour": 5.99,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -25198,8 +25331,9 @@
           "distance": 275.9,
           "visible": true
         },
-        "doseFraction": 0.2913,
-        "doseMicroGray": 5.5,
+        "doseFraction": 0.5245,
+        "doseMicroGray": 0.904,
+        "doseRateMicroGrayPerHour": 5.74,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -25312,8 +25446,9 @@
           "distance": 285.3,
           "visible": true
         },
-        "doseFraction": 0.042,
-        "doseMicroGray": 0.8,
+        "doseFraction": 0.4609,
+        "doseMicroGray": 0.794,
+        "doseRateMicroGrayPerHour": 6.23,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -25424,8 +25559,9 @@
           "distance": 272.2,
           "visible": true
         },
-        "doseFraction": 0.1032,
-        "doseMicroGray": 1.9,
+        "doseFraction": 0.4811,
+        "doseMicroGray": 0.829,
+        "doseRateMicroGrayPerHour": 6.19,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -25536,8 +25672,9 @@
           "distance": 264.0,
           "visible": true
         },
-        "doseFraction": 0.1638,
-        "doseMicroGray": 3.1,
+        "doseFraction": 0.501,
+        "doseMicroGray": 0.863,
+        "doseRateMicroGrayPerHour": 6.13,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -25648,8 +25785,9 @@
           "distance": 261.0,
           "visible": true
         },
-        "doseFraction": 0.2202,
-        "doseMicroGray": 4.2,
+        "doseFraction": 0.5196,
+        "doseMicroGray": 0.895,
+        "doseRateMicroGrayPerHour": 6.09,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -25760,8 +25898,9 @@
           "distance": 266.7,
           "visible": true
         },
-        "doseFraction": 0.281,
-        "doseMicroGray": 5.3,
+        "doseFraction": 0.5397,
+        "doseMicroGray": 0.93,
+        "doseRateMicroGrayPerHour": 5.98,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -25872,8 +26011,9 @@
           "distance": 275.9,
           "visible": true
         },
-        "doseFraction": 0.3481,
-        "doseMicroGray": 6.6,
+        "doseFraction": 0.5618,
+        "doseMicroGray": 0.968,
+        "doseRateMicroGrayPerHour": 5.74,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -25986,8 +26126,9 @@
           "distance": 298.8,
           "visible": true
         },
-        "doseFraction": 0.044,
-        "doseMicroGray": 0.8,
+        "doseFraction": 0.4828,
+        "doseMicroGray": 0.832,
+        "doseRateMicroGrayPerHour": 6.19,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -26098,8 +26239,9 @@
           "distance": 286.0,
           "visible": true
         },
-        "doseFraction": 0.1074,
-        "doseMicroGray": 2.0,
+        "doseFraction": 0.5037,
+        "doseMicroGray": 0.868,
+        "doseRateMicroGrayPerHour": 6.22,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -26210,8 +26352,9 @@
           "distance": 271.8,
           "visible": true
         },
-        "doseFraction": 0.1703,
-        "doseMicroGray": 3.2,
+        "doseFraction": 0.5245,
+        "doseMicroGray": 0.904,
+        "doseRateMicroGrayPerHour": 6.19,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -26322,8 +26465,9 @@
           "distance": 263.9,
           "visible": true
         },
-        "doseFraction": 0.2304,
-        "doseMicroGray": 4.4,
+        "doseFraction": 0.5443,
+        "doseMicroGray": 0.938,
+        "doseRateMicroGrayPerHour": 6.13,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -26434,8 +26578,9 @@
           "distance": 261.0,
           "visible": true
         },
-        "doseFraction": 0.2865,
-        "doseMicroGray": 5.4,
+        "doseFraction": 0.5628,
+        "doseMicroGray": 0.97,
+        "doseRateMicroGrayPerHour": 6.09,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -26546,8 +26691,9 @@
           "distance": 266.7,
           "visible": true
         },
-        "doseFraction": 0.347,
-        "doseMicroGray": 6.6,
+        "doseFraction": 0.5827,
+        "doseMicroGray": 1.004,
+        "doseRateMicroGrayPerHour": 5.98,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -26658,8 +26804,9 @@
           "distance": 275.9,
           "visible": true
         },
-        "doseFraction": 0.4137,
-        "doseMicroGray": 7.8,
+        "doseFraction": 0.6047,
+        "doseMicroGray": 1.042,
+        "doseRateMicroGrayPerHour": 5.74,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -26772,8 +26919,9 @@
           "distance": 311.7,
           "visible": true
         },
-        "doseFraction": 0.0459,
-        "doseMicroGray": 0.9,
+        "doseFraction": 0.5037,
+        "doseMicroGray": 0.868,
+        "doseRateMicroGrayPerHour": 6.13,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -26884,8 +27032,9 @@
           "distance": 298.8,
           "visible": true
         },
-        "doseFraction": 0.1122,
-        "doseMicroGray": 2.1,
+        "doseFraction": 0.5255,
+        "doseMicroGray": 0.905,
+        "doseRateMicroGrayPerHour": 6.19,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -26996,8 +27145,9 @@
           "distance": 285.3,
           "visible": true
         },
-        "doseFraction": 0.1758,
-        "doseMicroGray": 3.3,
+        "doseFraction": 0.5464,
+        "doseMicroGray": 0.941,
+        "doseRateMicroGrayPerHour": 6.2,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -27108,8 +27258,9 @@
           "distance": 271.8,
           "visible": true
         },
-        "doseFraction": 0.2371,
-        "doseMicroGray": 4.5,
+        "doseFraction": 0.5667,
+        "doseMicroGray": 0.976,
+        "doseRateMicroGrayPerHour": 6.17,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -27220,8 +27371,9 @@
           "distance": 264.6,
           "visible": true
         },
-        "doseFraction": 0.2983,
-        "doseMicroGray": 5.6,
+        "doseFraction": 0.5868,
+        "doseMicroGray": 1.011,
+        "doseRateMicroGrayPerHour": 6.11,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -27332,8 +27484,9 @@
           "distance": 261.5,
           "visible": true
         },
-        "doseFraction": 0.3528,
-        "doseMicroGray": 6.7,
+        "doseFraction": 0.6048,
+        "doseMicroGray": 1.042,
+        "doseRateMicroGrayPerHour": 6.08,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -27444,8 +27597,9 @@
           "distance": 267.0,
           "visible": true
         },
-        "doseFraction": 0.4106,
-        "doseMicroGray": 7.8,
+        "doseFraction": 0.6238,
+        "doseMicroGray": 1.075,
+        "doseRateMicroGrayPerHour": 5.98,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -27556,8 +27710,9 @@
           "distance": 275.9,
           "visible": true
         },
-        "doseFraction": 0.4746,
-        "doseMicroGray": 9.0,
+        "doseFraction": 0.6449,
+        "doseMicroGray": 1.111,
+        "doseRateMicroGrayPerHour": 5.74,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -27670,8 +27825,9 @@
           "distance": 324.2,
           "visible": false
         },
-        "doseFraction": 0.048,
-        "doseMicroGray": 0.9,
+        "doseFraction": 0.5268,
+        "doseMicroGray": 0.908,
+        "doseRateMicroGrayPerHour": 6.14,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -27782,8 +27938,9 @@
           "distance": 312.0,
           "visible": false
         },
-        "doseFraction": 0.1153,
-        "doseMicroGray": 2.2,
+        "doseFraction": 0.5489,
+        "doseMicroGray": 0.946,
+        "doseRateMicroGrayPerHour": 6.14,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -27894,8 +28051,9 @@
           "distance": 299.2,
           "visible": true
         },
-        "doseFraction": 0.1813,
-        "doseMicroGray": 3.4,
+        "doseFraction": 0.5707,
+        "doseMicroGray": 0.983,
+        "doseRateMicroGrayPerHour": 6.19,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -28006,8 +28164,9 @@
           "distance": 285.7,
           "visible": true
         },
-        "doseFraction": 0.2461,
-        "doseMicroGray": 4.7,
+        "doseFraction": 0.592,
+        "doseMicroGray": 1.02,
+        "doseRateMicroGrayPerHour": 6.2,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -28118,8 +28277,9 @@
           "distance": 272.1,
           "visible": true
         },
-        "doseFraction": 0.3076,
-        "doseMicroGray": 5.8,
+        "doseFraction": 0.6123,
+        "doseMicroGray": 1.055,
+        "doseRateMicroGrayPerHour": 6.17,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -28230,8 +28390,9 @@
           "distance": 264.7,
           "visible": true
         },
-        "doseFraction": 0.3693,
-        "doseMicroGray": 7.0,
+        "doseFraction": 0.6326,
+        "doseMicroGray": 1.09,
+        "doseRateMicroGrayPerHour": 6.11,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -28342,8 +28503,9 @@
           "distance": 261.5,
           "visible": true
         },
-        "doseFraction": 0.424,
-        "doseMicroGray": 8.0,
+        "doseFraction": 0.6507,
+        "doseMicroGray": 1.121,
+        "doseRateMicroGrayPerHour": 6.08,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -28454,8 +28616,9 @@
           "distance": 267.0,
           "visible": true
         },
-        "doseFraction": 0.4822,
-        "doseMicroGray": 9.1,
+        "doseFraction": 0.6698,
+        "doseMicroGray": 1.154,
+        "doseRateMicroGrayPerHour": 5.98,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -28566,8 +28729,9 @@
           "distance": 275.9,
           "visible": true
         },
-        "doseFraction": 0.5465,
-        "doseMicroGray": 10.3,
+        "doseFraction": 0.691,
+        "doseMicroGray": 1.191,
+        "doseRateMicroGrayPerHour": 5.74,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -28680,8 +28844,9 @@
           "distance": 336.9,
           "visible": false
         },
-        "doseFraction": 0.05,
-        "doseMicroGray": 0.9,
+        "doseFraction": 0.5486,
+        "doseMicroGray": 0.945,
+        "doseRateMicroGrayPerHour": 6.16,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -28792,8 +28957,9 @@
           "distance": 322.4,
           "visible": false
         },
-        "doseFraction": 0.1274,
-        "doseMicroGray": 2.4,
+        "doseFraction": 0.574,
+        "doseMicroGray": 0.989,
+        "doseRateMicroGrayPerHour": 6.13,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -28904,8 +29070,9 @@
           "distance": 308.7,
           "visible": false
         },
-        "doseFraction": 0.2032,
-        "doseMicroGray": 3.8,
+        "doseFraction": 0.599,
+        "doseMicroGray": 1.032,
+        "doseRateMicroGrayPerHour": 6.14,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -29016,8 +29183,9 @@
           "distance": 293.9,
           "visible": true
         },
-        "doseFraction": 0.2826,
-        "doseMicroGray": 5.3,
+        "doseFraction": 0.6252,
+        "doseMicroGray": 1.077,
+        "doseRateMicroGrayPerHour": 6.21,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -29128,8 +29296,9 @@
           "distance": 278.7,
           "visible": true
         },
-        "doseFraction": 0.3467,
-        "doseMicroGray": 6.6,
+        "doseFraction": 0.6463,
+        "doseMicroGray": 1.114,
+        "doseRateMicroGrayPerHour": 6.17,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -29240,8 +29409,9 @@
           "distance": 267.0,
           "visible": true
         },
-        "doseFraction": 0.4188,
-        "doseMicroGray": 7.9,
+        "doseFraction": 0.6701,
+        "doseMicroGray": 1.154,
+        "doseRateMicroGrayPerHour": 6.12,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -29352,8 +29522,9 @@
           "distance": 260.2,
           "visible": true
         },
-        "doseFraction": 0.4815,
-        "doseMicroGray": 9.1,
+        "doseFraction": 0.6908,
+        "doseMicroGray": 1.19,
+        "doseRateMicroGrayPerHour": 6.11,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -29464,8 +29635,9 @@
           "distance": 266.3,
           "visible": true
         },
-        "doseFraction": 0.5462,
-        "doseMicroGray": 10.3,
+        "doseFraction": 0.7121,
+        "doseMicroGray": 1.227,
+        "doseRateMicroGrayPerHour": 5.99,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -29576,8 +29748,9 @@
           "distance": 275.9,
           "visible": true
         },
-        "doseFraction": 0.6176,
-        "doseMicroGray": 11.7,
+        "doseFraction": 0.7356,
+        "doseMicroGray": 1.267,
+        "doseRateMicroGrayPerHour": 5.74,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -29690,8 +29863,9 @@
           "distance": 350.1,
           "visible": false
         },
-        "doseFraction": 0.0519,
-        "doseMicroGray": 1.0,
+        "doseFraction": 0.5696,
+        "doseMicroGray": 0.981,
+        "doseRateMicroGrayPerHour": 6.16,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -29802,8 +29976,9 @@
           "distance": 335.2,
           "visible": false
         },
-        "doseFraction": 0.1275,
-        "doseMicroGray": 2.4,
+        "doseFraction": 0.5945,
+        "doseMicroGray": 1.024,
+        "doseRateMicroGrayPerHour": 6.16,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -29914,8 +30089,9 @@
           "distance": 321.1,
           "visible": false
         },
-        "doseFraction": 0.2024,
-        "doseMicroGray": 3.8,
+        "doseFraction": 0.6192,
+        "doseMicroGray": 1.067,
+        "doseRateMicroGrayPerHour": 6.13,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -30026,8 +30202,9 @@
           "distance": 307.5,
           "visible": true
         },
-        "doseFraction": 0.2761,
-        "doseMicroGray": 5.2,
+        "doseFraction": 0.6435,
+        "doseMicroGray": 1.109,
+        "doseRateMicroGrayPerHour": 6.14,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -30138,8 +30315,9 @@
           "distance": 292.8,
           "visible": true
         },
-        "doseFraction": 0.355,
-        "doseMicroGray": 6.7,
+        "doseFraction": 0.6695,
+        "doseMicroGray": 1.153,
+        "doseRateMicroGrayPerHour": 6.22,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -30250,8 +30428,9 @@
           "distance": 277.8,
           "visible": true
         },
-        "doseFraction": 0.4178,
-        "doseMicroGray": 7.9,
+        "doseFraction": 0.6902,
+        "doseMicroGray": 1.189,
+        "doseRateMicroGrayPerHour": 6.17,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -30362,8 +30541,9 @@
           "distance": 266.7,
           "visible": true
         },
-        "doseFraction": 0.489,
-        "doseMicroGray": 9.2,
+        "doseFraction": 0.7136,
+        "doseMicroGray": 1.23,
+        "doseRateMicroGrayPerHour": 6.12,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -30474,8 +30654,9 @@
           "distance": 260.4,
           "visible": true
         },
-        "doseFraction": 0.5505,
-        "doseMicroGray": 10.4,
+        "doseFraction": 0.7339,
+        "doseMicroGray": 1.264,
+        "doseRateMicroGrayPerHour": 6.1,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -30586,8 +30767,9 @@
           "distance": 266.4,
           "visible": true
         },
-        "doseFraction": 0.6144,
-        "doseMicroGray": 11.6,
+        "doseFraction": 0.755,
+        "doseMicroGray": 1.301,
+        "doseRateMicroGrayPerHour": 5.99,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -30698,8 +30880,9 @@
           "distance": 275.9,
           "visible": true
         },
-        "doseFraction": 0.6848,
-        "doseMicroGray": 12.9,
+        "doseFraction": 0.7782,
+        "doseMicroGray": 1.341,
+        "doseRateMicroGrayPerHour": 5.74,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -30812,8 +30995,9 @@
           "distance": 363.4,
           "visible": false
         },
-        "doseFraction": 0.0536,
-        "doseMicroGray": 1.0,
+        "doseFraction": 0.5877,
+        "doseMicroGray": 1.013,
+        "doseRateMicroGrayPerHour": 6.18,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -30924,8 +31108,9 @@
           "distance": 348.6,
           "visible": false
         },
-        "doseFraction": 0.1186,
-        "doseMicroGray": 2.2,
+        "doseFraction": 0.6091,
+        "doseMicroGray": 1.049,
+        "doseRateMicroGrayPerHour": 6.16,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -31036,8 +31221,9 @@
           "distance": 333.9,
           "visible": false
         },
-        "doseFraction": 0.1915,
-        "doseMicroGray": 3.6,
+        "doseFraction": 0.6331,
+        "doseMicroGray": 1.091,
+        "doseRateMicroGrayPerHour": 6.15,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -31148,8 +31334,9 @@
           "distance": 320.0,
           "visible": false
         },
-        "doseFraction": 0.2661,
-        "doseMicroGray": 5.0,
+        "doseFraction": 0.6577,
+        "doseMicroGray": 1.133,
+        "doseRateMicroGrayPerHour": 6.13,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -31260,8 +31447,9 @@
           "distance": 306.6,
           "visible": true
         },
-        "doseFraction": 0.3381,
-        "doseMicroGray": 6.4,
+        "doseFraction": 0.6814,
+        "doseMicroGray": 1.174,
+        "doseRateMicroGrayPerHour": 6.14,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -31372,8 +31560,9 @@
           "distance": 291.9,
           "visible": true
         },
-        "doseFraction": 0.4161,
-        "doseMicroGray": 7.9,
+        "doseFraction": 0.7072,
+        "doseMicroGray": 1.218,
+        "doseRateMicroGrayPerHour": 6.22,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -31484,8 +31673,9 @@
           "distance": 277.1,
           "visible": true
         },
-        "doseFraction": 0.4784,
-        "doseMicroGray": 9.0,
+        "doseFraction": 0.7277,
+        "doseMicroGray": 1.254,
+        "doseRateMicroGrayPerHour": 6.17,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -31596,8 +31786,9 @@
           "distance": 266.4,
           "visible": true
         },
-        "doseFraction": 0.5486,
-        "doseMicroGray": 10.4,
+        "doseFraction": 0.7508,
+        "doseMicroGray": 1.294,
+        "doseRateMicroGrayPerHour": 6.12,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -31708,8 +31899,9 @@
           "distance": 260.5,
           "visible": true
         },
-        "doseFraction": 0.6092,
-        "doseMicroGray": 11.5,
+        "doseFraction": 0.7708,
+        "doseMicroGray": 1.328,
+        "doseRateMicroGrayPerHour": 6.1,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -31820,8 +32012,9 @@
           "distance": 266.4,
           "visible": true
         },
-        "doseFraction": 0.6724,
-        "doseMicroGray": 12.7,
+        "doseFraction": 0.7916,
+        "doseMicroGray": 1.364,
+        "doseRateMicroGrayPerHour": 5.99,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -31932,8 +32125,9 @@
           "distance": 275.9,
           "visible": true
         },
-        "doseFraction": 0.7422,
-        "doseMicroGray": 14.0,
+        "doseFraction": 0.8146,
+        "doseMicroGray": 1.403,
+        "doseRateMicroGrayPerHour": 5.74,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -32046,8 +32240,9 @@
           "distance": 376.7,
           "visible": true
         },
-        "doseFraction": 0.0554,
-        "doseMicroGray": 1.0,
+        "doseFraction": 0.6078,
+        "doseMicroGray": 1.047,
+        "doseRateMicroGrayPerHour": 6.22,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -32158,8 +32353,9 @@
           "distance": 362.0,
           "visible": false
         },
-        "doseFraction": 0.1262,
-        "doseMicroGray": 2.4,
+        "doseFraction": 0.6311,
+        "doseMicroGray": 1.087,
+        "doseRateMicroGrayPerHour": 6.17,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -32270,8 +32466,9 @@
           "distance": 347.4,
           "visible": false
         },
-        "doseFraction": 0.1882,
-        "doseMicroGray": 3.6,
+        "doseFraction": 0.6515,
+        "doseMicroGray": 1.123,
+        "doseRateMicroGrayPerHour": 6.16,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -32382,8 +32579,9 @@
           "distance": 332.8,
           "visible": false
         },
-        "doseFraction": 0.2607,
-        "doseMicroGray": 4.9,
+        "doseFraction": 0.6754,
+        "doseMicroGray": 1.164,
+        "doseRateMicroGrayPerHour": 6.15,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -32494,8 +32692,9 @@
           "distance": 319.1,
           "visible": false
         },
-        "doseFraction": 0.3349,
-        "doseMicroGray": 6.3,
+        "doseFraction": 0.6999,
+        "doseMicroGray": 1.206,
+        "doseRateMicroGrayPerHour": 6.13,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -32606,8 +32805,9 @@
           "distance": 305.8,
           "visible": true
         },
-        "doseFraction": 0.4055,
-        "doseMicroGray": 7.7,
+        "doseFraction": 0.7231,
+        "doseMicroGray": 1.246,
+        "doseRateMicroGrayPerHour": 6.15,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -32718,8 +32918,9 @@
           "distance": 291.2,
           "visible": true
         },
-        "doseFraction": 0.4829,
-        "doseMicroGray": 9.1,
+        "doseFraction": 0.7486,
+        "doseMicroGray": 1.29,
+        "doseRateMicroGrayPerHour": 6.22,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -32830,8 +33031,9 @@
           "distance": 276.6,
           "visible": true
         },
-        "doseFraction": 0.5447,
-        "doseMicroGray": 10.3,
+        "doseFraction": 0.769,
+        "doseMicroGray": 1.325,
+        "doseRateMicroGrayPerHour": 6.17,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -32942,8 +33144,9 @@
           "distance": 266.2,
           "visible": true
         },
-        "doseFraction": 0.6142,
-        "doseMicroGray": 11.6,
+        "doseFraction": 0.7919,
+        "doseMicroGray": 1.364,
+        "doseRateMicroGrayPerHour": 6.12,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -33054,8 +33257,9 @@
           "distance": 260.6,
           "visible": true
         },
-        "doseFraction": 0.674,
-        "doseMicroGray": 12.7,
+        "doseFraction": 0.8116,
+        "doseMicroGray": 1.398,
+        "doseRateMicroGrayPerHour": 6.1,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -33166,8 +33370,9 @@
           "distance": 266.5,
           "visible": true
         },
-        "doseFraction": 0.7367,
-        "doseMicroGray": 13.9,
+        "doseFraction": 0.8323,
+        "doseMicroGray": 1.434,
+        "doseRateMicroGrayPerHour": 5.99,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -33278,8 +33483,9 @@
           "distance": 275.9,
           "visible": true
         },
-        "doseFraction": 0.8058,
-        "doseMicroGray": 15.2,
+        "doseFraction": 0.8551,
+        "doseMicroGray": 1.473,
+        "doseRateMicroGrayPerHour": 5.74,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -33392,8 +33598,9 @@
           "distance": 46.8,
           "visible": true
         },
-        "doseFraction": 0.006,
-        "doseMicroGray": 0.1,
+        "doseFraction": 0.0661,
+        "doseMicroGray": 0.114,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -33504,8 +33711,9 @@
           "distance": 31.1,
           "visible": true
         },
-        "doseFraction": 0.0703,
-        "doseMicroGray": 1.3,
+        "doseFraction": 0.0873,
+        "doseMicroGray": 0.15,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -33616,8 +33824,9 @@
           "distance": 15.5,
           "visible": true
         },
-        "doseFraction": 0.1391,
-        "doseMicroGray": 2.6,
+        "doseFraction": 0.1099,
+        "doseMicroGray": 0.189,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -33728,8 +33937,9 @@
           "distance": 0.0,
           "visible": true
         },
-        "doseFraction": 0.2035,
-        "doseMicroGray": 3.8,
+        "doseFraction": 0.1312,
+        "doseMicroGray": 0.226,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -33842,8 +34052,9 @@
           "distance": 390.2,
           "visible": true
         },
-        "doseFraction": 0.0576,
-        "doseMicroGray": 1.1,
+        "doseFraction": 0.6318,
+        "doseMicroGray": 1.088,
+        "doseRateMicroGrayPerHour": 6.23,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -33954,8 +34165,9 @@
           "distance": 375.5,
           "visible": true
         },
-        "doseFraction": 0.1319,
-        "doseMicroGray": 2.5,
+        "doseFraction": 0.6563,
+        "doseMicroGray": 1.131,
+        "doseRateMicroGrayPerHour": 6.21,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -34066,8 +34278,9 @@
           "distance": 360.9,
           "visible": false
         },
-        "doseFraction": 0.1964,
-        "doseMicroGray": 3.7,
+        "doseFraction": 0.6775,
+        "doseMicroGray": 1.167,
+        "doseRateMicroGrayPerHour": 6.17,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -34178,8 +34391,9 @@
           "distance": 346.4,
           "visible": false
         },
-        "doseFraction": 0.2588,
-        "doseMicroGray": 4.9,
+        "doseFraction": 0.6981,
+        "doseMicroGray": 1.203,
+        "doseRateMicroGrayPerHour": 6.16,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -34290,8 +34504,9 @@
           "distance": 331.9,
           "visible": false
         },
-        "doseFraction": 0.3308,
-        "doseMicroGray": 6.3,
+        "doseFraction": 0.7218,
+        "doseMicroGray": 1.244,
+        "doseRateMicroGrayPerHour": 6.15,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -34402,8 +34617,9 @@
           "distance": 318.4,
           "visible": false
         },
-        "doseFraction": 0.4048,
-        "doseMicroGray": 7.6,
+        "doseFraction": 0.7462,
+        "doseMicroGray": 1.286,
+        "doseRateMicroGrayPerHour": 6.13,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -34514,8 +34730,9 @@
           "distance": 305.3,
           "visible": true
         },
-        "doseFraction": 0.4743,
-        "doseMicroGray": 9.0,
+        "doseFraction": 0.7691,
+        "doseMicroGray": 1.325,
+        "doseRateMicroGrayPerHour": 6.15,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -34626,8 +34843,9 @@
           "distance": 290.7,
           "visible": true
         },
-        "doseFraction": 0.5509,
-        "doseMicroGray": 10.4,
+        "doseFraction": 0.7943,
+        "doseMicroGray": 1.368,
+        "doseRateMicroGrayPerHour": 6.22,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -34738,8 +34956,9 @@
           "distance": 276.2,
           "visible": true
         },
-        "doseFraction": 0.6126,
-        "doseMicroGray": 11.6,
+        "doseFraction": 0.8146,
+        "doseMicroGray": 1.404,
+        "doseRateMicroGrayPerHour": 6.17,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -34850,8 +35069,9 @@
           "distance": 266.1,
           "visible": true
         },
-        "doseFraction": 0.6814,
-        "doseMicroGray": 12.9,
+        "doseFraction": 0.8373,
+        "doseMicroGray": 1.443,
+        "doseRateMicroGrayPerHour": 6.12,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -34962,8 +35182,9 @@
           "distance": 260.7,
           "visible": true
         },
-        "doseFraction": 0.7407,
-        "doseMicroGray": 14.0,
+        "doseFraction": 0.8569,
+        "doseMicroGray": 1.476,
+        "doseRateMicroGrayPerHour": 6.1,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -35074,8 +35295,9 @@
           "distance": 266.5,
           "visible": true
         },
-        "doseFraction": 0.803,
-        "doseMicroGray": 15.2,
+        "doseFraction": 0.8774,
+        "doseMicroGray": 1.512,
+        "doseRateMicroGrayPerHour": 5.99,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -35186,8 +35408,9 @@
           "distance": 275.9,
           "visible": true
         },
-        "doseFraction": 0.8716,
-        "doseMicroGray": 16.5,
+        "doseFraction": 0.9,
+        "doseMicroGray": 1.551,
+        "doseRateMicroGrayPerHour": 5.74,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -35300,8 +35523,9 @@
           "distance": 62.4,
           "visible": true
         },
-        "doseFraction": 0.0079,
-        "doseMicroGray": 0.1,
+        "doseFraction": 0.0869,
+        "doseMicroGray": 0.15,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -35412,8 +35636,9 @@
           "distance": 46.8,
           "visible": true
         },
-        "doseFraction": 0.0736,
-        "doseMicroGray": 1.4,
+        "doseFraction": 0.1085,
+        "doseMicroGray": 0.187,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -35524,8 +35749,9 @@
           "distance": 31.1,
           "visible": true
         },
-        "doseFraction": 0.1369,
-        "doseMicroGray": 2.6,
+        "doseFraction": 0.1294,
+        "doseMicroGray": 0.223,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -35636,8 +35862,9 @@
           "distance": 15.5,
           "visible": true
         },
-        "doseFraction": 0.2057,
-        "doseMicroGray": 3.9,
+        "doseFraction": 0.152,
+        "doseMicroGray": 0.262,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -35748,8 +35975,9 @@
           "distance": 0.0,
           "visible": true
         },
-        "doseFraction": 0.27,
-        "doseMicroGray": 5.1,
+        "doseFraction": 0.1732,
+        "doseMicroGray": 0.298,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -35862,8 +36090,9 @@
           "distance": 78.0,
           "visible": true
         },
-        "doseFraction": 0.0098,
-        "doseMicroGray": 0.2,
+        "doseFraction": 0.1079,
+        "doseMicroGray": 0.186,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -35974,8 +36203,9 @@
           "distance": 62.4,
           "visible": true
         },
-        "doseFraction": 0.0779,
-        "doseMicroGray": 1.5,
+        "doseFraction": 0.1303,
+        "doseMicroGray": 0.225,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -36086,8 +36316,9 @@
           "distance": 46.7,
           "visible": true
         },
-        "doseFraction": 0.141,
-        "doseMicroGray": 2.7,
+        "doseFraction": 0.1511,
+        "doseMicroGray": 0.26,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -36198,8 +36429,9 @@
           "distance": 31.1,
           "visible": true
         },
-        "doseFraction": 0.2044,
-        "doseMicroGray": 3.9,
+        "doseFraction": 0.172,
+        "doseMicroGray": 0.296,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -36310,8 +36542,9 @@
           "distance": 15.5,
           "visible": true
         },
-        "doseFraction": 0.2731,
-        "doseMicroGray": 5.2,
+        "doseFraction": 0.1947,
+        "doseMicroGray": 0.335,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -36422,8 +36655,9 @@
           "distance": 0.0,
           "visible": true
         },
-        "doseFraction": 0.3374,
-        "doseMicroGray": 6.4,
+        "doseFraction": 0.2159,
+        "doseMicroGray": 0.372,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -36536,8 +36770,9 @@
           "distance": 93.4,
           "visible": true
         },
-        "doseFraction": 0.0117,
-        "doseMicroGray": 0.2,
+        "doseFraction": 0.1288,
+        "doseMicroGray": 0.222,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -36648,8 +36883,9 @@
           "distance": 78.5,
           "visible": true
         },
-        "doseFraction": 0.0738,
-        "doseMicroGray": 1.4,
+        "doseFraction": 0.1492,
+        "doseMicroGray": 0.257,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -36760,8 +36996,9 @@
           "distance": 62.8,
           "visible": true
         },
-        "doseFraction": 0.1382,
-        "doseMicroGray": 2.6,
+        "doseFraction": 0.1705,
+        "doseMicroGray": 0.294,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -36872,8 +37109,9 @@
           "distance": 47.1,
           "visible": true
         },
-        "doseFraction": 0.2018,
-        "doseMicroGray": 3.8,
+        "doseFraction": 0.1914,
+        "doseMicroGray": 0.33,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -36984,8 +37222,9 @@
           "distance": 31.3,
           "visible": true
         },
-        "doseFraction": 0.2655,
-        "doseMicroGray": 5.0,
+        "doseFraction": 0.2124,
+        "doseMicroGray": 0.366,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -37096,8 +37335,9 @@
           "distance": 15.6,
           "visible": true
         },
-        "doseFraction": 0.3347,
-        "doseMicroGray": 6.3,
+        "doseFraction": 0.2352,
+        "doseMicroGray": 0.405,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -37208,8 +37448,9 @@
           "distance": 0.0,
           "visible": true
         },
-        "doseFraction": 0.3995,
-        "doseMicroGray": 7.5,
+        "doseFraction": 0.2566,
+        "doseMicroGray": 0.442,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -37322,8 +37563,9 @@
           "distance": 108.4,
           "visible": true
         },
-        "doseFraction": 0.0138,
-        "doseMicroGray": 0.3,
+        "doseFraction": 0.1512,
+        "doseMicroGray": 0.26,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -37434,8 +37676,9 @@
           "distance": 94.1,
           "visible": true
         },
-        "doseFraction": 0.0853,
-        "doseMicroGray": 1.6,
+        "doseFraction": 0.1747,
+        "doseMicroGray": 0.301,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -37546,8 +37789,9 @@
           "distance": 79.1,
           "visible": true
         },
-        "doseFraction": 0.1495,
-        "doseMicroGray": 2.8,
+        "doseFraction": 0.1959,
+        "doseMicroGray": 0.338,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -37658,8 +37902,9 @@
           "distance": 63.2,
           "visible": true
         },
-        "doseFraction": 0.2144,
-        "doseMicroGray": 4.1,
+        "doseFraction": 0.2173,
+        "doseMicroGray": 0.374,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -37770,8 +38015,9 @@
           "distance": 47.4,
           "visible": true
         },
-        "doseFraction": 0.2784,
-        "doseMicroGray": 5.3,
+        "doseFraction": 0.2384,
+        "doseMicroGray": 0.411,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -37882,8 +38128,9 @@
           "distance": 31.5,
           "visible": true
         },
-        "doseFraction": 0.3426,
-        "doseMicroGray": 6.5,
+        "doseFraction": 0.2595,
+        "doseMicroGray": 0.447,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -37994,8 +38241,9 @@
           "distance": 15.7,
           "visible": true
         },
-        "doseFraction": 0.4122,
-        "doseMicroGray": 7.8,
+        "doseFraction": 0.2824,
+        "doseMicroGray": 0.487,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -38106,8 +38354,9 @@
           "distance": 0.0,
           "visible": true
         },
-        "doseFraction": 0.4774,
-        "doseMicroGray": 9.0,
+        "doseFraction": 0.3039,
+        "doseMicroGray": 0.524,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -38220,8 +38469,9 @@
           "distance": 124.0,
           "visible": true
         },
-        "doseFraction": 0.0159,
+        "doseFraction": 0.1741,
         "doseMicroGray": 0.3,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -38332,8 +38582,9 @@
           "distance": 108.2,
           "visible": true
         },
-        "doseFraction": 0.0825,
-        "doseMicroGray": 1.6,
+        "doseFraction": 0.1961,
+        "doseMicroGray": 0.338,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -38444,8 +38695,9 @@
           "distance": 93.9,
           "visible": true
         },
-        "doseFraction": 0.1504,
-        "doseMicroGray": 2.8,
+        "doseFraction": 0.2185,
+        "doseMicroGray": 0.376,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -38556,8 +38808,9 @@
           "distance": 78.9,
           "visible": true
         },
-        "doseFraction": 0.2146,
-        "doseMicroGray": 4.1,
+        "doseFraction": 0.2396,
+        "doseMicroGray": 0.413,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -38668,8 +38921,9 @@
           "distance": 63.1,
           "visible": true
         },
-        "doseFraction": 0.2793,
-        "doseMicroGray": 5.3,
+        "doseFraction": 0.2609,
+        "doseMicroGray": 0.45,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -38780,8 +39034,9 @@
           "distance": 47.3,
           "visible": true
         },
-        "doseFraction": 0.3432,
-        "doseMicroGray": 6.5,
+        "doseFraction": 0.282,
+        "doseMicroGray": 0.486,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -38892,8 +39147,9 @@
           "distance": 31.5,
           "visible": true
         },
-        "doseFraction": 0.4072,
-        "doseMicroGray": 7.7,
+        "doseFraction": 0.3031,
+        "doseMicroGray": 0.522,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -39004,8 +39260,9 @@
           "distance": 15.7,
           "visible": true
         },
-        "doseFraction": 0.4768,
-        "doseMicroGray": 9.0,
+        "doseFraction": 0.326,
+        "doseMicroGray": 0.562,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -39116,8 +39373,9 @@
           "distance": 0.0,
           "visible": true
         },
-        "doseFraction": 0.5419,
-        "doseMicroGray": 10.2,
+        "doseFraction": 0.3474,
+        "doseMicroGray": 0.599,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -39230,8 +39488,9 @@
           "distance": 139.6,
           "visible": true
         },
-        "doseFraction": 0.0179,
-        "doseMicroGray": 0.3,
+        "doseFraction": 0.1964,
+        "doseMicroGray": 0.338,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -39342,8 +39601,9 @@
           "distance": 123.8,
           "visible": true
         },
-        "doseFraction": 0.0843,
-        "doseMicroGray": 1.6,
+        "doseFraction": 0.2182,
+        "doseMicroGray": 0.376,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -39454,8 +39714,9 @@
           "distance": 108.0,
           "visible": true
         },
-        "doseFraction": 0.1549,
-        "doseMicroGray": 2.9,
+        "doseFraction": 0.2415,
+        "doseMicroGray": 0.416,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -39566,8 +39827,9 @@
           "distance": 93.8,
           "visible": true
         },
-        "doseFraction": 0.2227,
-        "doseMicroGray": 4.2,
+        "doseFraction": 0.2638,
+        "doseMicroGray": 0.455,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -39678,8 +39940,9 @@
           "distance": 78.8,
           "visible": true
         },
-        "doseFraction": 0.2867,
-        "doseMicroGray": 5.4,
+        "doseFraction": 0.2849,
+        "doseMicroGray": 0.491,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -39790,8 +40053,9 @@
           "distance": 63.0,
           "visible": true
         },
-        "doseFraction": 0.3514,
-        "doseMicroGray": 6.6,
+        "doseFraction": 0.3062,
+        "doseMicroGray": 0.528,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -39902,8 +40166,9 @@
           "distance": 47.2,
           "visible": true
         },
-        "doseFraction": 0.4152,
-        "doseMicroGray": 7.8,
+        "doseFraction": 0.3273,
+        "doseMicroGray": 0.564,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -40014,8 +40279,9 @@
           "distance": 31.4,
           "visible": true
         },
-        "doseFraction": 0.4791,
-        "doseMicroGray": 9.1,
+        "doseFraction": 0.3483,
+        "doseMicroGray": 0.6,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -40126,8 +40392,9 @@
           "distance": 15.7,
           "visible": true
         },
-        "doseFraction": 0.5486,
-        "doseMicroGray": 10.4,
+        "doseFraction": 0.3712,
+        "doseMicroGray": 0.64,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,
@@ -40238,8 +40505,9 @@
           "distance": 0.0,
           "visible": true
         },
-        "doseFraction": 0.6136,
-        "doseMicroGray": 11.6,
+        "doseFraction": 0.3926,
+        "doseMicroGray": 0.676,
+        "doseRateMicroGrayPerHour": 6.3,
         "earth": {
           "az": 305.5,
           "el": 43.1,

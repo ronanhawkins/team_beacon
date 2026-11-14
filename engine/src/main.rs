@@ -16,6 +16,7 @@
 //! Paths are relative to the repo root (the folder above engine/). Override with --root <dir>.
 
 mod decision;
+mod dose;
 mod layers;
 mod planner;
 mod rems;

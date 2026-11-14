@@ -37,6 +37,11 @@ Units and angle conventions are in `conventions.md`.
 | `earthLink` | boolean | line of sight to Earth | current waypoint |
 | `earthDelayMinutes` | number | one-way signal delay | site file |
 
+Optional, present when the waypoint file has them (the engine writes them when it has the measured Curiosity RAD dose rate). Clients that do not use them can ignore them:
+
+- `doseMicroGray` (number): dose so far in microgray, counts up. From the current waypoint.
+- `doseRateMicroGrayPerHour` (number): dose rate at this point now, microgray per hour; rises once a storm has arrived. From the current waypoint.
+
 ## Mode rules
 
 - `storm` when `storm` or `panic` is true.
