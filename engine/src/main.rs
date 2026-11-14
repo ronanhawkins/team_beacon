@@ -31,6 +31,7 @@ use serde::Deserialize;
 
 const NEAR_BIN: &str = "data/raw/near.bin";
 const FAR_BIN: &str = "data/raw/far.bin";
+const MOLA_BIN: &str = "data/raw/mola.bin";
 const LAYERS_DIR: &str = "data/out/layers";
 const SITE_JSON: &str = "data/site.json";
 
@@ -144,15 +145,38 @@ fn load_grid(root: &Path) -> Result<terrain::Grid, String> {
     terrain::load(&root.join(NEAR_BIN))
 }
 
-fn load_far(root: &Path) -> Result<terrain::Grid, String> {
-    terrain::load(&root.join(FAR_BIN))
+/// The far-field grids: far.bin, and the MOLA crop when it has been downloaded.
+struct FarGrids {
+    far: terrain::Grid,
+    mola: Option<terrain::Grid>,
+}
+
+impl FarGrids {
+    fn describe(&self) -> String {
+        match self.mola {
+            Some(_) => format!("far.bin, then mola.bin to {} km", skyline::MOLA_MAX_M / 1000.0),
+            None => "far.bin only".into(),
+        }
+    }
+}
+
+fn load_far(root: &Path) -> Result<FarGrids, String> {
+    let far = terrain::load(&root.join(FAR_BIN))?;
+    let mola_path = root.join(MOLA_BIN);
+    let mola = if mola_path.exists() {
+        Some(terrain::load(&mola_path)?)
+    } else {
+        eprintln!("warning: {MOLA_BIN} not found (run python3 tools/fetch_mola.py); the far field stops at the edge of far.bin");
+        None
+    };
+    Ok(FarGrids { far, mola })
 }
 
 /// Far-field skyline at the parking spot with `n_dirs` directions, from FAR_FROM_M outwards.
-fn far_at_parking(near: &terrain::Grid, far: &terrain::Grid, spot: &LocalXY, n_dirs: usize) -> Result<Vec<f32>, String> {
+fn far_at_parking(near: &terrain::Grid, far: &FarGrids, spot: &LocalXY, n_dirs: usize) -> Result<Vec<f32>, String> {
     let ground = near.sample_local(spot.x, spot.y).ok_or("parking spot is on no-data")?;
     let (e, n) = near.local_to_en(spot.x, spot.y);
-    Ok(skyline::far_skyline(far, e, n, ground as f64 + EYE_HEIGHT_M, n_dirs, FAR_FROM_M))
+    Ok(skyline::far_skyline(&far.far, far.mola.as_ref(), e, n, ground as f64 + EYE_HEIGHT_M, n_dirs, FAR_FROM_M))
 }
 
 fn check(root: &Path) -> Result<bool, String> {
@@ -271,7 +295,7 @@ fn proof_numbers(root: &Path, site: &Site, grid: &terrain::Grid) -> Result<(), S
     let (ox, oy) = site.stop("sol1468")?;
     let (open_ground, _) = precise_with_far(grid, &far, ox, oy)?;
 
-    println!("\nProof numbers (eye {EYE_HEIGHT_M} m, {N_DIRS} directions, step {STEP_M} m; far field from {FAR_FROM_M} m on far.bin, computed at the parking spot)");
+    println!("\nProof numbers (eye {EYE_HEIGHT_M} m, {N_DIRS} directions, step {STEP_M} m; far field from {FAR_FROM_M} m on {}, computed at the parking spot)", far_grid.describe());
     println!("  Blocked fraction                                     engine   paper");
     println!("  parking spot, near field to {MAX_DIST_M} m (reference)         {near_280:.3}");
     println!("  parking spot, near field to {PROOF_MAX_DIST_M} m                     {near_700:.3}");

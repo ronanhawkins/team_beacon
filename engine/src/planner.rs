@@ -26,7 +26,7 @@ const SHELTER_MIN_CELLS: usize = 3;
 pub struct PlannerConfig {
     pub walk_speed: f64,
     pub max_slope_deg: f64,
-    pub shelter_blocked_min: f64,
+    pub shelter_extra_blocked: f64,
     pub shelter_max_slope_deg: f64,
     pub minutes_to_shelter_limit: f64,
     pub waypoint_spacing: f64,
@@ -195,7 +195,7 @@ pub fn build(near: &Grid, sky: &SiteSky, bounds: Bounds, cfg: &PlannerConfig) ->
 pub fn find_shelters(g: &PlanGrid, cfg: &PlannerConfig) -> Vec<usize> {
     let candidate: Vec<bool> = (0..g.len())
         .map(|i| {
-            g.passable[i] && g.blocked[i] as f64 >= cfg.shelter_blocked_min && (g.slope[i] as f64) <= cfg.shelter_max_slope_deg
+            g.passable[i] && g.blocked[i] as f64 >= cfg.open_blocked + cfg.shelter_extra_blocked && (g.slope[i] as f64) <= cfg.shelter_max_slope_deg
         })
         .collect();
     let mut seen = vec![false; g.len()];
@@ -365,7 +365,7 @@ mod tests {
         PlannerConfig {
             walk_speed: 0.8,
             max_slope_deg: 25.0,
-            shelter_blocked_min: 0.15,
+            shelter_extra_blocked: 0.09,
             shelter_max_slope_deg: 15.0,
             minutes_to_shelter_limit: 5.0,
             waypoint_spacing: 15.0,

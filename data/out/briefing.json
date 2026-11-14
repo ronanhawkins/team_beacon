@@ -1,10 +1,10 @@
 {
   "baseLinkFraction": 0.871,
-  "endDoseFraction": 0.4944,
+  "endDoseFraction": 0.4948,
   "endOxygenFraction": 0.9782,
   "minutes": 10.47,
   "routeLengthM": 440.9,
-  "shelterCount": 28,
+  "shelterCount": 35,
   "slopeAtBaseDeg": 4.4,
   "sunlitFraction": 0.903,
   "version": 1,

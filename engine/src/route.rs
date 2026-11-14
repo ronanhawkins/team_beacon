@@ -205,8 +205,8 @@ pub fn prepare(inp: &PlanInputs) -> Result<Context, String> {
     );
     let shelter_cells = planner::find_shelters(&g, cfg);
     println!(
-        "Shelters found: {} (blocked >= {}, slope <= {} deg, groups of 3+ cells)",
-        shelter_cells.len(), cfg.shelter_blocked_min, cfg.shelter_max_slope_deg
+        "Shelters found: {} (blocked >= {} + {} = {:.3}, slope <= {} deg, groups of 3+ cells)",
+        shelter_cells.len(), cfg.open_blocked, cfg.shelter_extra_blocked, cfg.open_blocked + cfg.shelter_extra_blocked, cfg.shelter_max_slope_deg
     );
     if shelter_cells.len() < 4 || shelter_cells.len() > 40 {
         return Err(format!(

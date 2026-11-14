@@ -9,7 +9,7 @@ When a solar storm is declared, the astronaut has a few minutes of warning. Beac
 From any point on the walk, Beacon considers:
 
 - **The base.** A normal shielded habitat that halves the radiation dose compared with open ground.
-- **Every natural shelter.** These are places at the foot of the buttes where the terrain blocks a large part of the sky, the ground is flat enough to wait on, and the patch is at least three map cells across. There are 28 inside the planning area.
+- **Every natural shelter.** These are places at the foot of the buttes where the terrain blocks a large part of the sky, the ground is flat enough to wait on, and the patch is at least three map cells across. There are 35 inside the planning area.
 
 For each option, Beacon works out the walking time over the real terrain (slower on slopes, and avoiding ground steeper than 25 degrees), how much of the sky is blocked there, and whether the site can see the base mast for radio contact.
 
@@ -33,7 +33,7 @@ Doses are measured in "minutes at the open-ground dose rate": one minute standin
 
 ```
 f       = 0.5 at the base;
-          at a shelter, 1 - 0.5 x (blocked sky - 0.06), kept between 0.5 and 1.05
+          at a shelter, 1 - 0.5 x (blocked sky - 0.075), kept between 0.5 and 1.05
 walking = minutes walked before the storm x 1  +  minutes walked during the storm x M
 waiting = minutes waited at the site before the storm x f
 storm   = minutes of the storm spent at the site x M x f
@@ -57,7 +57,7 @@ Every number below is an assumption for the demo, not a measured value. They are
 | Storm multiplier `M` | 2 | Radiation during the storm relative to normal |
 | Base dose factor | 0.5 | The base is a normal shielded habitat |
 | Shelter shielding factor | 0.5 | Converts blocked sky into dose, using the calibration above |
-| Open-ground blocked sky | 0.06 | The blocked fraction where the dose rate is exactly 1 |
+| Open-ground blocked sky | 0.075 | The blocked fraction where the dose rate is exactly 1 (measured at sol1468, with the distant horizon from MOLA) |
 | No-link penalty | 5% | A shelter without radio contact to the base scores 5% worse |
 | Walking speed | 0.8 m/s on flat ground | Slower on slopes; ground steeper than 25 degrees is impassable |
 
@@ -66,7 +66,7 @@ Every number below is an assumption for the demo, not a measured value. They are
 With a 5-minute limit, every point of the walk has somewhere to go in time:
 
 - **The first third of the walk (waypoints m00 to m14):** back to the base, at most 4.7 minutes away.
-- **From just before the Quela drill site to the far point (m15 to m30):** shelter s04, a hollow at the foot of the butte next to Quela. It has a quarter of the sky blocked and radio contact with the base, and it's at most 4.5 minutes away.
+- **From just before the Quela drill site to the far point (m15 to m30):** shelter s03, a hollow at the foot of the butte next to Quela. It has a quarter of the sky blocked and radio contact with the base, and it's at most 4.5 minutes away.
 
 The longest walk to cover anywhere on the route is 4.7 minutes, inside the limit.
 
@@ -76,15 +76,15 @@ The time limit is set equal to the warning in each column. Each cell shows the c
 
 | Waypoint | No warning | 2 min | 5 min | 10 min | 15 min |
 |---|---|---|---|---|---|
-| m10, open ground a third of the way out | s04, late by 3.4 | s04, late by 1.4 | base, 3.5 min | base, 3.5 min | base, 3.5 min |
-| m19, Quela drill site | s04, late by 0.8 | s04, 0.8 min | s04, 0.8 min | base, 6.6 min | base, 6.6 min |
-| m25, butte outcrop | s06, late by 1.0 | s07, 1.5 min | s04, 2.8 min | base, 8.0 min | base, 8.0 min |
-| m30, far point | s16, late by 2.0 | s16, 2.0 min | s04, 4.5 min | base, 9.7 min | base, 9.7 min |
+| m10, open ground a third of the way out | s03, late by 3.4 | s03, late by 1.4 | base, 3.5 min | base, 3.5 min | base, 3.5 min |
+| m19, Quela drill site | s03, late by 0.8 | s03, 0.8 min | s03, 0.8 min | base, 6.6 min | base, 6.6 min |
+| m25, butte outcrop | s05, late by 1.0 | s06, 1.5 min | s03, 2.8 min | base, 8.0 min | base, 8.0 min |
+| m30, far point | s21, late by 1.5 | s17, 2.0 min | s03, 4.5 min | base, 9.7 min | base, 9.7 min |
 
 How to read it:
 
 - **With no warning**, nothing is ever "in time", so the astronaut goes to the nearest cover.
-- **With a short warning**, the choice is the best shelter in reach. At the far point with 2 minutes, that shelter (s16) has no radio contact with the base, but it is the only one in reach.
+- **With a short warning**, the choice is the best shelter in reach. At the far point with 2 minutes, that shelter (s17) has no radio contact with the base, but it is the only one in reach.
 - **With 10 minutes or more**, the base is in reach from every point tested, and its shielding wins.
 
 ## Limits

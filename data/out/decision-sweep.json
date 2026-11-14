@@ -15,24 +15,24 @@
       "results": [
         {
           "chosen": {
-            "id": "s04",
+            "id": "s03",
             "kind": "shelter",
             "late": true,
             "minutes": 3.42,
             "minutesLate": 3.42,
-            "score": 217.4
+            "score": 219.1
           },
           "limitMinutes": 0.0,
           "warningMinutes": 0.0
         },
         {
           "chosen": {
-            "id": "s04",
+            "id": "s03",
             "kind": "shelter",
             "late": true,
             "minutes": 3.42,
             "minutesLate": 1.42,
-            "score": 219.0
+            "score": 220.8
           },
           "limitMinutes": 2.0,
           "warningMinutes": 2.0
@@ -84,34 +84,34 @@
       "results": [
         {
           "chosen": {
-            "id": "s04",
+            "id": "s03",
             "kind": "shelter",
             "late": true,
             "minutes": 0.78,
             "minutesLate": 0.78,
-            "score": 216.9
+            "score": 218.7
           },
           "limitMinutes": 0.0,
           "warningMinutes": 0.0
         },
         {
           "chosen": {
-            "id": "s04",
+            "id": "s03",
             "kind": "shelter",
             "late": false,
             "minutes": 0.78,
-            "score": 218.6
+            "score": 220.4
           },
           "limitMinutes": 2.0,
           "warningMinutes": 2.0
         },
         {
           "chosen": {
-            "id": "s04",
+            "id": "s03",
             "kind": "shelter",
             "late": false,
             "minutes": 0.78,
-            "score": 221.3
+            "score": 223.1
           },
           "limitMinutes": 5.0,
           "warningMinutes": 5.0
@@ -152,34 +152,34 @@
       "results": [
         {
           "chosen": {
-            "id": "s06",
+            "id": "s05",
             "kind": "shelter",
             "late": true,
             "minutes": 0.99,
             "minutesLate": 0.99,
-            "score": 238.6
+            "score": 238.7
           },
           "limitMinutes": 0.0,
           "warningMinutes": 0.0
         },
         {
           "chosen": {
-            "id": "s07",
+            "id": "s06",
             "kind": "shelter",
             "late": false,
             "minutes": 1.55,
-            "score": 224.2
+            "score": 225.9
           },
           "limitMinutes": 2.0,
           "warningMinutes": 2.0
         },
         {
           "chosen": {
-            "id": "s04",
+            "id": "s03",
             "kind": "shelter",
             "late": false,
             "minutes": 2.78,
-            "score": 221.5
+            "score": 223.3
           },
           "limitMinutes": 5.0,
           "warningMinutes": 5.0
@@ -220,34 +220,34 @@
       "results": [
         {
           "chosen": {
-            "id": "s16",
+            "id": "s21",
             "kind": "shelter",
             "late": true,
-            "minutes": 1.97,
-            "minutesLate": 1.97,
-            "score": 232.9
+            "minutes": 1.54,
+            "minutesLate": 1.54,
+            "score": 237.7
           },
           "limitMinutes": 0.0,
           "warningMinutes": 0.0
         },
         {
           "chosen": {
-            "id": "s16",
+            "id": "s17",
             "kind": "shelter",
             "late": false,
             "minutes": 1.97,
-            "score": 234.7
+            "score": 236.1
           },
           "limitMinutes": 2.0,
           "warningMinutes": 2.0
         },
         {
           "chosen": {
-            "id": "s04",
+            "id": "s03",
             "kind": "shelter",
             "late": false,
             "minutes": 4.52,
-            "score": 221.7
+            "score": 223.5
           },
           "limitMinutes": 5.0,
           "warningMinutes": 5.0

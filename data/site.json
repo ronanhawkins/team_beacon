@@ -47,6 +47,18 @@
     "command": "gdal_translate -tr 20 20 -r average -of ENVI -ot Float32 MSL_Gale_DEM_Mosaic_1m_v3.tif far.bin"
   },
 
+  "molaCrop": {
+    "description": "MOLA global terrain (Mars Global Surveyor), 600 km square centred on the site, for the distant horizon beyond far.bin. Same projection as the mosaic. Heights are int16 metres, no-data -32768",
+    "url": "https://planetarymaps.usgs.gov/mosaic/Mars_MGS_MOLA_DEM_mosaic_global_463m.tif",
+    "srcwin": { "xoff": 39972, "yoff": 11472, "xsize": 1296, "ysize": 1296 },
+    "metresPerPixel": 463.093541550371,
+    "noData": -32768,
+    "command": "gdal_translate -srcwin 39972 11472 1296 1296 -of ENVI -ot Float32 /vsicurl/https://planetarymaps.usgs.gov/mosaic/Mars_MGS_MOLA_DEM_mosaic_global_463m.tif data/raw/mola.bin",
+    "fetch": "python3 tools/fetch_mola.py",
+    "use": "The far field marches far.bin (20 m) from 700 m out; where far.bin has no data, MOLA fills in; past far.bin's edge it continues in MOLA, one MOLA pixel per step, to 300 km. Heights are lowered by d^2 / 2R for curvature",
+    "heightOffsetNote": "MOLA minus far.bin over 7087 MOLA pixels where both have data: median +11 m, mean +1 m, middle half -28 to +26 m. Not a consistent offset, so no correction is applied. At the site MOLA reads -4411 m against -4380 m in the mosaic"
+  },
+
   "routeNearButtes": [
     { "sol": 1446, "easting": 8141557.519, "northing": -278179.377, "elevation": -4388.82 },
     { "sol": 1448, "easting": 8141565.143, "northing": -278245.700, "elevation": -4383.79 },
@@ -120,21 +132,21 @@
   "planner": {
     "walkSpeed": 0.8,
     "maxSlopeDeg": 25,
-    "shelterBlockedMin": 0.15,
+    "shelterExtraBlocked": 0.09,
     "shelterMaxSlopeDeg": 15,
     "minutesToShelterLimit": 5,
     "waypointSpacing": 15,
-    "openBlocked": 0.06,
+    "openBlocked": 0.075,
     "doseShieldingFactor": 0.5,
     "oxygenMinutes": 480,
     "notes": {
       "walkSpeed": "Assumption: suited walking speed on flat ground, metres per second. Walking time per metre is (1 / walkSpeed) * (1 + (slope / 15)^2)",
       "maxSlopeDeg": "Assumption: ground steeper than this, in degrees, is impassable",
-      "shelterBlockedMin": "Assumption: a shelter cell has at least this blocked-sky fraction",
+      "shelterExtraBlocked": "Assumption: a shelter cell has a blocked-sky fraction of at least openBlocked + shelterExtraBlocked. Relative, so the shelter set does not depend on how much distant horizon the far field adds everywhere. Replaces shelterBlockedMin 0.15 (= 0.06 + 0.09)",
       "shelterMaxSlopeDeg": "Assumption: a shelter cell is no steeper than this, in degrees",
       "minutesToShelterLimit": "Assumption: more minutes than this to the nearest refuge counts as a warning (the relay's warning limit and a route penalty)",
       "waypointSpacing": "Assumption: metres between waypoints; every stop is always a waypoint",
-      "openBlocked": "Assumption: blocked-sky fraction of open ground, where the relative dose rate is 1",
+      "openBlocked": "Blocked-sky fraction of open ground, where the relative dose rate is 1. Computed by engine check at sol1468 (near field to 700 m plus the far field with MOLA). Was 0.06 with far.bin alone; without data/raw/mola.bin the engine's own value would no longer match this one",
       "doseShieldingFactor": "Assumption: relative dose rate = 1 - doseShieldingFactor * (blocked - openBlocked), kept between 0.5 and 1.05. Calibrated to Curiosity's measurement that about 9 more points of blocked sky cut the dose by about 5 percent. Simulated, not a dose model",
       "oxygenMinutes": "Assumption: minutes of oxygen at the start; oxygenFraction = 1 - minutes elapsed / oxygenMinutes",
       "doseBudget": "Simulated: doseFraction is accumulated rate * minutes divided by a budget of twice the planned main-route duration at rate 1, clamped to 0..1"
