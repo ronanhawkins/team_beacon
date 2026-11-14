@@ -10,11 +10,11 @@ The laptop relay remains the authority. The app loads `/session.json` and that s
 
 ## HUD
 
-- Oxygen remaining and dose-budget-used occupy the upper corners.
-- Base contact is a small top status strip.
-- A north-up mini map draws only the supplied route, with dashed remaining segments and a head-direction arrow. It does not invent terrain or streets.
-- The lower navigation panel looks past straight path samples to the next meaningful bend, science stop or destination. It shows distance along the route, with a head-relative direction arrow, shelter time and open sky.
-- Emergencies briefly expand a notice, sound a short chime, then retain a smaller edge warning. Arrival does not clear an active emergency.
+- Oxygen and base contact sit in the lower-left corner; dose budget used sits in the lower-right. Each small readout is around half the previous text's angular size.
+- A thin scrolling compass sits at the top, with cardinal directions and bearings. One arrow on the compass marks the next route waypoint. When its bearing is outside the visible tape, that same arrow points sideways at the tape edge. At the destination it disappears.
+- The helmet has no mini map, route line, turn card, distance label or central pointer. The watch is the main navigator.
+- The HUD plane is 1.2 m from the eye (previously 1.6 m), with much smaller elements positioned near the viewing edges. The centre stays clear.
+- Emergencies use a compact upper-right alert and a short chime. The alert gently pulses, stays at the edge and never expands across the centre. Arrival does not clear an active emergency.
 - Holding the right controller's B button for one second requests a shelter route.
 
 Entering the app establishes an illustrative room north after tracking starts. Physical room movement does not advance the Mars route. The presenter uses the hub's Next/Storm/Reset controls. A surveyed lecture-hall route and persistent spatial anchors are a separate next step; the current Mars coordinates must not be treated as a room-scale walking path.
@@ -38,6 +38,8 @@ Development builds allow HTTP for the local USB mission connection. Do not treat
 `Mirror Quest USB.cmd` opens a read-only USB mirror using [the official scrcpy Windows release](https://github.com/Genymobile/scrcpy/blob/master/doc/windows.md). This laptop has version 5.0.1 in `.local/scrcpy/scrcpy-win64-v5.0.1/`; the download is excluded from Git. Connect the laptop to the projector over HDMI. No Meta casting sign-in is involved. The captured view depends on the Quest compositor; check the view with the app running before a presentation. The mirror does not capture microphone audio.
 
 ## Verified demo
+
+The 0.3.0 development APK replaces the dashboard with the small corner readouts and compass-only waypoint described above. It passed all 611 Unity checks, built successfully, and was installed over USB on 14 November 2026. Final corner visibility and text readability need to be assessed by the wearer; the Quest was asleep immediately after installation.
 
 The 0.2.0 development APK was built and installed on Quest 3 over USB on 14 November 2026. The wearer confirmed room passthrough with the HUD, and the laptop USB mirror. On-device logs confirmed main waypoint 9, storm reroute 9, the next shelter-route waypoint, and reset to main waypoint 0. The Unity checks passed for canonical fixtures and all 31 exported shelter routes; the relay's 16 Node tests and 9 fixture checks also passed.
 
