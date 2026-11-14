@@ -64,6 +64,48 @@ public static class BeaconVerify
         };
         var turn = Navigation.Upcoming(new MissionSelection(bend, 0, false));
         Check(turn.Title == "Turn right" && turn.Metres == 10, "navigation skips straight samples and measures distance to the turn");
+        var walkingPath=new System.Collections.Generic.List<Waypoint> {
+            new Waypoint {pos=new SitePosition()},
+            new Waypoint {pos=new SitePosition {y=10}},
+            new Waypoint {pos=new SitePosition {x=10,y=10}},
+            new Waypoint {pos=new SitePosition {x=20,y=10},isScienceStop=true,label="Science stop"},
+            new Waypoint {pos=new SitePosition {x=30,y=10},isShelter=true}
+        };
+        var walkingSelection=new MissionSelection(walkingPath,0,false);
+        Check(WalkNavigation.WaypointIndex(walkingSelection,new SitePosition())==3,"compass destination is the next mission stop, not a path sample or the final route end");
+        Check(WalkNavigation.WaypointIndex(new MissionSelection(walkingPath,0,true),new SitePosition())==4,"diversion compass destination is the chosen shelter");
+        Check(!WalkNavigation.ShouldAdvance(walkingSelection,new SitePosition {y=4}),"before the bend, retain the next path point");
+        var missedCorner=new SitePosition {x=4,y=8};
+        Check(WalkNavigation.ShouldAdvance(walkingSelection,missedCorner) && WalkNavigation.TargetIndex(walkingSelection,missedCorner)==2,"a cut corner directs ahead instead of back to the missed bend");
+        Check(walkingSelection.Index==0,"guidance selection does not mutate authoritative mission progress");
+        Check(WalkNavigation.ShouldAdvance(walkingSelection,new SitePosition {x=3,y=13}),"passing the bend's plane while closer to the stop advances it");
+        Check(!WalkNavigation.ShouldAdvance(walkingSelection,new SitePosition {x=-10,y=13}),"overshooting away from the destination does not falsely advance a bend");
+        var beyondTwo=new SitePosition {x=14,y=11};
+        Check(WalkNavigation.TargetIndex(walkingSelection,beyondTwo)==3,"guidance skips multiple passed samples immediately while acknowledgements catch up");
+        int acknowledged=0;
+        while(WalkNavigation.ShouldAdvance(new MissionSelection(walkingPath,acknowledged,false),beyondTwo)) acknowledged++;
+        Check(acknowledged==2,"sequential guarded acknowledgements stop before an unvisited mission stop");
+        var beforeScience=new MissionSelection(walkingPath,2,false);
+        Check(!WalkNavigation.ShouldAdvance(beforeScience,new SitePosition {x=24,y=10}),"passing a science destination never invents its arrival");
+        Check(WalkNavigation.ShouldAdvance(beforeScience,walkingPath[3].pos),"physically reaching the named destination acknowledges arrival");
+        Check(WalkNavigation.WaypointIndex(new MissionSelection(walkingPath,3,false),walkingPath[3].pos)==4,"after the science stop, compass selects the next destination");
+        var hairpin=new System.Collections.Generic.List<Waypoint> {
+            new Waypoint {pos=new SitePosition()},new Waypoint {pos=new SitePosition {y=10}},
+            new Waypoint {pos=new SitePosition {x=2}},new Waypoint {pos=new SitePosition {x=2,y=-10},isShelter=true}
+        };
+        Check(!WalkNavigation.ShouldAdvance(new MissionSelection(hairpin,0,false),hairpin[0].pos),"being closer to the goal alone does not skip an unpassed hairpin");
+        var duplicates=new System.Collections.Generic.List<Waypoint> {
+            new Waypoint {pos=new SitePosition()},new Waypoint {pos=new SitePosition()},new Waypoint {pos=new SitePosition()},
+            new Waypoint {pos=new SitePosition {y=10}},new Waypoint {pos=new SitePosition {y=20},isShelter=true}
+        };
+        Check(WalkNavigation.ShouldAdvance(new MissionSelection(duplicates,0,true),new SitePosition {y=15}),"coincident intermediate samples cannot stall progress after passing them");
+        Check(!WalkNavigation.ShouldAdvance(new MissionSelection(duplicates,3,true),new SitePosition {y=25}),"passing the final shelter does not claim shelter arrival");
+        var coincidentArrival=new System.Collections.Generic.List<Waypoint> {new Waypoint {pos=new SitePosition()},new Waypoint {pos=new SitePosition(),isShelter=true}};
+        Check(WalkNavigation.ShouldAdvance(new MissionSelection(coincidentArrival,0,true),new SitePosition()),"a coincident shelter endpoint can be acknowledged at its actual location");
+        Check(!WalkNavigation.ShouldAdvance(new MissionSelection(coincidentArrival,0,true),new SitePosition {x=10}),"a coincident shelter endpoint still requires physical arrival");
+        var rotatedPath=new System.Collections.Generic.List<Waypoint>();
+        foreach(var q in walkingPath) rotatedPath.Add(new Waypoint {pos=new SitePosition {x=1000-q.pos.y,y=2000+q.pos.x},isScienceStop=q.isScienceStop,isShelter=q.isShelter});
+        Check(WalkNavigation.ShouldAdvance(new MissionSelection(rotatedPath,0,false),new SitePosition {x=992,y=2004}),"passed-turn logic works after rotating and translating the route frame");
         Check(UnityEditor.AssetDatabase.LoadAssetAtPath<UnityEngine.Object>("Assets/Beacon/Scenes/BeaconAR.unity") != null, "native scene exists");
         Check(Math.Abs(exported.main[0].openSky-.924)<.001, "current exported base has 92.4 percent open sky, not the old screenshot value");
         var quela=exported.main[19];
@@ -79,7 +121,7 @@ public static class BeaconVerify
             for(int i=0;i<path.Value.Count-1;i++)
             {
                 var selection=new MissionSelection(path.Value,i,true);var next=selection.Next;if(next==null) continue;
-                Check(WalkNavigation.ReachedNext(selection,next.pos),"walking reaches every exported next sample");
+                Check(WalkNavigation.ShouldAdvance(selection,next.pos),"walking reaches every exported next sample");
                 Check(WalkNavigation.Remaining(selection,next.pos)<=selection.Remaining+.001,"remaining supplied route does not grow on arrival");
             }
             var final=new MissionSelection(path.Value,path.Value.Count-1,true);

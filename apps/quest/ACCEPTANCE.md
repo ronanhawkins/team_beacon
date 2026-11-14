@@ -2,7 +2,19 @@
 
 The supplied screenshots are the functional checklist. The user's later native Unity/USB requirement replaces their original browser/HTTPS/Three.js delivery instructions. The current export is the authority for numbers and shelter ids.
 
-**Current target: 0.16 Jezero.** The wearer explicitly switched from Murray Buttes to Jezero. Historical Gale reference values below remain evidence for earlier builds, not the current Jezero mission. The wearer resumed live testing after the earlier deferral.
+**Current target: 0.17 Jezero.** The wearer explicitly switched from Murray Buttes to Jezero. Historical Gale reference values below remain evidence for earlier builds, not the current Jezero mission. The wearer resumed live testing after the earlier deferral.
+
+## Version 0.17 waypoint guidance and open stat layout
+
+The six stat backings are removed from VR as well as AR. Both columns move from ±24° to ±26°, with the science card and brief feedback aligned to them. Outlined text and the shelter-hold progress bar remain.
+
+The wearer confirmed that “waypoint” means the next named mission stop. Compass distance and the VR beacon now share that destination, using the endpoint after the last stop and the chosen shelter on a diversion. The blue arrow continues to steer along the next unpassed route point. A missed non-stop sample can advance when the wearer is closer to the destination and has crossed its incoming plane or moved onto its outgoing leg. A 0.5 m margin avoids threshold jitter. A closer destination alone does not skip an unpassed hairpin, and science stops/shelters cannot be marked arrived merely by passing them. The arrow immediately looks ahead while relay acknowledgements remain sequential and guarded against stale/duplicate events; no new route is computed.
+
+Checks exercise before-turn behaviour, overshoots, cut corners, multiple passed points, hairpins, coordinate rotation/translation, destination selection, actual science/shelter arrival and repeated coordinates. The duplicate-coordinate test caught a mismatch between the UI's distinct-position `Next` lookup and the relay's single-index `next` event; progression now checks the exact next index.
+
+**1,339 mission/navigation checks**, **8,821 VR checks**, existing HUD/shelter-input checks and **21 relay/integration tests** passed. The VR checks include the rendered compass arrow's route bearing, separate from destination distance. AR and VR previews were inspected: the stat backings are absent, both columns sit slightly farther out, and at Jezero main 19 the compass and beacon both show about **195 m** to the Delta-front sample site, rather than about 15 m to the next path sample. Live headset verification remains separate from these automated checks.
+
+The final Android build succeeded, the copied APK matches the build output, and its bundled terrain notice identifies 0.17. The Quest package manager independently confirms **0.17.0 / code 17**, updated at **22:45:48**. The launcher confirmed the native process and live Jezero relay connection. Live logs then recorded AR → VR, walking and sprint up to **4.50 m/s**, and mission progress **41 → 42 → 43**. Sampled steady windows report **72.0 fps / p95 13.9 ms**, with one **67.5 fps** mode-transition window; these are app timings, not compositor measurements. No matching startup exception was found. The unchanged left-eye mirror is open and responsive with an advancing playback clock. Physical missed-turn behaviour and final wearer readability remain awaiting confirmation. Diagnostics are local only: `.local/quest17-live-check.log`, `.local/quest17-mirror.log` and `.local/quest-client-view-error.log`; no recording or headset screenshot was made.
 
 ## Version 0.16 distant waypoint beacon
 
@@ -44,7 +56,7 @@ Current Jezero reference: 44 main points; base has **92.8% open sky**. A storm a
 
 | Item | Implementation / evidence |
 | --- | --- |
-| Readable, less peripheral HUD | Compass at 16°; 0.10 moves the bottom readings to two columns at ±24°, with brief feedback below the left column. Wearer fit confirmation remains necessary for the new arrangement. |
+| Readable, less peripheral HUD | Compass at 16°; current stat columns at ±26°, without backing panels in AR or VR, and brief feedback below the left column. Wearer fit confirmation remains necessary for the new arrangement. |
 | AR and VR fallback | Starts in Quest passthrough. Left X switches to planner-aligned Jezero terrain and warm sky, then back to the room. The terrain and walking controller are disabled in AR. |
 | 72-sample skyline, N/E/S/W, smooth transitions | Native dynamic mesh from the exact selected waypoint; smooth sample interpolation and stable calibrated north. 0.10 removes the contour in both modes, retains faint AR shading, and removes the VR fill. No blue baseline or ground fill. Y hides the ring in AR. |
 | Sun/Earth/base/shelter markers | Supplied azimuths/elevations in a fixed frame; visibility and base-link dimming; Earth delay and base distance; shelter minutes. Base/shelter markers hide at arrival. No local sky calculation. |

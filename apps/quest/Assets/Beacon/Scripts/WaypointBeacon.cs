@@ -64,7 +64,7 @@ namespace Beacon
         public void Tick()
         {
             var relay=scenery.missionView.relay;var selection=relay.Selection;
-            TargetIndex=scenery.Active && relay.Connected ? scenery.TargetIndex:-1;
+            TargetIndex=scenery.Active && relay.Connected ? scenery.WaypointIndex:-1;
             double distance=TargetIndex>=0 ? Navigation.Distance(scenery.Position,selection.Points[TargetIndex].pos):0;
             bool show=TargetIndex>=0 && distance>WalkNavigation.ArrivalRadius;
             root.gameObject.SetActive(show);if(!show) return;

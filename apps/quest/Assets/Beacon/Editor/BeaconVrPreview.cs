@@ -40,18 +40,19 @@ public static class BeaconVrPreview
         }
         Capture("delta-reference",330,false);Capture("delta-ring-alignment",330);Capture("east-reference",90,false);Capture("south-reference",180,false);
         Capture("east-original",90,false,cosmetic:false);Capture("east-cosmetic",90,false);
-        Capture("waypoint-beacon",(float)view.vrScenery.GuidanceBearing);
-        var destination=view.vrScenery.terrain.WorldPoint(document.main[20].pos);
+        float BeaconBearing() => (float)Navigation.Bearing(view.vrScenery.Position,relay.Selection.Points[view.vrScenery.WaypointIndex].pos);
+        Capture("waypoint-beacon",BeaconBearing());
+        var destination=view.vrScenery.terrain.WorldPoint(document.main[view.vrScenery.WaypointIndex].pos);
         view.vrScenery.playerRoot.position+=Vector3.ProjectOnPlane(rig.centerEyeAnchor.position-destination,Vector3.up).normalized*100;
         if(view.vrScenery.terrain.GroundAt(rig.centerEyeAnchor.position,out var ground))
             view.vrScenery.playerRoot.position+=Vector3.up*(ground.point.y-rig.centerEyeAnchor.position.y+1.65f);
-        Capture("waypoint-beacon-distant",(float)view.vrScenery.GuidanceBearing);
+        Capture("waypoint-beacon-distant",BeaconBearing());
         int origin=document.main.Count-1;var emergency=document.reroutes[origin.ToString()][0];
         var storm=new MissionState {version=1,route="reroute",rerouteFrom=origin,waypointIndex=0,mode="storm",storm=true,headingDeg=emergency.headingDeg,
             openSky=emergency.openSky,oxygenFraction=emergency.oxygenFraction,doseFraction=emergency.doseFraction,baseLink=emergency.@base.visible,sunlit=emergency.sun.visible,
             earthLink=emergency.earth.visible,minutesToShelter=emergency.shelter.minutes,shelterBearingDeg=emergency.shelter.az,earthDelayMinutes=11};
         relay.Preview(storm,document,relay.Site);view.vrScenery.ReturnToRoute();
-        Capture("waypoint-beacon-emergency",(float)view.vrScenery.GuidanceBearing);
+        Capture("waypoint-beacon-emergency",BeaconBearing());
         relay.Preview(state,document,relay.Site);
         Capture("jezero-ar-ring",330,true,true);
         RenderTexture.active=null;camera.targetTexture=null;target.Release();UnityEngine.Object.DestroyImmediate(target);

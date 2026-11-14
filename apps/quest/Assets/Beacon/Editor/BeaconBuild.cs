@@ -29,7 +29,7 @@ public static class BeaconBuild
         Directory.CreateDirectory("Assets/Beacon/Scenes"); Directory.CreateDirectory("Assets/XR");
         PlayerSettings.companyName = "Team Beacon"; PlayerSettings.productName = "Beacon AR";
         PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, "com.teambeacon.ar");
-        PlayerSettings.bundleVersion = "0.16.0"; PlayerSettings.Android.bundleVersionCode = 16;
+        PlayerSettings.bundleVersion = "0.17.0"; PlayerSettings.Android.bundleVersionCode = 17;
         PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android, ScriptingImplementation.IL2CPP);
         PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64;
         PlayerSettings.Android.minSdkVersion = AndroidSdkVersions.AndroidApiLevel32;
@@ -194,7 +194,7 @@ public static class BeaconBuild
         if (!File.Exists(ScenePath)) Prepare();
         PlayerSettings.productName="Beacon AR";
         PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android,"com.teambeacon.ar");
-        PlayerSettings.bundleVersion="0.16.0"; PlayerSettings.Android.bundleVersionCode=16;
+        PlayerSettings.bundleVersion="0.17.0"; PlayerSettings.Android.bundleVersionCode=17;
         Directory.CreateDirectory("Builds");
         var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions {
             scenes = new[] { ScenePath }, target = BuildTarget.Android,

@@ -16,7 +16,6 @@ namespace Beacon
         RectTransform root,waypoint;
         readonly TMP_Text[] bearings=new TMP_Text[24], readings=new TMP_Text[5];
         readonly TMP_Text[] readingCaptions=new TMP_Text[5];
-        readonly Image[] statBackings=new Image[6];
         static readonly string[] Captions={"SHELTER","BASE","SUNLIGHT","OXYGEN","DOSE USED"};
         static readonly string[] LastCaptions={"SHELTER","LAST BASE","LAST SUN","LAST O2","LAST DOSE"};
         TMP_Text openSky,skyCaption,science,scienceCaption,alert,viewMode,nextDistance;
@@ -53,8 +52,7 @@ namespace Beacon
             for(int i=0;i<5;i++)
             {
                 bool left=i>=3;float pitch=left ? (i==3 ? -7:-16) : 2-i*9;
-                var card=Surface("Side reading "+Captions[i],left ? -24:24,pitch,250,88,.32f);
-                statBackings[i]=BeaconUi.Backing(card,250,88,new Color(.025f,.04f,.055f,.44f));
+                var card=Surface("Side reading "+Captions[i],left ? -26:26,pitch,250,88,.32f);
                 readingCaptions[i]=Text(card,Captions[i],0,25,230,25,19,Muted);
                 readings[i]=Text(card,"--",0,-12,230,52,36,White);
                 if(i==0)
@@ -63,11 +61,10 @@ namespace Beacon
                     holdBar.pivot=new Vector2(0,.5f);holdBar.anchoredPosition=new Vector2(-115,-39);
                 }
             }
-            var sky=Surface("Open sky",-24,2,250,96,.32f);
-            statBackings[5]=BeaconUi.Backing(sky,250,96,new Color(.025f,.04f,.055f,.40f));
+            var sky=Surface("Open sky",-26,2,250,96,.32f);
             skyCaption=Text(sky,"OPEN SKY",0,29,230,24,19,Muted);
             openSky=Text(sky,"--%",0,-11,230,65,46,Mint);
-            sciencePanel=Surface("Science stop",24,11,280,80,.34f);
+            sciencePanel=Surface("Science stop",26,11,280,80,.34f);
             BeaconUi.Backing(sciencePanel,280,80,new Color(.025f,.04f,.055f,.42f));
             scienceCaption=Text(sciencePanel,"SCIENCE STOP",0,24,258,22,18,Muted);
             science=Text(sciencePanel,"",0,-12,258,48,28,White);
@@ -93,7 +90,7 @@ namespace Beacon
             alertGroup=alertPanel.gameObject.AddComponent<CanvasGroup>();
             var frame=Surface("Peripheral alert border",0,0,1000,650,1.72f);
             border=BeaconUi.Rect("Border",frame,0,0,1000,650).gameObject.AddComponent<HudBorderGraphic>(); border.raycastTarget=false;
-            feedbackPanel=Surface("Brief action feedback",-24,-24,320,84,.38f);
+            feedbackPanel=Surface("Brief action feedback",-26,-24,320,84,.38f);
             BeaconUi.Backing(feedbackPanel,320,84,new Color(.025f,.04f,.055f,.55f));
             feedback=Text(feedbackPanel,"",0,3,300,68,23,White);
             feedback.textWrappingMode=TextWrappingModes.Normal;
@@ -133,7 +130,6 @@ namespace Beacon
         public void Tick()
         {
             if(root==null || missionView==null) return;
-            foreach(var backing in statBackings) backing.enabled=missionView.Immersive;
             if(missionView.Immersive && !wasImmersive) ShowFeedback("L WALK · R TURN\nHOLD LEFT GRIP: SPRINT",6);
             if(!missionView.Immersive && wasImmersive) ShowFeedback("AR · ROOM VIEW RESTORED");
             wasImmersive=missionView.Immersive;
@@ -149,14 +145,22 @@ namespace Beacon
                 if(visible) bearings[i].rectTransform.anchoredPosition=new Vector2(relative/CompassHalfSpan*CompassWidth*.5f,13);
             }
             bool walking=missionView.Immersive && missionView.vrScenery!=null && missionView.vrScenery.Active;
-            bool hasTarget=relay.Connected && (walking ? missionView.vrScenery.TargetIndex>=0 : relay.Selection?.Next!=null);
-            waypoint.gameObject.SetActive(hasTarget);nextDistance.gameObject.SetActive(hasTarget && walking);
+            var selection=relay.Selection;
+            var navigationPosition=walking ? missionView.vrScenery.Position:selection?.Point.pos;
+            int goal=relay.Connected ? WalkNavigation.WaypointIndex(selection,navigationPosition):-1;
+            int target=relay.Connected ? WalkNavigation.TargetIndex(selection,navigationPosition):-1;
+            bool hasTarget=goal>=0 && target>=0;
+            waypoint.gameObject.SetActive(hasTarget);nextDistance.gameObject.SetActive(hasTarget);
             if(hasTarget)
             {
-                float relative=(float)Navigation.Relative(walking ? missionView.vrScenery.GuidanceBearing : relay.State.headingDeg,heading);
+                var destination=selection.Points[goal].pos;
+                // The arrow follows the route; its number measures the named
+                // destination, not the nearby turn/sample used for steering.
+                double bearing=walking ? missionView.vrScenery.GuidanceBearing : Navigation.Bearing(navigationPosition,selection.Points[target].pos);
+                float relative=(float)Navigation.Relative(bearing,heading);
                 waypoint.anchoredPosition=new Vector2(Mathf.Clamp(relative/CompassHalfSpan,-.96f,.96f)*CompassWidth*.5f,-27);
                 waypoint.localEulerAngles=new Vector3(0,0,Mathf.Abs(relative)>CompassHalfSpan ? -Mathf.Sign(relative)*90 : 0);
-                nextDistance.text=Navigation.DistanceText(missionView.vrScenery?.GuidanceDistance ?? 0);
+                nextDistance.text=Navigation.DistanceText(Navigation.Distance(navigationPosition,destination));
                 nextDistance.rectTransform.anchoredPosition=new Vector2(Mathf.Clamp(waypoint.anchoredPosition.x,-290,290),-50);
             }
             if(walking && relay.Connected && relay.Selection!=null)

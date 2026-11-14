@@ -26,13 +26,14 @@ namespace Beacon
         public SitePosition Position => terrain.MissionPosition(rig.centerEyeAnchor.position);
         public bool InShelter => Active && WalkNavigation.InShelter(missionView.relay.Selection,Position);
         public int TargetIndex => Active ? WalkNavigation.TargetIndex(missionView.relay.Selection,Position):-1;
+        public int WaypointIndex => Active ? WalkNavigation.WaypointIndex(missionView.relay.Selection,Position):-1;
         public double GuidanceBearing
         {
             get {int target=TargetIndex;return target<0 ? missionView.Heading : Navigation.Bearing(Position,missionView.relay.Selection.Points[target].pos);}
         }
         public double GuidanceDistance
         {
-            get {int target=TargetIndex;return target<0 ? 0 : Navigation.Distance(Position,missionView.relay.Selection.Points[target].pos);}
+            get {int target=WaypointIndex;return target<0 ? 0 : Navigation.Distance(Position,missionView.relay.Selection.Points[target].pos);}
         }
         public double Remaining => WalkNavigation.Remaining(missionView.relay.Selection,Position);
         public bool MatchesMission
@@ -74,7 +75,7 @@ namespace Beacon
             Create();if(Active==active) return;
             body.enabled=false;Active=active;velocity=Vector3.zero;falling=0;Speed=0;Sprinting=false;AtBoundary=false;
             // Mode changes restore the physical room frame. Ordinary stick
-            // movement stays continuous and advances only reached route samples.
+            // movement stays continuous and acknowledges reached/passed samples.
             playerRoot.SetLocalPositionAndRotation(Vector3.zero,Quaternion.identity);
             terrain.gameObject.SetActive(active);
             if(active)
@@ -119,7 +120,7 @@ namespace Beacon
             string key=relay.State?.route+":"+relay.State?.rerouteFrom+":"+relay.State?.waypointIndex;
             if(advanceKey!=key) {advancePending=false;retryAdvanceAt=0;advanceKey=key;}
             if(advancePending && Time.unscaledTime>=retryAdvanceAt) advancePending=false;
-            if(relay.Connected && WalkNavigation.ReachedNext(relay.Selection,Position) && !advancePending && Time.unscaledTime>=retryAdvanceAt)
+            if(relay.Connected && WalkNavigation.ShouldAdvance(relay.Selection,Position) && !advancePending && Time.unscaledTime>=retryAdvanceAt)
             {advanceKey=key;_=Advance();}
             if(Time.unscaledTime>=diagnosticAt)
             {

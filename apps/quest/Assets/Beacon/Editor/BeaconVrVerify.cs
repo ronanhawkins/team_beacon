@@ -56,9 +56,16 @@ public static class BeaconVrVerify
         Check(Mathf.Abs(hit.point.y)<.2f,"original scene scale and spawn height are correct");
         Check(Navigation.Distance(scenery.Position,p.pos)<.05,"VR starts at the actual mission point, not an unrelated photo origin");
         scenery.TickBeacon();
-        Check(scenery.Beacon.Visible && scenery.Beacon.TargetIndex==20,"VR beacon selects the next main waypoint");
-        var beaconAnchor=terrain.WorldPoint(document.main[20].pos)+Vector3.up*.06f;
+        Check(scenery.Beacon.Visible && scenery.Beacon.TargetIndex==37,"VR beacon selects the next named mission stop");
+        var beaconAnchor=terrain.WorldPoint(document.main[37].pos)+Vector3.up*.06f;
         Check(Vector3.Distance(scenery.Beacon.WorldPosition,beaconAnchor)<.01f,"beacon is anchored on the measured target ground");
+        Check(Math.Abs(scenery.GuidanceDistance-Navigation.Distance(scenery.Position,document.main[37].pos))<.01,"compass measures the same named waypoint as the beacon");
+        Check(scenery.GuidanceDistance>Navigation.Distance(scenery.Position,document.main[20].pos)*5,"waypoint distance is distinct from the nearby path sample");
+        Check(Math.Abs(Navigation.Relative(scenery.GuidanceBearing,Navigation.Bearing(scenery.Position,document.main[20].pos)))<.01,"compass arrow follows the next unpassed path point while its distance measures the mission stop");
+        var hud=UnityEngine.Object.FindFirstObjectByType<BeaconHud>();hud.CreateVisuals();hud.Tick();
+        var compassArrow=(RectTransform)rig.centerEyeAnchor.Find("Readable peripheral HUD/Lowered compass/Single waypoint arrow");
+        float expectedArrowX=Mathf.Clamp((float)Navigation.Relative(scenery.GuidanceBearing,view.Heading)/70,-.96f,.96f)*360;
+        Check(Mathf.Abs(compassArrow.anchoredPosition.x-expectedArrowX)<.01f,"rendered compass keeps route steering separate from destination distance");
         for(int i=0;i<50;i++) {scenery.Step(Vector2.zero,Vector2.zero,0,.02f);Physics.SyncTransforms();}
         var start=scenery.playerRoot.position;
         for(int i=0;i<100;i++)
@@ -114,8 +121,9 @@ public static class BeaconVrVerify
                 relay.Preview(s,document,relay.Site);
             }
             Publish(0);scenery.ReturnToRoute();Physics.SyncTransforms();scenery.TickBeacon();
-            Check(scenery.Beacon.Visible && scenery.Beacon.TargetIndex==1,"beacon follows the active main or emergency route");
-            Check(Vector3.Distance(scenery.Beacon.WorldPosition,terrain.WorldPoint(path[1].pos)+Vector3.up*.06f)<.01f,"route change places beacon on its own next waypoint");
+            int expectedGoal=reroute ? path.Count-1:3;
+            Check(scenery.Beacon.Visible && scenery.Beacon.TargetIndex==expectedGoal,"beacon follows the active mission stop or emergency shelter");
+            Check(Vector3.Distance(scenery.Beacon.WorldPosition,terrain.WorldPoint(path[expectedGoal].pos)+Vector3.up*.06f)<.01f,"route change places beacon on its own destination");
             Check(reroute ? scenery.Beacon.Tone.r>scenery.Beacon.Tone.g : scenery.Beacon.Tone.g>scenery.Beacon.Tone.r,"emergency beacon uses a distinct warm colour");
             for(int i=0;i<50;i++) {scenery.Step(Vector2.zero,Vector2.zero,0,.02f);Physics.SyncTransforms();}
             for(int index=1;index<path.Count;index++)
