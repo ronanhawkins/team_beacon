@@ -54,7 +54,7 @@ export function drawOverlay(g, map, v, now) {
 
   // draft plan
   if (v.mode === 'plan' && v.draftDirty) {
-    stroke(v.draft, '#ffffff', 2, [4, 7]);
+    stroke(v.draftPath || v.draft, '#ffffff', 2, [4, 7]);
     v.draft.forEach((p, i) => { const s = P(p); if (!s.ok) return; g.beginPath(); g.arc(s.x, s.y, 0.5 * u, 0, 7); g.fillStyle = INK; g.fill(); g.strokeStyle = '#ffffff'; g.lineWidth = 0.14 * u; g.stroke(); pill(s, p.kind === 'stop' ? p.name : p.kind === 'start' ? 'Start' : 'End', { bold: false }); });
   }
 

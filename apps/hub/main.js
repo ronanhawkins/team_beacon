@@ -11,6 +11,7 @@ import { drawOverlay } from './overlay.js';
 import { CREW } from './crew-data.js';
 import { buildWalks, weekStats, readiness, doseUnits, loadRecorded, saveRecorded, loadChoice, saveChoice } from './crew.js';
 import { createVitals, ITEMS, GROUPS, worse } from './vitals.js';
+import { makeWalkGrid, findPath } from './pathfind.js';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -76,10 +77,10 @@ function stopInfo() {
 function doing() {
   const s = app.state, i = stopInfo(), L = live(), w = app.route.waypoints;
   if (s.reroute) return L.atShelter ? 'In shelter' : 'Heading to shelter';
+  if (s.wp === 0) return 'At the start, ready';
   if (i.at >= 0) return `At ${app.route.stops[i.at].name}`;
   if (L.atShelter) return 'In shelter';
-  if (i.last && s.wp > 0) return `At ${w[w.length - 1].label || 'the end'}`;
-  if (s.wp === 0) return 'At the start, ready';
+  if (i.last) return `At ${w[w.length - 1].label || 'the end'}`;
   return i.next >= 0 ? `Walking to ${app.route.stops[i.next].name}` : `Walking to ${w[w.length - 1].label || 'the end'}`;
 }
 const marsTime = (elapsed) => {
@@ -267,7 +268,22 @@ async function reloadRoute() {
 }
 
 // ---------- rendering ----------
-function renderAll() { renderHeader(); renderBanner(); renderLeft(); renderRight(); renderCrew(); renderTimeline(); renderMirror(); }
+// Draft legs follow the terrain (pathfind.js) instead of straight lines. Cached per leg, so this is cheap to call often.
+const legCache = new Map();
+function routeDraft() {
+  app.draftPath = null; app.draftStats = null;
+  if (!app.draftDirty || !app.walkGrid || app.draft.length < 2) return;
+  const pts = [], st = { distanceM: 0, minutes: 0, maxSlopeDeg: 0, failed: 0 };
+  for (let i = 1; i < app.draft.length; i++) {
+    const a = app.draft[i - 1], b = app.draft[i], key = `${a.x},${a.y}>${b.x},${b.y}`;
+    let r = legCache.get(key);
+    if (!r) { r = findPath(app.walkGrid, { x: a.x, y: a.y }, { x: b.x, y: b.y }, { maxSlopeDeg: CONFIG.MAX_SLOPE_DEG }); legCache.set(key, r); if (!r.ok) toast(`No walkable path to ${b.kind === 'stop' ? b.name : b.kind}: ${r.reason}. Drawn straight.`); }
+    pts.push(...(i > 1 ? r.pts.slice(1) : r.pts));
+    st.distanceM += r.distanceM; st.minutes += r.minutes; st.maxSlopeDeg = Math.max(st.maxSlopeDeg, r.maxSlopeDeg); if (!r.ok) st.failed++;
+  }
+  app.draftPath = pts; app.draftStats = st;
+}
+function renderAll() { routeDraft(); renderHeader(); renderBanner(); renderLeft(); renderRight(); renderCrew(); renderTimeline(); renderMirror(); }
 function renderHeader() {
   const L = live(), local = app.link && app.link.kind === 'local', up = app.relayStatus === 'open';
   document.body.classList.toggle('emergency', emergency());
@@ -320,7 +336,7 @@ function renderLayers() {
     const grad = l.stops.map((c, k) => `rgba(${c.slice(0, 3).map((v) => Math.round(v * 255)).join(',')},${c[3]}) ${k * 50}%`).join(', ');
     return `<div class="layer" data-id="${l.id}"><label><input type="checkbox" data-layer="${i}"><span>${esc(l.label)}</span><kbd>${i + 1}</kbd></label>
       <div class="legend"><span>${esc(l.lo)}</span><i style="background: linear-gradient(to right, ${grad}), #a56b45"></i><span>${esc(l.hi)}</span></div>
-      <div class="src">${esc(l.source)}</div></div>`;
+      <div class="lsrc">${esc(l.source)}</div></div>`;
   }).join('');
   syncLayers();
 }
@@ -340,6 +356,7 @@ function renderLeft() {
       <ol class="pts">${rows}</ol>
       <div class="tools"><button type="button" class="primary" data-act="send-plan">Send to planner</button><button type="button" data-act="undo-plan" ${app.draftDirty ? '' : 'disabled'}>Undo</button></div>
       <div class="tools small"><button type="button" data-act="copy-plan">Copy as JSON</button><button type="button" data-act="reload-route">Reload route</button></div>
+      ${app.draftStats ? `<p class="note">Path around the terrain: ${km(app.draftStats.distanceM)} · about ${fmt(app.draftStats.minutes)} min walking · steepest ${fmt(app.draftStats.maxSlopeDeg)}°${app.draftStats.failed ? ` · ${ICON.warn} ${app.draftStats.failed} leg${app.draftStats.failed === 1 ? '' : 's'} with no walkable path` : ''}</p>` : ''}
       <p class="note">${esc(app.planNote || (app.draftDirty ? 'Not sent yet. Map shows the last route.' : 'Showing the route from the waypoint file.'))}</p>`;
   } else {
     const row = (cls, n, label, eta, status, i) => `<li class="${cls}" ${i != null ? `data-act="focus" data-i="${i}" tabindex="0"` : ''}><span class="n">${n}</span><span class="nm">${esc(label)}</span><span class="eta mono">${eta}</span><span class="st">${status}</span></li>`;
@@ -731,7 +748,7 @@ async function boot() {
     const W = meta ? meta.width * meta.metresPerPixel : Math.max(...pts.map((p) => p.x)) + 150, H = meta ? meta.height * meta.metresPerPixel : Math.max(...pts.map((p) => p.y)) + 150;
     terrain = flatTerrain(W, H, meta ? meta.metresPerPixel : 4); note = 'No terrain file found, so the map is flat.';
   }
-  app.terrain = terrain;
+  app.terrain = terrain; if (!terrain.flat) app.walkGrid = makeWalkGrid(terrain);
   $('siteName').textContent = CONFIG.SITE_NAME;
   const fakes = [app.fake.waypoints && 'route', app.fake.layers && 'layers', app.fake.terrain && 'terrain'].filter(Boolean);
   $('synthChip').hidden = !fakes.length; $('synthChip').textContent = fakes.length === 3 ? 'Fake data' : `Fake ${fakes.join(' and ')}`;
@@ -767,7 +784,7 @@ async function boot() {
   app.map.onDraw = (g, now) => {
     const moving = tickAstro(now); if (moving) renderMirror();
     const L = live();
-    drawOverlay(g, app.map, { u: app.u, parking: app.terrain.parking, route: app.route, state: app.state, base: app.route.base, shelters: app.route.shelters, astro: app.astro, live: L, headingDeg: L.headingDeg, emergency: emergency(), mode: app.mode, draft: app.draft, draftDirty: app.draftDirty, focusStop: app.focusStop, name: name(), history: historyForMap() }, now);
+    drawOverlay(g, app.map, { u: app.u, parking: app.terrain.parking, route: app.route, state: app.state, base: app.route.base, shelters: app.route.shelters, astro: app.astro, live: L, headingDeg: L.headingDeg, emergency: emergency(), mode: app.mode, draft: app.draft, draftPath: app.draftPath, draftDirty: app.draftDirty, focusStop: app.focusStop, name: name(), history: historyForMap() }, now);
   };
   wireInput(); renderLog();
   log(`Route loaded: ${fmt(app.route.totals.timeMin)} min, ${app.route.stops.length} science stop${app.route.stops.length === 1 ? '' : 's'}.`);

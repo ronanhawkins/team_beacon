@@ -78,10 +78,10 @@ main { display: grid; grid-template-columns: 17.5rem minmax(0, 1fr) 21.5rem; gap
 .layer label { display: flex; align-items: center; gap: 0.55rem; min-height: 1.75rem; cursor: pointer; }
 .layer label span { flex: 1; font-size: 0.95rem; }
 .layer input { width: 1.1rem; height: 1.1rem; accent-color: var(--blue); }
-.layer .legend, .layer .src { display: none; }
+.layer .legend, .layer .lsrc { display: none; }
 .layer.on .legend { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 0.4rem; font-size: 0.72rem; color: #c9d1db; margin: 0 0 0.2rem 1.65rem; }
 .layer.on .legend i { height: 0.55rem; border-radius: 0.2rem; border: 1px solid var(--line2); }
-.layer.on .src, .layer:has(input:disabled) .src { display: block; font-size: 0.68rem; color: var(--muted); margin: 0 0 0.35rem 1.65rem; }
+.layer.on .lsrc, .layer:has(input:disabled) .lsrc { display: block; font-size: 0.68rem; color: var(--muted); margin: 0 0 0.35rem 1.65rem; }
 .tools { display: flex; gap: 0.35rem; flex-wrap: wrap; margin-bottom: 0.5rem; }
 .tools:last-of-type { margin-bottom: 0; }
 .tools.small button { min-height: 1.9rem; font-size: 0.8rem; background: transparent; }
@@ -163,8 +163,8 @@ h2 .hint { text-transform: none; letter-spacing: 0; font-weight: 400; }
 .vs-head { display: flex; align-items: center; gap: 0.4rem; } .vs-head b { flex: 1; min-width: 0; font-size: 0.95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .vsum.caution .vs-head b, .vsum.alarm .vs-head b { color: #ffe3ad; } .vsum.caution .ic, .vsum.alarm .ic { stroke: var(--amber); }
 .vs-more { font-size: 0.72rem; color: var(--muted); display: inline-flex; gap: 0.3rem; align-items: center; white-space: nowrap; }
-.vs-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.4rem; margin-top: 0.4rem; }
-.vc { display: flex; flex-direction: column; min-width: 0; } .vc .mono { font-size: 1.3rem; font-weight: 600; line-height: 1.15; white-space: nowrap; }
+.vs-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 0.6rem; margin-top: 0.4rem; }
+.vc { display: flex; flex-direction: column; min-width: 0; } .vc .mono { font-size: 1.15rem; overflow: hidden; text-overflow: ellipsis; font-weight: 600; line-height: 1.15; white-space: nowrap; }
 .vc small { font-size: 0.68rem; font-weight: 500; color: var(--muted); margin-left: 0.15rem; } .vc sup { color: var(--amber); font-size: 0.7rem; }
 .vc.caution .mono, .vc.alarm .mono { color: var(--amber); }
 .vs-foot { display: flex; justify-content: space-between; margin-top: 0.3rem; font-size: 0.72rem; color: var(--muted); } .simnote { color: var(--amber); }
