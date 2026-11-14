@@ -20,9 +20,16 @@ const PING_INTERVAL_MS = 15000;
 const ROOT = path.resolve(__dirname, '..');
 const CERT_DIR = path.join(__dirname, 'certs');
 
+// The headset is built with Vite (root package.json, vite.config.js) into dist/.
+// Serve the build when there is one; otherwise the unbuilt source.
+const BUILT_HEADSET = path.join(ROOT, 'dist/apps/headset');
+const HEADSET_IS_BUILT = fs.existsSync(path.join(BUILT_HEADSET, 'index.html'));
+
 const MOUNTS = {
   '/hub/': path.join(ROOT, 'apps/hub'),
-  '/headset/': path.join(ROOT, 'apps/headset'),
+  '/headset/': HEADSET_IS_BUILT ? BUILT_HEADSET : path.join(ROOT, 'apps/headset'),
+  // The Vite build references its bundles as /assets/...
+  ...(HEADSET_IS_BUILT ? { '/assets/': path.join(ROOT, 'dist/assets') } : {}),
   '/wrist/': path.join(ROOT, 'apps/wrist'),
   '/shared/': path.join(ROOT, 'shared'),
   '/data/': path.join(ROOT, 'data/out'),
@@ -283,8 +290,17 @@ function readCerts() {
 // ---- Start ------------------------------------------------------------------
 
 const server = https.createServer(readCerts(), onRequest);
-const secureWss = new WebSocketServer({ server, path: '/ws' });
-secureWss.on('connection', (ws, req) => onConnection(ws, req, 'wss'));
+// Browser sockets: /ws, plus /relay as an alias for the headset client (shared/socket.js).
+const SECURE_WS_PATHS = new Set(['/ws', '/relay']);
+const secureWss = new WebSocketServer({ noServer: true });
+server.on('upgrade', (req, socket, head) => {
+  const wsPath = new URL(req.url, 'https://x').pathname;
+  if (!SECURE_WS_PATHS.has(wsPath)) {
+    socket.destroy();
+    return;
+  }
+  secureWss.handleUpgrade(req, socket, head, (ws) => onConnection(ws, req, `wss${wsPath}`));
+});
 
 const plainWss = new WebSocketServer({ port: PLAIN_PORT });
 plainWss.on('connection', (ws, req) => onConnection(ws, req, 'ws'));
@@ -293,7 +309,10 @@ plainWss.on('listening', () => log(`Plain WebSocket (ESP32) on ws://<laptop>:${P
 server.listen(HTTPS_PORT, () => {
   const ips = Object.values(os.networkInterfaces()).flat()
     .filter((a) => a && a.family === 'IPv4' && !a.internal).map((a) => a.address);
-  log(`HTTPS + WSS on port ${HTTPS_PORT}`);
+  log(`HTTPS + WSS (/ws, /relay) on port ${HTTPS_PORT}`);
+  log(HEADSET_IS_BUILT
+    ? `Headset: serving the Vite build from ${path.relative(ROOT, BUILT_HEADSET)}/`
+    : 'Headset: no build found (run npm run build in the repo root); serving unbuilt apps/headset/');
   for (const host of ['localhost', ...ips]) {
     console.log(`\n  ${host}`);
     for (const p of ['hub/', 'headset/', 'wrist/', 'debug']) console.log(`    https://${host}:${HTTPS_PORT}/${p}`);

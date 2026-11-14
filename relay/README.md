@@ -8,10 +8,14 @@ Node server that holds the one state object (`shared/state.md`), applies events 
 
 | Port | Protocol | Paths |
 | --- | --- | --- |
-| 8443 | HTTPS + WSS | `/hub/`, `/headset/`, `/wrist/`, `/shared/`, `/data/` (= `data/out/`), `/debug`, `/clients`, and the WebSocket at `/ws` |
+| 8443 | HTTPS + WSS | `/hub/`, `/headset/`, `/wrist/`, `/shared/`, `/data/` (= `data/out/`), `/debug`, `/clients`, and the WebSocket at `/ws` (also `/relay`) |
 | 8081 | plain WS | Any path. For the ESP32, which can't easily do TLS. Same protocol. |
 
-The pages and the browser socket share port 8443, so each device accepts one certificate warning and the socket can't fail silently on a second untrusted certificate. Every response has `Cache-Control: no-store`. Override the ports with `HTTPS_PORT` and `PLAIN_PORT` if you need to.
+The pages and the browser socket share port 8443, so each device accepts one certificate warning and the socket can't fail silently on a second untrusted certificate. Every response has `Cache-Control: no-store`.
+
+`/relay` is an alias for `/ws`, with the same protocol. It is kept for the headset client (`shared/socket.js`), which connects to `/relay`.
+
+`/headset/` serves the Vite build in `dist/apps/headset/` when it exists (run `npm run build` in the repo root), with its bundles at `/assets/` from `dist/assets/`. Without a build it serves `apps/headset/` as is, which won't run in a browser because the source needs Vite. The relay logs which one it serves at startup. Override the ports with `HTTPS_PORT` and `PLAIN_PORT` if you need to.
 
 ## Run
 

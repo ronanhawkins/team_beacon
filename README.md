@@ -40,17 +40,18 @@ Laptop address: `TODO` (fill in at the venue, then run `npm run cert -- <address
 ## How to run
 
 1. Engine: TODO
-2. Relay (Node 18+):
+2. Relay (Node 22.12+ for the headset build, 18+ for the relay alone):
    ```sh
+   npm ci && npm run build       # in the repo root: builds the headset into dist/
    cd relay
    npm install
    npm run cert -- <laptop IP>   # once per network; creates relay/certs/
    npm start                     # prints the URLs for each app
    npm test                      # optional smoke test, in a second terminal
    ```
-   Open `https://<laptop IP>:8443/` on each device, accept the certificate warning once, and pick the page. `/debug` is the presenter control.
+   Open `https://<laptop IP>:8443/` on each device, accept the certificate warning once, and pick the page. `/debug` is the presenter control. The relay serves the built headset at `/headset/` and logs at startup whether it found a build; re-run `npm run build` after headset changes.
 3. Hub: TODO
-4. Headset (Quest 3): `npm ci`, then `npm run dev`. Open `http://localhost:5173/apps/headset/`. See [headset setup](apps/headset/README.md) and [USB checklist](docs/CJ-START-HERE.md).
+4. Headset (Quest 3): for the demo, build it (step 2) and open `https://<laptop IP>:8443/headset/` from the relay. For development, `npm ci`, then `npm run dev`, and open `http://localhost:5173/apps/headset/`. See [headset setup](apps/headset/README.md) and [USB checklist](docs/CJ-START-HERE.md).
 5. Wrist (phone): TODO
 6. Firmware (ESP32): TODO
 
