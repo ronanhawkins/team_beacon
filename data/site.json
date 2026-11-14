@@ -101,19 +101,44 @@
   },
 
   "routeStops": [
-    { "id": "base", "x": 1598.0, "y": 1250.0 },
-    { "id": "sol1471", "x": 1592.7, "y": 1389.5 },
-    { "id": "sol1468", "x": 1542.6, "y": 1437.2 },
-    { "id": "quela", "x": 1500.4, "y": 1500.4, "scienceStop": true },
-    { "id": "sol1452", "x": 1524.9, "y": 1525.8 },
-    { "id": "sol1448", "x": 1507.7, "y": 1561.4, "scienceStop": true },
-    { "id": "sol1446", "x": 1500.0, "y": 1627.7 },
-    { "id": "sol1439", "x": 1506.1, "y": 1678.3, "note": "The far point of the walk" }
+    { "id": "base", "x": 1598.0, "y": 1250.0, "label": "Base" },
+    { "id": "sol1471", "x": 1592.7, "y": 1389.5, "label": "" },
+    { "id": "sol1468", "x": 1542.6, "y": 1437.2, "label": "" },
+    { "id": "quela", "x": 1500.4, "y": 1500.4, "label": "Quela drill site", "scienceStop": true },
+    { "id": "sol1452", "x": 1524.9, "y": 1525.8, "label": "" },
+    { "id": "sol1448", "x": 1507.7, "y": 1561.4, "label": "Butte outcrop", "scienceStop": true },
+    { "id": "sol1446", "x": 1500.0, "y": 1627.7, "label": "Far point" }
   ],
 
   "plannerBounds": {
     "xMin": 1250, "xMax": 1650, "yMin": 1200, "yMax": 1750,
-    "note": "Local metres. The east limit keeps routes clear of a seam artefact in the terrain mosaic, which runs roughly north to south about 80 m east of the rover's route"
+    "note": "Local metres. A mosaic seam runs roughly north-south at local x 1580 to 1605, inside these bounds; its step is about 0.5 m north of y 1600 and under 0.15 m further south, too small to affect planning. The east limit excludes a separate doubtful band near x 1700"
+  },
+
+  "planner": {
+    "walkSpeed": 0.8,
+    "maxSlopeDeg": 25,
+    "shelterBlockedMin": 0.15,
+    "shelterMaxSlopeDeg": 15,
+    "minutesToShelterLimit": 5,
+    "waypointSpacing": 15,
+    "openBlocked": 0.06,
+    "doseShieldingFactor": 0.5,
+    "stormDoseMultiplier": 2,
+    "oxygenMinutes": 480,
+    "notes": {
+      "walkSpeed": "Assumption: suited walking speed on flat ground, metres per second. Walking time per metre is (1 / walkSpeed) * (1 + (slope / 15)^2)",
+      "maxSlopeDeg": "Assumption: ground steeper than this, in degrees, is impassable",
+      "shelterBlockedMin": "Assumption: a shelter cell has at least this blocked-sky fraction",
+      "shelterMaxSlopeDeg": "Assumption: a shelter cell is no steeper than this, in degrees",
+      "minutesToShelterLimit": "Assumption: more minutes than this to the nearest refuge counts as a warning (the relay's warning limit and a route penalty)",
+      "waypointSpacing": "Assumption: metres between waypoints; every stop is always a waypoint",
+      "openBlocked": "Assumption: blocked-sky fraction of open ground, where the relative dose rate is 1",
+      "doseShieldingFactor": "Assumption: relative dose rate = 1 - doseShieldingFactor * (blocked - openBlocked), kept between 0.5 and 1.05. Calibrated to Curiosity's measurement that about 9 more points of blocked sky cut the dose by about 5 percent. Simulated, not a dose model",
+      "stormDoseMultiplier": "Assumption: dose rate multiplier on a reroute during a storm, starting from the dose at the main waypoint where the reroute began",
+      "oxygenMinutes": "Assumption: minutes of oxygen at the start; oxygenFraction = 1 - minutes elapsed / oxygenMinutes",
+      "doseBudget": "Simulated: doseFraction is accumulated rate * minutes divided by a budget of twice the planned main-route duration at rate 1, clamped to 0..1"
+    }
   },
 
   "notes": [

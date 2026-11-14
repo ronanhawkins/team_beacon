@@ -1,6 +1,12 @@
-"""Check the fake JSON files in shared/fake/ against the contracts in shared/.
+"""Check waypoint and state files against the contracts in shared/.
 
-Usage: python3 tools/check_fakes.py   (standard library only)
+Usage: python3 tools/check_fakes.py                     shared/fake/ (waypoints and both state files)
+       python3 tools/check_fakes.py data/out/waypoints.json   any waypoint file on its own
+(standard library only)
+
+For a real waypoint file openSky may differ from the 72-value formula by up to
+0.02, because the engine computes it from 360 directions. State files are only
+checked with the fakes.
 
 Field names are read from the tables in shared/state.md and shared/waypoints.md,
 so a field added to a contract shows up here as missing until the fakes have it.
@@ -18,7 +24,8 @@ SHARED = ROOT / "shared"
 FAKE = SHARED / "fake"
 
 SAMPLES = 72
-OPEN_SKY_TOLERANCE = 0.005
+OPEN_SKY_TOLERANCE_FAKE = 0.005
+OPEN_SKY_TOLERANCE_REAL = 0.02
 
 results = []
 
@@ -70,18 +77,21 @@ def open_sky(sky):
     return 1 - sum(math.sin(math.radians(max(0.0, e))) for e in sky) / len(sky)
 
 
-def load(name):
-    path = FAKE / name
+def load(path):
     try:
-        return json.loads(path.read_text())
+        return json.loads(Path(path).read_text())
     except (OSError, json.JSONDecodeError) as e:
-        check(f"load {name}", [str(e)])
+        check(f"load {path}", [str(e)])
         return None
 
 
-def main():
-    wp_doc = load("waypoints.json")
-    states = {n: load(n) for n in ("state.json", "state-storm.json")}
+def main(argv):
+    wp_path = Path(argv[1]) if len(argv) > 1 else FAKE / "waypoints.json"
+    is_fake = wp_path.resolve() == (FAKE / "waypoints.json").resolve()
+    tolerance = OPEN_SKY_TOLERANCE_FAKE if is_fake else OPEN_SKY_TOLERANCE_REAL
+    print(f"Checking {wp_path}" + ("" if is_fake else " (real file: openSky tolerance 0.02, no state files)"))
+    wp_doc = load(wp_path)
+    states = {n: load(FAKE / n) for n in ("state.json", "state-storm.json")} if is_fake else {}
     if wp_doc is None or None in states.values():
         return 1
 
@@ -101,10 +111,11 @@ def main():
         problems += missing_fields(w, wpf, label(r, i, w))
     check(f"waypoints.json has every field in waypoints.md ({len(top)} top-level, {len(wpf)} per waypoint)",
           problems)
-    problems = []
-    for name, st in states.items():
-        problems += missing_fields(st, stf, name)
-    check(f"state files have every field in state.md ({len(stf)})", problems)
+    if states:
+        problems = []
+        for name, st in states.items():
+            problems += missing_fields(st, stf, name)
+        check(f"state files have every field in state.md ({len(stf)})", problems)
 
     # 72 values per skyline.
     problems = []
@@ -136,9 +147,9 @@ def main():
         sky = w.get("skyline", [])
         if len(sky) == SAMPLES:
             expected = open_sky(sky)
-            if abs(w.get("openSky", -1) - expected) > OPEN_SKY_TOLERANCE:
+            if abs(w.get("openSky", -1) - expected) > tolerance:
                 problems.append(f"{label(r, i, w)}: openSky {w.get('openSky')}, skyline gives {expected:.3f}")
-    check(f"openSky = 1 - mean(sin(skyline)) within {OPEN_SKY_TOLERANCE}", problems)
+    check(f"openSky = 1 - mean(sin(skyline)) within {tolerance}", problems)
 
     # Sun and Earth visibility matches the skyline.
     problems = []
@@ -160,6 +171,9 @@ def main():
     problems = [f"no reroute for main index {i}" for i in range(len(wp_doc.get("main", [])))
                 if str(i) not in reroutes or not reroutes[str(i)]]
     check("every main index has a reroute", problems)
+
+    if not states:
+        return finish()
 
     # rerouteFrom is null on the main route and names an existing reroute otherwise.
     problems = []
@@ -198,7 +212,10 @@ def main():
             if states[name].get(field) != get(wp):
                 problems.append(f"{name}: {field} {states[name].get(field)}, waypoint {wp['id']} has {get(wp)}")
     check("state derived fields match their waypoint (main[0], reroutes[rerouteFrom][0])", problems)
+    return finish()
 
+
+def finish():
     failed = sum(1 for _, p in results if p)
     print()
     print(f"{len(results) - failed} passed, {failed} failed")
@@ -206,4 +223,4 @@ def main():
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(main(sys.argv))

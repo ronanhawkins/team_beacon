@@ -5,6 +5,8 @@
 //!   engine point <x> <y>          blocked fraction and 72-value skyline as one line of JSON (near field only)
 //!   engine layers                 map layers into data/out/layers/ (shared/layers.md)
 //!   engine base-candidates        base link coverage for each candidate base position
+//!   engine plan                   planner: shelters, main route, reroutes -> data/out/
+//!   engine plan --stops "x,y;x,y;..." --out <dir>   plan other stops (first is the start) into <dir>
 //!
 //! Positions are local metres: x east, y north, origin at the crop's south-west
 //! outer corner (shared/conventions.md).
@@ -12,6 +14,8 @@
 //! Paths are relative to the repo root (the folder above engine/). Override with --root <dir>.
 
 mod layers;
+mod planner;
+mod route;
 mod sight;
 mod skyline;
 mod terrain;
@@ -51,6 +55,8 @@ struct Site {
     sky: SkyFile,
     base: BaseFile,
     route_stops: Vec<RouteStop>,
+    planner: planner::PlannerConfig,
+    planner_bounds: planner::Bounds,
 }
 
 #[derive(Deserialize)]
@@ -83,10 +89,15 @@ struct BaseFile {
 }
 
 #[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
 struct RouteStop {
     id: String,
     x: f64,
     y: f64,
+    #[serde(default)]
+    label: String,
+    #[serde(default)]
+    science_stop: bool,
 }
 
 impl Site {
@@ -309,6 +320,48 @@ fn base_candidates(root: &Path) -> Result<(), String> {
     Ok(())
 }
 
+fn plan_command(root: &Path, stops_arg: Option<&str>, out: Option<&str>) -> Result<(), String> {
+    let site = load_site(root)?;
+    let grid = load_grid(root)?;
+    let far_grid = load_far(root)?;
+    let spot = &site.near_crop.parking_spot_local;
+    let far72 = far_at_parking(&grid, &far_grid, spot, skyline::FAST_DIRS)?;
+    let far360 = far_at_parking(&grid, &far_grid, spot, N_DIRS)?;
+    let stops: Vec<route::Stop> = match stops_arg {
+        None => site
+            .route_stops
+            .iter()
+            .map(|s| route::Stop { id: s.id.clone(), x: s.x, y: s.y, label: s.label.clone(), science: s.science_stop })
+            .collect(),
+        Some(text) => text
+            .split(';')
+            .filter(|p| !p.trim().is_empty())
+            .enumerate()
+            .map(|(i, pair)| {
+                let (x, y) = pair.split_once(',').ok_or_else(|| format!("stop {pair:?} is not x,y"))?;
+                let num = |v: &str| v.trim().parse::<f64>().map_err(|_| format!("not a number: {v}"));
+                Ok(route::Stop { id: format!("p{i:02}"), x: num(x)?, y: num(y)?, label: String::new(), science: false })
+            })
+            .collect::<Result<_, String>>()?,
+    };
+    if stops.len() < 2 {
+        return Err("a plan needs at least two stops".into());
+    }
+    let out_dir = out.map_or_else(|| root.join("data/out"), PathBuf::from);
+    let inputs = route::PlanInputs {
+        near: &grid,
+        far72: &far72,
+        far360: &far360,
+        sun: (site.sky.sun.az, site.sky.sun.el),
+        earth: (site.sky.earth.az, site.sky.earth.el),
+        base: layers::Base { x: site.base.x, y: site.base.y, mast_height_m: site.base.mast_height },
+        bounds: site.planner_bounds,
+        cfg: site.planner.clone(),
+        stops,
+    };
+    route::run(&inputs, &out_dir)
+}
+
 fn layers_command(root: &Path) -> Result<(), String> {
     let site = load_site(root)?;
     let grid = load_grid(root)?;
@@ -339,7 +392,7 @@ fn point(root: &Path, x: f64, y: f64) -> Result<(), String> {
 }
 
 fn usage() -> String {
-    "usage: engine [--root <dir>] check\n       engine [--root <dir>] point <x> <y>   (local metres)\n       engine [--root <dir>] layers\n       engine [--root <dir>] base-candidates".to_string()
+    "usage: engine [--root <dir>] check\n       engine [--root <dir>] point <x> <y>   (local metres)\n       engine [--root <dir>] layers\n       engine [--root <dir>] base-candidates\n       engine [--root <dir>] plan [--stops \"x,y;x,y;...\" --out <dir>]".to_string()
 }
 
 fn run() -> Result<bool, String> {
@@ -355,6 +408,22 @@ fn run() -> Result<bool, String> {
         ["check"] => check(&root),
         ["layers"] => layers_command(&root).map(|_| true),
         ["base-candidates"] => base_candidates(&root).map(|_| true),
+        ["plan", rest @ ..] => {
+            let mut stops = None;
+            let mut out = None;
+            let mut it = rest.iter();
+            while let Some(&flag) = it.next() {
+                match flag {
+                    "--stops" => stops = Some(*it.next().ok_or_else(usage)?),
+                    "--out" => out = Some(*it.next().ok_or_else(usage)?),
+                    _ => return Err(usage()),
+                }
+            }
+            if stops.is_some() != out.is_some() {
+                return Err("--stops and --out go together, so a custom plan never overwrites data/out".into());
+            }
+            plan_command(&root, stops, out).map(|_| true)
+        }
         ["point", x, y] => {
             let parse = |s: &str| s.parse::<f64>().map_err(|_| format!("not a number: {s}"));
             point(&root, parse(x)?, parse(y)?).map(|_| true)

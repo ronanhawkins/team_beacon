@@ -13,7 +13,9 @@ const { WebSocketServer, WebSocket } = require('ws');
 
 const HTTPS_PORT = Number(process.env.HTTPS_PORT) || 8443; // pages + wss://…/ws for browsers
 const PLAIN_PORT = Number(process.env.PLAIN_PORT) || 8081; // ws:// for the ESP32
-const WARNING_MINUTES_TO_SHELTER = 12; // mode is "warning" above this. Provisional until real waypoints exist
+// Mode is "warning" above this many minutes to shelter. data/site.json planner.minutesToShelterLimit
+// overrides it when present; this is the fallback.
+const DEFAULT_WARNING_MINUTES_TO_SHELTER = 12;
 const DEFAULT_EARTH_DELAY_MINUTES = 14;
 const PING_INTERVAL_MS = 15000;
 
@@ -64,18 +66,21 @@ function loadWaypoints() {
   return doc;
 }
 
-function loadEarthDelay() {
-  const file = path.join(ROOT, 'data/site.json');
+function loadSite() {
   try {
-    const site = JSON.parse(fs.readFileSync(file, 'utf8'));
-    if (typeof site.earthDelayMinutes === 'number') return site.earthDelayMinutes;
-  } catch { /* missing or unreadable: use the default */ }
-  return DEFAULT_EARTH_DELAY_MINUTES;
+    return JSON.parse(fs.readFileSync(path.join(ROOT, 'data/site.json'), 'utf8'));
+  } catch {
+    return {}; // missing or unreadable: every value falls back to its default
+  }
 }
 
 const waypoints = loadWaypoints();
-const earthDelayMinutes = loadEarthDelay();
-log(`earthDelayMinutes = ${earthDelayMinutes}`);
+const site = loadSite();
+const earthDelayMinutes = typeof site.earthDelayMinutes === 'number' ? site.earthDelayMinutes : DEFAULT_EARTH_DELAY_MINUTES;
+const WARNING_MINUTES_TO_SHELTER = typeof site.planner?.minutesToShelterLimit === 'number'
+  ? site.planner.minutesToShelterLimit
+  : DEFAULT_WARNING_MINUTES_TO_SHELTER;
+log(`earthDelayMinutes = ${earthDelayMinutes}, warning above ${WARNING_MINUTES_TO_SHELTER} min to shelter`);
 
 // ---- State ------------------------------------------------------------------
 

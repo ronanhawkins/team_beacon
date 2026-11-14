@@ -16,6 +16,17 @@
       "max": 1.0,
       "min": 0.6
     },
+    "minutesToShelter": {
+      "file": "minutesToShelter.png",
+      "max": 30.0,
+      "min": 0.0,
+      "validBounds": {
+        "xMax": 1650.0,
+        "xMin": 1250.0,
+        "yMax": 1750.0,
+        "yMin": 1200.0
+      }
+    },
     "slope": {
       "file": "slope.png",
       "max": 45.0,

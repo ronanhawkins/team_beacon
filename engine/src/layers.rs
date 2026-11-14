@@ -89,6 +89,32 @@ fn slope_at(blocks: &[Option<f32>], col: usize, row: usize) -> Option<f32> {
     Some(dzdx.hypot(dzdy).atan().to_degrees() as f32)
 }
 
+/// Adds or replaces layer entries in `out_dir/meta.json`, keeping entries written by other
+/// commands (the planner writes minutesToShelter) as long as the image geometry matches.
+pub fn update_meta(out_dir: &Path, entries: serde_json::Map<String, serde_json::Value>) -> Result<(), String> {
+    let meta_path = out_dir.join("meta.json");
+    let geometry = serde_json::json!({
+        "version": 1,
+        "width": CELLS,
+        "height": CELLS,
+        "metresPerPixel": CELL_M,
+        "originX": ORIGIN_M,
+        "originY": ORIGIN_M,
+    });
+    let mut layers = serde_json::Map::new();
+    if let Some(old) = std::fs::read_to_string(&meta_path).ok().and_then(|t| serde_json::from_str::<serde_json::Value>(&t).ok()) {
+        let same = ["width", "height", "metresPerPixel", "originX", "originY"].iter().all(|k| old.get(k) == geometry.get(k));
+        if let (true, Some(old_layers)) = (same, old.get("layers").and_then(|l| l.as_object())) {
+            layers = old_layers.clone();
+        }
+    }
+    layers.extend(entries);
+    let mut meta = geometry;
+    meta["layers"] = serde_json::Value::Object(layers);
+    let text = serde_json::to_string_pretty(&meta).map_err(|e| e.to_string())? + "\n";
+    std::fs::write(&meta_path, text).map_err(|e| format!("cannot write {}: {}", meta_path.display(), e))
+}
+
 /// Computes every layer, writes the PNGs and meta.json into `out_dir`, and
 /// prints a summary. `far` is the 72-direction far-field skyline, reused for every cell.
 pub fn write_layers(near: &Grid, far: &[f32], sky: &Sky, base: &Base, out_dir: &Path) -> Result<(), String> {
@@ -150,18 +176,7 @@ pub fn write_layers(near: &Grid, far: &[f32], sky: &Sky, base: &Base, out_dir: &
         println!("{:<12} {:>8.3} {:>8.3} {:>8.3} {:>8}", layer.name, lo, mean, hi, layer.values.len() - ok.len());
     }
 
-    let meta = serde_json::json!({
-        "version": 1,
-        "width": CELLS,
-        "height": CELLS,
-        "metresPerPixel": CELL_M,
-        "originX": ORIGIN_M,
-        "originY": ORIGIN_M,
-        "layers": meta_layers,
-    });
-    let meta_path = out_dir.join("meta.json");
-    let text = serde_json::to_string_pretty(&meta).map_err(|e| e.to_string())? + "\n";
-    std::fs::write(&meta_path, text).map_err(|e| format!("cannot write {}: {}", meta_path.display(), e))?;
+    update_meta(out_dir, meta_layers)?;
 
     println!(
         "\n{} x {} cells, {} m, region x/y {}..{} m, {} threads",
