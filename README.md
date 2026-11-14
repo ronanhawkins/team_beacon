@@ -45,6 +45,8 @@ The current headset demos use Unity/OpenXR and installed Android apps. **Install
 
 Inside Beacon AR, **left X** switches to the Murray Buttes 3D reference scene from NASA/JPL and Google Creative Lab's Access Mars project. **Left stick** walks continuously and **right stick** turns in VR; neither changes the mission route. X restores room passthrough. The scenery is for visual context; the ring still follows Ronan's waypoint data. See [sources, licence and alignment notes](apps/quest/Assets/Beacon/Art/AccessMars/README.md).
 
+For later demo sessions, wear the USB-connected headset and run **Start Native Quest.cmd** to open the installed app and confirm its mission connection. **Mirror Quest USB.cmd** shows the headset on the laptop for HDMI projection. The mirror uses the software video-decoding path verified on this laptop.
+
 **Mirror Quest USB.cmd** shows the app on the laptop; HDMI can carry that window to the projector. Build the APK first using `tools/build-quest-native.ps1`.
 
 ### Local laptop rehearsal / Quest over Wi-Fi

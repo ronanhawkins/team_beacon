@@ -1,9 +1,9 @@
-param([string]$Serial = '')
+param([string]$Serial = '', [switch]$LaunchOnly)
 $ErrorActionPreference = 'Stop'
 $repo = Split-Path -Parent $PSScriptRoot
 $adb = Join-Path $repo '.local\platform-tools\adb.exe'
 $apk = Join-Path $repo 'apps\quest\Builds\BeaconAR.apk'
-if (!(Test-Path -LiteralPath $apk)) { throw 'Build the native Beacon AR APK in Unity first.' }
+if (!$LaunchOnly -and !(Test-Path -LiteralPath $apk)) { throw 'Build the native Beacon AR APK in Unity first.' }
 if (!(Test-Path -LiteralPath $adb)) { throw 'Android platform tools are missing from .local\platform-tools.' }
 $devices = @(& $adb devices | Where-Object { $_ -match '^\S+\s+device\s*$' } | ForEach-Object { ($_ -split '\s+')[0] })
 if (!$Serial) { if ($devices.Count -ne 1) { throw 'Connect one Quest and accept USB debugging, or supply -Serial.' }; $Serial = $devices[0] }
@@ -25,9 +25,35 @@ catch {
 if ($session.version -ne 1 -or !$session.waypoints) { throw 'The laptop mission relay did not start. Check .local/native-relay-error.log.' }
 & $adb -s $Serial reverse tcp:5174 tcp:5174
 if ($LASTEXITCODE -ne 0) { throw 'USB data connection failed.' }
-& $adb -s $Serial install -r $apk
-if ($LASTEXITCODE -ne 0) { throw 'Native app installation failed.' }
-& $adb -s $Serial shell monkey -p com.teambeacon.ar -c android.intent.category.LAUNCHER 1
-if ($LASTEXITCODE -ne 0) { throw 'Launch Beacon AR from Unknown Sources in the headset.' }
-Write-Host 'Beacon AR is installed and launched. Keep USB connected for the shared mission data.'
+if (!$LaunchOnly) {
+    & $adb -s $Serial install -r $apk
+    if ($LASTEXITCODE -ne 0) { throw 'Native app installation failed.' }
+    Write-Host 'Beacon AR is installed.'
+}
+$power = & $adb -s $Serial shell dumpsys power
+if ($LASTEXITCODE -ne 0) { throw 'Could not check whether the Quest is awake.' }
+if (($power -join "`n") -notmatch 'mWakefulness=Awake\b') {
+    Write-Warning 'The Quest is asleep; Beacon has not been opened. Put on the headset, then run Start Native Quest.cmd.'
+    return
+}
+$launch = & $adb -s $Serial shell am start -W --user current -n com.teambeacon.ar/com.unity3d.player.UnityPlayerGameActivity
+if ($LASTEXITCODE -ne 0 -or ($launch -join "`n") -notmatch 'Status: ok') {
+    $launch | Write-Host
+    throw 'The Quest did not open Beacon AR. Keep it awake and try Start Native Quest.cmd again.'
+}
+# A successful launch request alone does not prove Unity actually started.
+# Wait for both the native process and its existing relay handshake.
+$connected = $false
+for ($attempt = 0; $attempt -lt 30; $attempt++) {
+    $appProcess = & $adb -s $Serial shell pidof com.teambeacon.ar
+    if ($LASTEXITCODE -eq 0 -and $appProcess) {
+        try {
+            $clients = @(Invoke-RestMethod -Uri 'http://127.0.0.1:5174/clients' -TimeoutSec 2)
+            if (@($clients | Where-Object { $_.role -eq 'headset-unity' }).Count -gt 0) { $connected = $true; break }
+        } catch { }
+    }
+    Start-Sleep -Milliseconds 500
+}
+if (!$connected) { throw 'Beacon launch was requested, but its live mission connection was not confirmed. Keep the headset on and check its view.' }
+Write-Host 'Beacon AR is running and connected to the laptop mission. Keep USB connected.'
 Write-Host 'Laptop control: http://127.0.0.1:5174/hub/'
