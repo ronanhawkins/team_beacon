@@ -1,0 +1,21 @@
+# Raw downloads (keep the folder)
+data/raw/*
+!data/raw/.gitkeep
+
+# Relay TLS certificates
+relay/certs/
+
+# Dependencies and build output
+node_modules/
+target/
+
+# OS
+.DS_Store
+
+# Editors
+.vscode/
+.idea/
+.fleet/
+.zed/
+*.swp
+*~
