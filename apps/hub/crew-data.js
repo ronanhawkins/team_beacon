@@ -13,6 +13,11 @@ export const CREW = [
       { daysAgo: 2.2, to: 'Quela drill site', fraction: 0.6, hrAvg: 98, hrPeak: 124 },
       { daysAgo: 4.3, to: 'end', hrAvg: 104, hrPeak: 137 },
     ] },
+  { id: 'ev5', name: 'Amara Osei', suit: 'EV5', role: 'Mission specialist', condition: 'fit', note: 'Fully rested, cleared by the medic this morning.',
+    walks: [
+      { daysAgo: 5.4, to: 'Quela drill site', fraction: 0.6, hrAvg: 94, hrPeak: 118 },
+      { daysAgo: 9.0, to: 'end', hrAvg: 99, hrPeak: 127 },
+    ] },
   { id: 'ev2', name: 'Dario Lindqvist', suit: 'EV2', role: 'Engineer', condition: 'fit', note: 'No issues reported.',
     walks: [
       { daysAgo: 0.25, to: 'Butte outcrop', fraction: 0.8, hrAvg: 109, hrPeak: 142 },
