@@ -1,0 +1,8 @@
+{
+  "name": "beacon-relay",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "start": "echo \"TODO: start relay\" && exit 1"
+  }
+}

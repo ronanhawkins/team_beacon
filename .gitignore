@@ -1,12 +1,28 @@
-node_modules/
-dist/
+# Raw downloads (keep the folder)
 data/raw/*
 !data/raw/.gitkeep
-data/out/*
-!data/out/.gitkeep
+
+# Relay TLS certificates
+relay/certs/
+
+# Dependencies and build output
+node_modules/
+target/
+dist/
 .local/
+.venv/
+__pycache__/
 *.pem
 *.key
 .env
-__pycache__/
-.venv/
+
+# OS
+.DS_Store
+
+# Editors
+.vscode/
+.idea/
+.fleet/
+.zed/
+*.swp
+*~
