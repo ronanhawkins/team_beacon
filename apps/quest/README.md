@@ -37,6 +37,12 @@ Development builds allow HTTP for the local USB mission connection. Do not treat
 
 `Mirror Quest USB.cmd` opens a read-only USB mirror using [the official scrcpy Windows release](https://github.com/Genymobile/scrcpy/blob/master/doc/windows.md). This laptop has version 5.0.1 in `.local/scrcpy/scrcpy-win64-v5.0.1/`; the download is excluded from Git. Connect the laptop to the projector over HDMI. No Meta casting sign-in is involved. The captured view depends on the Quest compositor; check the view with the app running before a presentation. The mirror does not capture microphone audio.
 
+## Verified demo
+
+The 0.2.0 development APK was built and installed on Quest 3 over USB on 14 November 2026. The wearer confirmed room passthrough with the HUD, and the laptop USB mirror. On-device logs confirmed main waypoint 9, storm reroute 9, the next shelter-route waypoint, and reset to main waypoint 0. The Unity checks passed for canonical fixtures and all 31 exported shelter routes; the relay's 16 Node tests and 9 fixture checks also passed.
+
+Keep the headset on during the live demonstration: taking it off can pause Unity and temporarily disconnect mission data. It reconnects when the app resumes. Use the laptop hub or `/debug` presenter controls for Next, Storm and Reset. Reset before handing the headset to the next wearer. The current scene shows the Mars route as a HUD demonstration; it does not guide walking around room obstacles.
+
 ## Credits
 
 Beacon was made with Unity®. Unity is a trademark or registered trademark of Unity Technologies. Copyright © 2005–2026 Unity Technologies. All rights reserved.
