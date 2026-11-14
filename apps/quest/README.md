@@ -47,7 +47,7 @@ Development builds allow HTTP for the local USB mission connection. Do not treat
 
 ## Verified demo
 
-The 0.4.0 atmosphere build passed all 611 Unity checks and compiled both shaders for Android/Vulkan on 14 November 2026. Calm and storm materials were rendered and visually checked in Unity against a neutral background; these are material previews, not headset captures. In-headset confirmation of the final effect strength is still needed. `Beacon → Render atmosphere preview` recreates the previews under `.local/`.
+The 0.4.0 atmosphere build passed all 611 Unity checks and compiled both shaders for Android/Vulkan on 14 November 2026. Calm and storm materials were rendered and visually checked in Unity against a neutral background; these are material previews, not headset captures. The APK was then installed and launched on Quest 3 over USB. Device logs confirmed atmosphere startup, live mission data, a six-second storm test, the next shelter-route point and reset to calm, with no matching runtime exceptions. The USB mirror was reopened. Wearer confirmation of the final effect strength and A-button toggle is still needed. `Beacon → Render atmosphere preview` recreates the previews under `.local/`.
 
 The 0.3.0 development APK replaces the dashboard with the small corner readouts and compass-only waypoint described above. It passed all 611 Unity checks, built successfully, and was installed over USB on 14 November 2026. Final corner visibility and text readability need to be assessed by the wearer; the Quest was asleep immediately after installation.
 
