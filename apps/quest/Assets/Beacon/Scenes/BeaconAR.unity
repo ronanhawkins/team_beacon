@@ -633,8 +633,8 @@ MonoBehaviour:
   missionView: {fileID: 1627249690}
   terrain: {fileID: 1051747761}
   playerRoot: {fileID: 1892337422}
-  walkSpeed: 1.4
-  fastSpeed: 4.5
+  walkSpeed: 4.5
+  fastSpeed: 11.25
   turnSpeed: 40
 --- !u!114 &1627249690
 MonoBehaviour:

@@ -17,6 +17,40 @@ public static class BeaconVrVerify
         foreach(var camera in rig.GetComponentsInChildren<Camera>(true)) camera.enabled=false;
         rig.centerEyeAnchor.localPosition=new Vector3(0,1.65f,0);rig.centerEyeAnchor.localRotation=Quaternion.identity;return rig;
     }
+    public static void RunSpeed()
+    {
+        checks=0;EditorSceneManager.OpenScene("Assets/Beacon/Scenes/BeaconAR.unity",OpenSceneMode.Single);
+        var rig=PrepareRig();var scenery=UnityEngine.Object.FindFirstObjectByType<BeaconVrScenery>();
+        Check(Mathf.Approximately(scenery.walkSpeed,4.5f) && Mathf.Approximately(scenery.fastSpeed,11.25f),"serialized scene uses requested speeds");
+        string repo=Path.GetFullPath("../..");
+        var document=JsonConvert.DeserializeObject<RouteDocument>(File.ReadAllText(BeaconBuild.WaypointsFile(repo)));
+        var site=JsonConvert.DeserializeObject<MissionSite>(File.ReadAllText(BeaconBuild.SiteFile(repo)));
+        var p=document.main[0];var state=new MissionState {version=1,route="main",waypointIndex=0,mode="nominal",headingDeg=p.headingDeg,
+            openSky=p.openSky,oxygenFraction=p.oxygenFraction,doseFraction=p.doseFraction,baseLink=p.@base.visible,sunlit=p.sun.visible,
+            earthLink=p.earth.visible,minutesToShelter=p.shelter.minutes,shelterBearingDeg=p.shelter.az,earthDelayMinutes=11};
+        var view=scenery.missionView;view.relay.Preview(state,document,site);view.CreateVisuals();view.Calibrate();view.SetImmersive(true);
+        string initial=JsonConvert.SerializeObject(state);
+        float Measure(float grip)
+        {
+            scenery.ReturnToRoute();Physics.SyncTransforms();
+            for(int i=0;i<50;i++) {scenery.Step(Vector2.up,Vector2.zero,grip,.05f);Physics.SyncTransforms();}
+            var start=scenery.playerRoot.position;
+            for(int i=0;i<20;i++) {scenery.Step(Vector2.up,Vector2.zero,grip,.05f);Physics.SyncTransforms();}
+            return Vector3.ProjectOnPlane(scenery.playerRoot.position-start,Vector3.up).magnitude;
+        }
+        float normal=Measure(0),sprint=Measure(1);
+        Check(Mathf.Abs(normal-4.5f)<.3f,"normal movement reaches 4.5 m/s");
+        Check(Mathf.Abs(sprint-11.25f)<.5f,"sprint reaches 11.25 m/s");
+        Check(sprint/normal>2.35f && sprint/normal<2.65f,"sprint is 2.5 times normal speed");
+        for(int i=0;i<40;i++) {scenery.Step(Vector2.up,Vector2.zero,0,.05f);Physics.SyncTransforms();}
+        Check(!scenery.Sprinting && Mathf.Abs(scenery.Speed-4.5f)<.3f,"releasing grip returns to new normal speed");
+        for(int i=0;i<40;i++) {scenery.Step(Vector2.zero,Vector2.zero,0,.05f);Physics.SyncTransforms();}
+        Check(scenery.Speed<.1f,"releasing stick stops movement");
+        Check(initial==JsonConvert.SerializeObject(view.relay.State),"speed changes do not mutate mission state");
+        Check(scenery.fastSpeed*.05f<WalkNavigation.ArrivalRadius,"maximum frame step remains below arrival radius");
+        EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);
+        Debug.Log($"BEACON_SPEED_CHECKS_PASSED: {checks}; normal {normal:F2} m/s; sprint {sprint:F2} m/s");
+    }
     public static void Run()
     {
         checks=0;EditorSceneManager.OpenScene("Assets/Beacon/Scenes/BeaconAR.unity",OpenSceneMode.Single);
@@ -94,7 +128,7 @@ public static class BeaconVrVerify
             Check(Vector3.Distance(prior,scenery.playerRoot.position)<.3f,"sprint remains gradual and collision bounded");
         }
         Check(scenery.Sprinting && Vector3.ProjectOnPlane(scenery.playerRoot.position-start,Vector3.up).magnitude>walked*1.5f,"grip sprint traverses more ground than walking in the same time");
-        for(int i=0;i<50;i++) {scenery.Step(Vector2.zero,Vector2.zero,1,.02f);Physics.SyncTransforms();}
+        for(int i=0;i<100;i++) {scenery.Step(Vector2.zero,Vector2.zero,1,.02f);Physics.SyncTransforms();}
         Check(!scenery.Sprinting && scenery.Speed<.1f,"release movement stops sprint even with grip held");
         Check(JsonConvert.SerializeObject(relay.State)==beforeState,"sprinting never changes the mission route");
         Check(terrain.cosmeticDetail!=null && terrain.rockDetail!=null,"generated sand and layered rock are bundled");
@@ -129,7 +163,7 @@ public static class BeaconVrVerify
             for(int index=1;index<path.Count;index++)
             {
                 int frames=0;double distance=Navigation.Distance(scenery.Position,path[index].pos);
-                int limit=(int)(distance/4.5/.05*4)+250;
+                int limit=(int)(distance/scenery.fastSpeed/.05*4)+250;
                 while(distance>WalkNavigation.ArrivalRadius && frames++<limit)
                 {
                     float bearing=(float)Navigation.Bearing(scenery.Position,path[index].pos);

@@ -37,7 +37,7 @@ Arrival still requires physically reaching the shelter. After reaching the final
 | Right B, hold one second during a storm | End the storm and silence its alarm without resetting position |
 | Left stick direction | Continuous walking in VR; no action in AR |
 | Right stick left/right | Smooth turning in VR; no action in AR |
-| Hold left grip while moving (or right index trigger) | Sprint in VR, up to 4.5 m/s; release to return to 1.4 m/s walking |
+| Hold left grip while moving (or right index trigger) | Sprint in VR, up to 11.25 m/s; release to return to 4.5 m/s normal movement |
 | Left X | Toggle AR passthrough / Jezero 3D scenery |
 | Left Y | Show/hide the ring in AR; explicitly return to the current mission point in VR |
 | Left stick click | Smoothly recenter the mission's forward direction to the current gaze |
@@ -82,7 +82,7 @@ Install the official scrcpy Windows 5.0.1 release under `.local/scrcpy/`. For lo
 
 ## Verified demo
 
-Version **0.21.0 / code 21** moves arrival photos to the bottom centre and hides them after five seconds in the waypoint zone. It retains a lightweight habitat at the exported Jezero base and offline arrival photographs. The base includes a pressure module, solar racks, an antenna and supply cases; a clear central apron remains available for arrival and reset. It appears only in VR and follows terrain calibration. The habitat is illustrative scenery, not a real structure or new shelter-planner input. Storm controls and navigation are unchanged. See [acceptance evidence](ACCEPTANCE.md).
+Version **0.22.0 / code 22** sets normal movement to 4.5 m/s and sprint to 11.25 m/s (2.5 times the previous sprint). Arrival photos remain at the bottom centre and hide after five seconds. The illustrative base habitat remains at the exported Jezero base, with a clear arrival/reset apron, and appears only in VR. Storm controls and navigation are unchanged. See [acceptance evidence](ACCEPTANCE.md).
 
 Version **0.18.0 / code 18** maps a single right B press to storm and a single right A press to a confirmed simulation reset, including VR position. It also keeps reached final beacons completed when walking away, fixing the backward arrow reported after arrival. The launcher detects and restarts an older local relay to enable command acknowledgements. See [acceptance evidence](ACCEPTANCE.md).
 

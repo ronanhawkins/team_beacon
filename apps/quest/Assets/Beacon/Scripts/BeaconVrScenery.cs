@@ -10,7 +10,7 @@ namespace Beacon
         public BeaconMissionView missionView;
         public MissionTerrain terrain;
         public Transform playerRoot;
-        public float walkSpeed=1.4f,fastSpeed=4.5f,turnSpeed=40;
+        public float walkSpeed=4.5f,fastSpeed=11.25f,turnSpeed=40;
         public bool Active { get; private set; }
         public float Speed { get; private set; }
         public bool AtBoundary { get; private set; }

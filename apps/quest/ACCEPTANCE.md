@@ -2,7 +2,15 @@
 
 The supplied screenshots are the functional checklist. The user's later native Unity/USB requirement replaces their original browser/HTTPS/Three.js delivery instructions. The current export is the authority for numbers and shelter ids.
 
-**Current target: 0.21 Jezero.** The wearer explicitly switched from Murray Buttes to Jezero. Historical Gale reference values below remain evidence for earlier builds, not the current Jezero mission. The wearer resumed live testing after the earlier deferral.
+**Current target: 0.22 Jezero.** The wearer explicitly switched from Murray Buttes to Jezero. Historical Gale reference values below remain evidence for earlier builds, not the current Jezero mission. The wearer resumed live testing after the earlier deferral.
+
+## Version 0.22 faster walking and sprint
+
+Normal VR movement is **4.5 m/s**, the previous sprint speed. Holding the sprint control now requests **11.25 m/s**, exactly 2.5 times the previous sprint. Both the script defaults and serialized Unity scene are updated. Existing acceleration, turning and collision handling remain unchanged.
+
+**Eight focused checks passed**. Actual physics displacement measured **4.50 m/s normally and 11.25 m/s sprinting** after acceleration. Checks cover the scene values, speed ratio, returning to normal speed on grip release, stopping on stick release, unchanged mission state and a maximum frame step smaller than the waypoint arrival radius. Only this movement check ran; unrelated photo, storm and full-route suites were skipped. The broader VR test's stopping window now allows the higher speed to decelerate, and its route timeout uses the configured speed. Evidence: `.local/unity-speed22-check.log`.
+
+The Android build succeeded and **0.22.0 / code 22** installed over USB. The Quest was asleep, so the launcher left it unopened and no new wearer or laptop-mirror check is claimed.
 
 ## Version 0.21 bottom-centre arrival card
 
