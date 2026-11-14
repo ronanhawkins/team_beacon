@@ -39,6 +39,16 @@ Laptop address: `TODO` (fill in at the venue, then run `npm run cert -- <address
 
 ## How to run
 
+### Local laptop rehearsal / Quest over Wi-Fi
+
+Windows: **Start Laptop Demo.cmd** (or `npm run demo`) builds the headset and starts Ronan's relay on loopback port 5174. Open `http://127.0.0.1:5174/hub/` for controls and `http://127.0.0.1:5174/headset/?helmet=1` for the laptop helmet simulation. Drag or use arrow keys to look; Escape exits the helmet preview. Both screens share the same state. No developer account or headset is required for this rehearsal.
+
+For Quest Browser on the same Wi-Fi, stop that launcher and run **Start WiFi Demo.cmd**. It prints the headset's HTTPS address and keeps the laptop hub on `http://127.0.0.1:5174/hub/`, sharing one relay. Accept the local certificate warning yourself in Quest Browser, then choose Enter AR. Developer Mode is needed only for the USB debugging route. This launcher uses the installed OpenSSL (or Git for Windows), keeps certificates ignored by Git, and never installs a root certificate. If Windows blocks the connection, allow this demo's TCP port 8443 from the local Wi-Fi network.
+
+The terrain is real; the route, skyline and mission values are synthetic until the engine exports a matched waypoint file. The relay's `/session.json` supplies the exact loaded route to both apps; restart the relay after new engine exports. The laptop helmet simulation shows the same 3D HUD and alerts, but does not test passthrough or headset tracking.
+
+### Team network setup
+
 1. Engine: TODO
 2. Relay (Node 22.12+ for the headset build, 18+ for the relay alone):
    ```sh

@@ -19,13 +19,13 @@ scene.add(terrain.mesh);
 // Later: terrain.dispose();
 ```
 
-This optional helper is not imported by AR. It produces the 750-square mesh with correct normals, triangle winding and texture orientation. It uses the southwestern crop corner as its horizontal origin, x east and -z north in Three.js. World y is terrain height minus the team-provided parking height (-4379.5 m).
+This optional helper is not imported by AR. It produces the 750-square mesh with correct normals, triangle winding and texture orientation. It uses the southwestern crop corner as its horizontal origin, x east and -z north in Three.js. World y is terrain height minus `terrain.json`'s parking elevation (-4379.46 m, from the updated `data/site.json`).
 
-For a shared route point `{x,y,z}`, use Three.js `[x, z + 4379.5, -y]`. The parking spot provided by the team is `[1500, 0, -1500]` in this rendering frame. If you instead centre the entire scene at the parking spot, subtract 1500 from east and add 1500 to north's negative-z coordinate for **all** assets, including routes and layers.
+For a shared route point `{x,y,z}`, use Three.js `[x, z - metadata.parking.z, -y]`. The updated sol 1455 parking spot is `[1500.415, 0, -1500.383]` in this rendering frame. If you instead centre the entire scene at the parking spot, subtract its x from east and add its y to north's negative-z coordinate for **all** assets, including routes and layers.
 
 ## Pixel alignment detail
 
-GDAL average resampling gives pixel-centre height samples: first sample is x=2 m, y=2998 m, and the last is x=2998 m, y=2 m. Spacing is exactly 4 m. Texture UV is `(column+0.5)/750, (row+0.5)/750` with `texture.flipY=false`. The image covers the complete 3000 m square. The mesh spans the sample centres (2996 m), not a fictitious extra row. This 2 m offset matters when comparing against the node convention in `shared/layers.md`; do not silently shift the terrain or reverse north.
+GDAL average resampling gives pixel-centre height samples: first sample is x=2 m, y=2998 m, and the last is x=2998 m, y=2 m. Spacing is exactly 4 m. Texture UV is `(column+0.5)/750, (row+0.5)/750` with `texture.flipY=false`. The image covers the complete 3000 m square. The mesh spans the sample centres (2996 m), not a fictitious extra row. This matches the team's updated cell-centre convention in `shared/conventions.md`; respect each layer's resolution.
 
 ## Reproduce
 
@@ -35,4 +35,4 @@ The script uses GDAL via Rasterio because no standalone `gdal_translate` executa
 
 Original 1 m crop: `data/raw/near.tif`, ignored by Git. The optional central 1 km VR grid is deferred until AR passes the headset test. A central-only height grid would need a matching central-only texture or adjusted UVs; the full-square JPEG must not be stretched onto it.
 
-Sources: [USGS DEM](https://planetarymaps.usgs.gov/mosaic/Mars/MSL/MSL_Gale_DEM_Mosaic_1m_v3.tif), [USGS/PDS colour mosaic](https://asc-pds-services.s3.us-west-2.amazonaws.com/mosaic/Mars/MSL/MSL_Gale_HiRISE-LRGB_78quads_sharp_cog.tif). Credit: NASA/JPL/University of Arizona/USGS. The supplied parking height/location and observation date still need scientific confirmation before being presented as a rover skyline validation.
+Sources: [USGS DEM](https://planetarymaps.usgs.gov/mosaic/Mars/MSL/MSL_Gale_DEM_Mosaic_1m_v3.tif), [USGS/PDS colour mosaic](https://asc-pds-services.s3.us-west-2.amazonaws.com/mosaic/Mars/MSL/MSL_Gale_HiRISE-LRGB_78quads_sharp_cog.tif). Credit: NASA/JPL/University of Arizona/USGS. Parking now follows Ronan's sol 1455 record in `data/site.json`. Sun/Earth directions and the mission date remain pending there; these visual assets do not establish the paper's 19%/10% validation.

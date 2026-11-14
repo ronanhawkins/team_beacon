@@ -19,17 +19,32 @@ async function fetchJson(url) {
 }
 
 async function start() {
-  const external = params.has('waypoints');
+  const hosted = location.pathname.startsWith('/headset/') && !params.has('waypoints') && !params.has('relay') && params.get('standalone') !== '1';
+  const session = hosted ? await fetchJson('/session.json') : null;
+  const external = params.has('waypoints') || Boolean(session);
   const live = external || params.has('relay');
   const standalone = !live && (params.get('standalone') === '1' || import.meta.env.MODE === 'standalone');
-  if (external && !params.has('relay')) throw new Error('An external waypoint file needs its matching relay. Add ?waypoints=/data/out/waypoints.json&relay=ws://localhost:PORT/PATH');
-  const route = validateRoute(external ? await fetchJson(params.get('waypoints')) : fakeRoute);
-  const dataLabel = !external || route.source?.kind === 'synthetic' ? 'SYNTHETIC DATA' : route.source?.kind === 'terrain-derived' ? 'TERRAIN DATA' : 'EXTERNAL DATA';
+  if (external && !session && !params.has('relay')) throw new Error('An external waypoint file needs its matching relay. Add ?waypoints=/data/out/waypoints.json&relay=ws://localhost:PORT/PATH');
+  const route = validateRoute(external ? await fetchJson(session?.waypoints || params.get('waypoints')) : fakeRoute);
+  const dataLabel = !external || session?.synthetic || route.source?.kind === 'synthetic' ? 'SYNTHETIC DATA' : route.source?.kind === 'terrain-derived' ? 'TERRAIN DATA' : 'EXTERNAL DATA';
   let state = standalone ? validateState(fakeState, route) : null;
   let status = standalone ? 'local' : 'connecting';
   let selection = state ? resolveSelection(state, route) : null;
   let history = selection, routeError = '', routeKey = '';
   const view = createScene($('scene'), scenePoint(route.main[0]));
+  document.querySelector('.brand').href = hosted ? '/hub/' : '/apps/headset/';
+  let helmetPreview = false;
+  function setHelmetPreview(enabled) {
+    helmetPreview = enabled;
+    document.body.classList.toggle('helmet-preview', enabled);
+    $('helmet-preview').textContent = enabled ? 'Exit helmet preview' : 'Preview helmet on laptop';
+    $('helmet-preview').setAttribute('aria-pressed', String(enabled));
+    $('view-mode').textContent = enabled ? 'LAPTOP HELMET SIMULATION' : 'DESKTOP PREVIEW';
+    view.setDesktopHud(enabled);
+  }
+  $('helmet-preview').addEventListener('click', () => setHelmetPreview(!helmetPreview));
+  window.addEventListener('keydown', event => { if (event.key === 'Escape' && helmetPreview) setHelmetPreview(false); });
+  setHelmetPreview(params.get('helmet') === '1');
   view.setSpatialValid(Boolean(selection));
   $('data-badge').textContent = dataLabel;
   $('data-note').textContent = external
@@ -64,7 +79,7 @@ async function start() {
         const el = document.createElement('span'); el.className = 'route-stop'; el.title = point.label || point.id; return el;
       }));
     }
-    document.querySelectorAll('.route-stop').forEach((el, i) => el.classList.toggle('active', i <= selection.index));
+    document.querySelectorAll('.route-stop').forEach((el, i) => el.classList.toggle('active', Boolean(selection) && i <= selection.index));
     document.body.classList.toggle('storm', state?.mode === 'storm' || Boolean(state?.storm || state?.panic));
     document.body.classList.toggle('warning', state?.mode === 'warning');
     if (!state) {
@@ -83,7 +98,7 @@ async function start() {
     $('oxygen-bar').style.width = `${state.oxygenFraction * 100}%`;
     $('sunlight').textContent = state.sunlit ? 'SUNLIT' : 'IN SHADOW';
     $('alert-title').textContent = !online ? 'Relay disconnected' : routeError ? 'Skyline unavailable' : state.mode === 'storm' ? (state.panic ? 'Panic alert · shelter route' : 'Storm alert · shelter route') : state.mode === 'warning' ? 'Route warning' : selection?.point.isShelter ? 'Shelter reached' : 'Nominal conditions';
-    $('alert-copy').textContent = !online ? 'Values may be stale. Reconnecting…' : routeError ? 'Waiting for the relay to identify this reroute.' : state.mode === 'warning' ? (!state.baseLink ? 'Base contact blocked. Check the shelter bearing.' : 'Shelter time exceeds the relay’s warning limit.') : state.route === 'reroute' ? 'Follow the shelter bearing. The hub advances the route.' : 'Keep the shelter bearing in view.';
+    $('alert-copy').textContent = !online ? 'Values may be stale. Reconnecting…' : routeError ? 'Waiting for the relay to identify this reroute.' : selection?.point.isShelter ? 'Shelter reached. Wait here while the alert is active.' : state.mode === 'warning' ? (!state.baseLink ? 'Base contact blocked. Check the shelter bearing.' : 'Shelter time exceeds the relay’s warning limit.') : state.route === 'reroute' ? 'Follow the shelter bearing. The hub advances the route.' : 'Keep the shelter bearing in view.';
     $('storm-button').textContent = state.storm ? '◉ Clear storm' : '◉ Trigger storm';
     $('storm-button').setAttribute('aria-pressed', String(state.storm));
     document.querySelector('[data-action="back"]').disabled = !ready || !selection || selection.index === 0;
@@ -140,7 +155,7 @@ async function start() {
       catch (error) { message(`Headset session could not start: ${error.message}`); await checkXR(); }
     });
   }
-  $('scene').addEventListener('xr-ended', () => { $('view-mode').textContent = 'DESKTOP PREVIEW'; checkXR(); });
+  $('scene').addEventListener('xr-ended', () => { setHelmetPreview(helmetPreview); checkXR(); });
   window.addEventListener('pagehide', () => { relay.close(); clearInterval(tour); }, { once: true });
   await checkXR();
 }

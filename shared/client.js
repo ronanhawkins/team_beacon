@@ -8,14 +8,14 @@
 //   });
 //   relay.send({ type: 'requestReroute' }); // any event from shared/events.md
 //
-// Connects to wss://<page host>/ws, sends hello, and reconnects on its own
+// Connects to the page's host at /ws (WSS for HTTPS, WS for local HTTP), sends hello, and reconnects
 // with a short backoff. send() returns false if the socket is not open.
 
 const MIN_DELAY_MS = 500;
 const MAX_DELAY_MS = 5000;
 
 export function connect({ role, onState, onStatus = () => {}, url } = {}) {
-  const target = url || `wss://${location.host}/ws`;
+  const target = url || `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`;
   let ws = null;
   let delay = MIN_DELAY_MS;
   let closed = false;

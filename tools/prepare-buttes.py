@@ -23,6 +23,12 @@ WINDOW = Window(12064, 32026, 3000, 3000)
 
 
 def main():
+    site = json.loads((ROOT / 'data/site.json').read_text(encoding='utf-8'))
+    crop = site['nearCrop']
+    if not np.allclose([crop['left'], crop['bottom'], crop['right'], crop['top']], BOUNDS, atol=0.001, rtol=0):
+        raise ValueError('Site definition has changed; update the crop before exporting terrain')
+    parking = {**crop['parkingSpotLocal'], 'z': site['parkingSpot']['elevation'],
+               'source': 'data/site.json: Curiosity sol 1455, NASA MSL waypoint record'}
     RAW.mkdir(parents=True, exist_ok=True)
     OUT.mkdir(parents=True, exist_ok=True)
     near = RAW / 'near.tif'
@@ -80,14 +86,14 @@ def main():
         'version': 1, 'source': {'dem': DEM, 'colour': ORTHO, 'credit': 'NASA/JPL/University of Arizona/USGS'},
         'demSourceWindow': [12064, 32026, 3000, 3000], 'boundsProjectedMetres': BOUNDS, 'crsWkt': crs.to_wkt(),
         'originProjectedMetres': BOUNDS[:2], 'localFrame': 'x east, y north, z absolute terrain elevation; metres; origin southwest',
-        'parking': {'x': 1500, 'y': 1500, 'z': -4379.5, 'source': 'Team-provided crop centre and height; not an independently verified rover location'},
+        'parking': parking,
         'heightGrid': {'file': 'height_750.bin', 'width': 750, 'height': 750, 'metresPerPixel': 4,
                        'dtype': 'little-endian Float32', 'headerBytes': 0, 'row0': 'north',
                        'samplePosition': 'x = (column + 0.5) * 4; y = 3000 - (row + 0.5) * 4; z = height',
                        'minimum': float(reduced.min()), 'maximum': float(reduced.max())},
         'textures': {'hub': 'buttes_4096.jpg', 'headset': 'buttes_2048.jpg', 'row0': 'north', 'coverage': 'entire 3000 m square'},
-        'rendering': {'threeJsPosition': '[x, z - (-4379.5), -y]', 'textureUV': '[(column+0.5)/750, (row+0.5)/750]',
-                      'note': 'Height values are pixel-centre samples, 2 m inside the crop boundary. The shared layer convention uses grid nodes; honour each asset transform.'},
+        'rendering': {'threeJsPosition': f"[x, z - ({parking['z']}), -y]", 'textureUV': '[(column+0.5)/750, (row+0.5)/750]',
+                      'note': 'Height values are pixel-centre samples, 2 m inside the crop boundary, matching shared/conventions.md. Honour each asset resolution.'},
         'optionalVrGrid': 'Deferred until AR works end to end',
     }
     (OUT / 'terrain.json').write_text(json.dumps(metadata, indent=2) + '\n', encoding='utf-8')

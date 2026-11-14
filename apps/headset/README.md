@@ -6,6 +6,12 @@ Quest 3 AR page. Shows the skyline as a ring around the wearer plus a helmet dis
 
 ## Run
 
+**Laptop simulation:** `npm run demo` / `Start Laptop Demo.cmd`, then open `http://127.0.0.1:5174/hub/` and `http://127.0.0.1:5174/headset/?helmet=1`. The hub controls the walk, storm and panic; the helmet displays the same 3D HUD used in XR. Drag/arrow keys look around; Escape or Exit helmet preview returns to the regular page. Passthrough and tracking still require a Quest.
+
+**Quest without Developer Mode:** use `Start WiFi Demo.cmd`, put both devices on the same Wi-Fi, and enter its printed HTTPS `/headset/` address in Quest Browser. Accept the local certificate warning, then Enter AR. Laptop controls stay on port 5174, synchronized to that same relay. Use `/headset/` without `?helmet=1` on the Quest so its Enter AR/VR buttons remain visible.
+
+When USB debugging is available later, `Connect Quest Demo.cmd` forwards the laptop rehearsal's port 5174 and opens `/headset/`. The older `Connect Quest.cmd` still targets the Vite rehearsal on 5173.
+
 From the repo root: `npm ci`, then `npm run dev`. Open `http://localhost:5173/apps/headset/`.
 Windows shortcuts: `Start Beacon.cmd`, then `Connect Quest.cmd` after Developer Mode and USB debugging are enabled. See `docs/CJ-START-HERE.md`.
 
@@ -14,6 +20,8 @@ AR needs **no terrain downloads**. It reads `shared/fake/waypoints.json` and the
 `npm test` checks shared fixtures, fractions, wrapping, reroutes/reconnects, terrain orientation and two-screen relay synchronisation. `npm run build` writes the headset bundle to `dist/`.
 
 ## Connect the engine and relay
+
+When served at `/headset/`, the app reads `/session.json` and loads the exact waypoint file held by Ronan's relay. It automatically follows the relay's choice of real engine output or fake fixtures, with correct data labelling. Restart the relay after new engine exports. No URL parameters are needed in this mode; the explicit parameters below remain available for development connections.
 
 Once Ronan exports `data/out/waypoints.json`, open:
 

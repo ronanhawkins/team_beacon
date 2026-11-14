@@ -24,10 +24,10 @@
   ],
   "localFrame": "x east, y north, z absolute terrain elevation; metres; origin southwest",
   "parking": {
-    "x": 1500,
-    "y": 1500,
-    "z": -4379.5,
-    "source": "Team-provided crop centre and height; not an independently verified rover location"
+    "x": 1500.415,
+    "y": 1500.383,
+    "z": -4379.46,
+    "source": "data/site.json: Curiosity sol 1455, NASA MSL waypoint record"
   },
   "heightGrid": {
     "file": "height_750.bin",
@@ -48,9 +48,9 @@
     "coverage": "entire 3000 m square"
   },
   "rendering": {
-    "threeJsPosition": "[x, z - (-4379.5), -y]",
+    "threeJsPosition": "[x, z - (-4379.46), -y]",
     "textureUV": "[(column+0.5)/750, (row+0.5)/750]",
-    "note": "Height values are pixel-centre samples, 2 m inside the crop boundary. The shared layer convention uses grid nodes; honour each asset transform."
+    "note": "Height values are pixel-centre samples, 2 m inside the crop boundary, matching shared/conventions.md. Honour each asset resolution."
   },
   "optionalVrGrid": "Deferred until AR works end to end"
 }

@@ -7,11 +7,17 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const https = require('https');
+const http = require('http');
 const { WebSocketServer, WebSocket } = require('ws');
 
 // ---- Settings ---------------------------------------------------------------
 
 const HTTPS_PORT = Number(process.env.HTTPS_PORT) || 8443; // pages + wss://…/ws for browsers
+// Laptop/USB rehearsal uses the same relay, bound only to loopback, without certificates.
+const LOCAL = process.argv.includes('--local');
+const WIFI = process.argv.includes('--wifi');
+const LOCAL_PORT = process.env.LOCAL_PORT === undefined ? 5174 : Number(process.env.LOCAL_PORT);
+if ((LOCAL || WIFI) && (!Number.isInteger(LOCAL_PORT) || LOCAL_PORT < 0 || LOCAL_PORT > 65535)) throw new Error('Invalid LOCAL_PORT');
 const PLAIN_PORT = Number(process.env.PLAIN_PORT) || 8081; // ws:// for the ESP32
 const WARNING_MINUTES_TO_SHELTER = 12; // mode is "warning" above this. Provisional until real waypoints exist
 const DEFAULT_EARTH_DELAY_MINUTES = 14;
@@ -61,7 +67,7 @@ function loadWaypoints() {
   const doc = JSON.parse(fs.readFileSync(file, 'utf8'));
   if (!Array.isArray(doc.main) || doc.main.length === 0) throw new Error(`${file}: "main" is empty`);
   log(`Loaded waypoints from ${path.relative(ROOT, file)} (${doc.main.length} main, ${Object.keys(doc.reroutes || {}).length} reroutes)`);
-  return doc;
+  return { doc, synthetic: file === path.join(ROOT, 'shared/fake/waypoints.json') || doc.source?.kind === 'synthetic' };
 }
 
 function loadEarthDelay() {
@@ -73,7 +79,7 @@ function loadEarthDelay() {
   return DEFAULT_EARTH_DELAY_MINUTES;
 }
 
-const waypoints = loadWaypoints();
+const { doc: waypoints, synthetic } = loadWaypoints();
 const earthDelayMinutes = loadEarthDelay();
 log(`earthDelayMinutes = ${earthDelayMinutes}`);
 
@@ -261,6 +267,9 @@ function onRequest(req, res) {
   }
   if (urlPath === '/') return send(res, 200, 'text/html; charset=utf-8', INDEX_HTML);
   if (urlPath === '/debug') return serveFile(res, path.join(__dirname, 'debug.html'));
+  // Serve the exact in-memory route used by this relay, including WAYPOINTS overrides.
+  if (urlPath === '/session.json') return send(res, 200, 'application/json', JSON.stringify({ version: 1, waypoints: '/mission/waypoints.json', synthetic }));
+  if (urlPath === '/mission/waypoints.json') return send(res, 200, 'application/json', JSON.stringify(waypoints));
   // The one file outside data/out/ that pages may read.
   if (urlPath === '/data/site.json') return serveFile(res, path.join(ROOT, 'data/site.json'));
   if (urlPath === '/clients') {
@@ -292,34 +301,52 @@ function readCerts() {
 
 // ---- Start ------------------------------------------------------------------
 
-const server = https.createServer(readCerts(), onRequest);
+const server = LOCAL ? http.createServer(onRequest) : https.createServer(readCerts(), onRequest);
 // Browser sockets: /ws, plus /relay as an alias for the headset client (shared/socket.js).
 const SECURE_WS_PATHS = new Set(['/ws', '/relay']);
 const secureWss = new WebSocketServer({ noServer: true });
-server.on('upgrade', (req, socket, head) => {
+function upgradeBrowser(req, socket, head) {
   const wsPath = new URL(req.url, 'https://x').pathname;
   if (!SECURE_WS_PATHS.has(wsPath)) {
     socket.destroy();
     return;
   }
-  secureWss.handleUpgrade(req, socket, head, (ws) => onConnection(ws, req, `wss${wsPath}`));
-});
+  if ((LOCAL || WIFI) && req.headers.origin !== undefined) {
+    try { if (new URL(req.headers.origin).host !== req.headers.host) { socket.destroy(); return; } }
+    catch { socket.destroy(); return; }
+  }
+  secureWss.handleUpgrade(req, socket, head, (ws) => onConnection(ws, req, `${req.socket.encrypted ? 'wss' : 'ws'}${wsPath}`));
+}
+server.on('upgrade', upgradeBrowser);
 
-const plainWss = new WebSocketServer({ port: PLAIN_PORT });
-plainWss.on('connection', (ws, req) => onConnection(ws, req, 'ws'));
-plainWss.on('listening', () => log(`Plain WebSocket (ESP32) on ws://<laptop>:${PLAIN_PORT}`));
+if (!LOCAL && !WIFI) {
+  const plainWss = new WebSocketServer({ port: PLAIN_PORT });
+  plainWss.on('connection', (ws, req) => onConnection(ws, req, 'ws'));
+  plainWss.on('listening', () => log(`Plain WebSocket (ESP32) on ws://<laptop>:${PLAIN_PORT}`));
+}
 
-server.listen(HTTPS_PORT, () => {
+server.on('error', (err) => { console.error(`Relay could not start: ${err.message}`); process.exit(1); });
+server.listen(LOCAL ? LOCAL_PORT : HTTPS_PORT, LOCAL ? '127.0.0.1' : process.env.RELAY_HOST || undefined, () => {
+  const port = server.address().port;
+  const protocol = LOCAL ? 'http' : 'https';
   const ips = Object.values(os.networkInterfaces()).flat()
     .filter((a) => a && a.family === 'IPv4' && !a.internal).map((a) => a.address);
-  log(`HTTPS + WSS (/ws, /relay) on port ${HTTPS_PORT}`);
+  log(`${LOCAL ? 'Local HTTP + WS (loopback only)' : 'HTTPS + WSS'} (/ws, /relay) on port ${port}`);
   log(HEADSET_IS_BUILT
     ? `Headset: serving the Vite build from ${path.relative(ROOT, BUILT_HEADSET)}/`
     : 'Headset: no build found (run npm run build in the repo root); serving unbuilt apps/headset/');
-  for (const host of ['localhost', ...ips]) {
+  for (const host of LOCAL ? ['127.0.0.1'] : process.env.RELAY_HOST ? [process.env.RELAY_HOST] : ['localhost', ...ips]) {
     console.log(`\n  ${host}`);
-    for (const p of ['hub/', 'headset/', 'wrist/', 'debug']) console.log(`    https://${host}:${HTTPS_PORT}/${p}`);
-    if (host !== 'localhost') console.log(`    ESP32: ws://${host}:${PLAIN_PORT}`);
+    for (const p of ['hub/', 'headset/', 'wrist/', 'debug']) console.log(`    ${protocol}://${host}:${port}/${p}`);
+    if (!LOCAL && !WIFI && host !== 'localhost') console.log(`    ESP32: ws://${host}:${PLAIN_PORT}`);
   }
   console.log('');
 });
+
+// Laptop controls share this very same state with the Wi-Fi headset, without a second simulation.
+if (WIFI && !LOCAL) {
+  const laptop = http.createServer(onRequest);
+  laptop.on('upgrade', upgradeBrowser);
+  laptop.on('error', err => { console.error(`Laptop controls could not start: ${err.message}`); process.exit(1); });
+  laptop.listen(LOCAL_PORT, '127.0.0.1', () => log(`Synced laptop controls: http://127.0.0.1:${laptop.address().port}/hub/`));
+}

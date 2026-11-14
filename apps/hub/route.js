@@ -50,10 +50,9 @@ export function readWaypoints(doc, cfg) {
   };
 }
 
-// The state says route "reroute" and an index into it, but not which main waypoint the reroute left from.
-// The hub remembers that from the last "main" state; after a reconnect it finds the reroute whose
-// waypoint matches the live values in the state.
+// The current contract identifies the reroute explicitly. Keep matching for older relays only.
 function rerouteFrom(raw, route, prev) {
+  if (Number.isInteger(raw.rerouteFrom) && route.reroutes[String(raw.rerouteFrom)]?.[raw.waypointIndex]) return raw.rerouteFrom;
   const score = (k) => {
     const w = (route.reroutes[k] || [])[raw.waypointIndex]; if (!w) return Infinity;
     return Math.abs((w.openSky ?? 0) - (raw.openSky ?? 0)) * 20 + Math.abs(((w.shelter && w.shelter.min) ?? 0) - (raw.minutesToShelter ?? 0))

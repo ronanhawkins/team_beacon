@@ -417,9 +417,9 @@ function wireInput() {
 // ---------- relay ----------
 function startRelay() {
   const q = new URLSearchParams(location.search), url = q.get('relay') || CONFIG.RELAY_URL;
-  app.relayUrl = url || `wss://${location.host}/ws`;
-  // The relay is HTTPS only (relay/README.md), so a page opened over plain http has no relay to talk to.
-  if (q.has('local') || (location.protocol !== 'https:' && !url)) return startLocal();
+  app.relayUrl = url || `${location.protocol === 'https:' ? 'wss' : 'ws'}://${location.host}/ws`;
+  // A discovered relay session also works over loopback HTTP for laptop/USB rehearsal.
+  if (q.has('local') || q.has('fake') || (location.protocol !== 'https:' && !url && !app.session)) return startLocal();
   app.link = connectRelay({ role: CONFIG.ROLE, url, onState,
     onStatus: (st) => { const was = app.relayStatus; app.relayStatus = st; if (st === 'open' && was !== 'open') log('Relay connected.'); if (st === 'closed' && was === 'open') log('Relay connection lost.', 'caution'); pollClients(); renderHeader(); renderBanner(); } });
   setInterval(pollClients, 2500);
@@ -451,8 +451,11 @@ async function boot() {
   const forceFake = new URLSearchParams(location.search).has('fake'), R = CONFIG.REAL, F = CONFIG.FAKE;
   const firstOf = async (real, fake, load) => { if (!forceFake) { try { return { v: await load(real), url: real, fake: false }; } catch { /* fall through to the fake */ } } try { return { v: await load(fake), url: fake, fake: true }; } catch { return { v: null, url: fake, fake: true }; } };
 
-  // Waypoints: real export if it exists, else the shared fake (the relay picks the same way).
-  const wp = await firstOf(R.waypoints, F.waypoints, getJSON);
+  // A relay session supplies its exact loaded route, avoiding a mismatch after an export or override.
+  app.session = forceFake ? null : await getJSON('/session.json').catch(() => null);
+  const wp = app.session
+    ? { v: await getJSON(app.session.waypoints), url: app.session.waypoints, fake: app.session.synthetic }
+    : await firstOf(R.waypoints, F.waypoints, getJSON);
   if (!wp.v) throw new Error(`Could not load a waypoint file (tried ${R.waypoints} and ${F.waypoints}).`);
   const doc = wp.v; app.waypointsUrl = wp.url; app.fake.waypoints = wp.fake;
 
