@@ -8,7 +8,7 @@ The supplied screenshots are the functional checklist. The user's later native U
 
 The wearer requested removal of the bottom text. The bottom-centre source-credit line and shelter-choice explanation are removed in AR and VR. This supersedes the earlier screenshot requirement for a headset credit and decision line. The bundled attribution notice and source documents remain available; the side shelter stat continues to show current minutes and request feedback.
 
-Existing HUD visual and shelter-input checks passed; the storm preview was visually inspected with the lower text absent. The Android build succeeded and the device independently reports **0.15.0 / code 15**. The launcher confirmed Beacon running with its live mission connection. The bundled notice was verified and the same wearer-confirmed laptop mirror was restarted. Terrain and planner code were not changed by this update.
+Existing HUD visual and shelter-input checks passed; the storm preview was visually inspected with the lower text absent. The Android build succeeded and the device independently reports **0.15.0 / code 15**. The launcher confirmed Beacon running with its live mission connection, and the bundled notice was verified. The headset then went to sleep before the mirror restart, so the mirror helper correctly refused to start a blank stream. The wearer-confirmed single-eye setup is unchanged. Terrain and planner code were not changed by this update.
 
 ## Version 0.14 AR stats and laptop playback
 
