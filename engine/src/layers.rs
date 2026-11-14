@@ -18,6 +18,8 @@ pub const CELLS: usize = 375;
 const EYE_HEIGHT_M: f64 = 1.0;
 const SIGHT_STEP_M: f64 = 1.0;
 const SLOPE_MAX_DEG: f64 = 45.0;
+// Exposure is written over 0.6..1.0 so the image has contrast; lower values clamp to 0.6.
+const EXPOSURE_MIN: f64 = 0.6;
 
 pub struct Sky {
     pub sun: (f64, f64),   // az, el in degrees
@@ -43,6 +45,23 @@ pub fn cell_centre(col: usize, row: usize) -> (f64, f64) {
     let x = ORIGIN_M + (col as f64 + 0.5) * CELL_M;
     let y = ORIGIN_M + ((CELLS - row) as f64 - 0.5) * CELL_M;
     (x, y)
+}
+
+/// Line of sight from a 1 m eye at a cell centre to the base mast.
+pub fn base_link(near: &Grid, x: f64, y: f64, base: &Base) -> bool {
+    line_of_sight(near, (x, y), EYE_HEIGHT_M, (base.x, base.y), base.mast_height_m, SIGHT_STEP_M)
+}
+
+/// Fraction of the region's cells with a base link, as the baseLink layer computes it.
+pub fn base_link_fraction(near: &Grid, base: &Base) -> f64 {
+    let linked = (0..CELLS * CELLS)
+        .into_par_iter()
+        .filter(|&i| {
+            let (x, y) = cell_centre(i % CELLS, i / CELLS);
+            base_link(near, x, y, base)
+        })
+        .count();
+    linked as f64 / (CELLS * CELLS) as f64
 }
 
 /// Mean height of every 4 m cell in the region plus a one-cell ring around it,
@@ -94,7 +113,7 @@ pub fn write_layers(near: &Grid, far: &[f32], sky: &Sky, base: &Base, out_dir: &
                 1.0 - skyline::blocked_fraction(&merged),
                 flag(skyline::visible(&merged, sky.sun.0, sky.sun.1)),
                 flag(skyline::visible(&merged, sky.earth.0, sky.earth.1)),
-                flag(line_of_sight(near, (x, y), EYE_HEIGHT_M, (base.x, base.y), base.mast_height_m, SIGHT_STEP_M)),
+                flag(base_link(near, x, y, base)),
                 slope,
             ]
         })
@@ -103,7 +122,7 @@ pub fn write_layers(near: &Grid, far: &[f32], sky: &Sky, base: &Base, out_dir: &
 
     let column = |k: usize| cells.iter().map(|c| c[k]).collect::<Vec<f32>>();
     let layers = [
-        Layer { name: "exposure", min: 0.0, max: 1.0, values: column(0) },
+        Layer { name: "exposure", min: EXPOSURE_MIN, max: 1.0, values: column(0) },
         Layer { name: "sunlight", min: 0.0, max: 1.0, values: column(1) },
         Layer { name: "earthLink", min: 0.0, max: 1.0, values: column(2) },
         Layer { name: "baseLink", min: 0.0, max: 1.0, values: column(3) },

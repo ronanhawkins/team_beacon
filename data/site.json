@@ -93,17 +93,28 @@
     "earth": { "az": 305.5, "el": 43.1 }
   },
 
-  "base": { "x": 1506.1, "y": 1678.3, "mastHeight": 10.0, "note": "Curiosity's sol 1439 position" },
+  "base": {
+    "x": 1598.0,
+    "y": 1250.0,
+    "mastHeight": 10.0,
+    "note": "Candidate C from engine base-candidates: the highest base-link coverage of the three southern candidates (0.504 of layer cells, against 0.455 at Curiosity's sol 1480 position and 0.383 at sol 1471). The previous base at Curiosity's sol 1439 position (1506.1, 1678.3), among the buttes, linked only 0.084. Chosen for line of sight, not a rover position"
+  },
 
   "routeStops": [
-    { "id": "base", "x": 1506.1, "y": 1678.3 },
-    { "id": "sol1446", "x": 1500.0, "y": 1627.7 },
-    { "id": "sol1448", "x": 1507.7, "y": 1561.4, "scienceStop": true },
-    { "id": "sol1452", "x": 1524.9, "y": 1525.8 },
-    { "id": "quela", "x": 1500.4, "y": 1500.4, "scienceStop": true },
+    { "id": "base", "x": 1598.0, "y": 1250.0 },
+    { "id": "sol1471", "x": 1592.7, "y": 1389.5 },
     { "id": "sol1468", "x": 1542.6, "y": 1437.2 },
-    { "id": "sol1471", "x": 1592.7, "y": 1389.5 }
+    { "id": "quela", "x": 1500.4, "y": 1500.4, "scienceStop": true },
+    { "id": "sol1452", "x": 1524.9, "y": 1525.8 },
+    { "id": "sol1448", "x": 1507.7, "y": 1561.4, "scienceStop": true },
+    { "id": "sol1446", "x": 1500.0, "y": 1627.7 },
+    { "id": "sol1439", "x": 1506.1, "y": 1678.3, "note": "The far point of the walk" }
   ],
+
+  "plannerBounds": {
+    "xMin": 1250, "xMax": 1650, "yMin": 1200, "yMax": 1750,
+    "note": "Local metres. The east limit keeps routes clear of a seam artefact in the terrain mosaic, which runs roughly north to south about 80 m east of the rover's route"
+  },
 
   "notes": [
     "The waypoint file's easting and northing are already in the terrain mosaic's projection. No conversion needed.",

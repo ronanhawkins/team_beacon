@@ -14,7 +14,7 @@
     "exposure": {
       "file": "exposure.png",
       "max": 1.0,
-      "min": 0.0
+      "min": 0.6
     },
     "slope": {
       "file": "slope.png",

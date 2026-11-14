@@ -4,6 +4,7 @@
 //!                                 fast-vs-precise check, and proof numbers with the far field
 //!   engine point <x> <y>          blocked fraction and 72-value skyline as one line of JSON (near field only)
 //!   engine layers                 map layers into data/out/layers/ (shared/layers.md)
+//!   engine base-candidates        base link coverage for each candidate base position
 //!
 //! Positions are local metres: x east, y north, origin at the crop's south-west
 //! outer corner (shared/conventions.md).
@@ -278,6 +279,36 @@ fn proof_numbers(root: &Path, site: &Site, grid: &terrain::Grid) -> Result<(), S
     Ok(())
 }
 
+/// Candidate base positions (local metres) compared by `base-candidates`.
+const BASE_CANDIDATES: [(&str, f64, f64, &str); 4] = [
+    ("A", 1596.6, 1312.7, "Curiosity sol 1480"),
+    ("B", 1592.7, 1389.5, "sol 1471"),
+    ("C", 1598.0, 1250.0, ""),
+    ("D", 1506.1, 1678.3, "previous base, sol 1439"),
+];
+const CANDIDATE_MAST_M: f64 = 10.0;
+
+fn base_candidates(root: &Path) -> Result<(), String> {
+    let site = load_site(root)?;
+    let grid = load_grid(root)?;
+    let stops: Vec<&RouteStop> = site.route_stops.iter().filter(|s| s.id != "base").collect();
+    println!("Mast {CANDIDATE_MAST_M} m, eye 1 m, {} x {} layer cells of {} m over x/y {}..{} m\n",
+        layers::CELLS, layers::CELLS, layers::CELL_M, layers::ORIGIN_M, layers::ORIGIN_M + layers::CELLS as f64 * layers::CELL_M);
+    let header: Vec<String> = stops.iter().map(|s| format!("{:>8}", s.id)).collect();
+    println!("{:<3} {:>7} {:>7} {:>10} {:>6}  {}   note", "id", "x", "y", "ground m", "link", header.join(""));
+    for (id, x, y, note) in BASE_CANDIDATES {
+        let base = layers::Base { x, y, mast_height_m: CANDIDATE_MAST_M };
+        let ground = grid.sample_local(x, y).ok_or_else(|| format!("candidate {id} is on no-data"))?;
+        let fraction = layers::base_link_fraction(&grid, &base);
+        let links: Vec<String> = stops
+            .iter()
+            .map(|s| format!("{:>8}", if layers::base_link(&grid, s.x, s.y, &base) { "yes" } else { "-" }))
+            .collect();
+        println!("{id:<3} {x:>7.1} {y:>7.1} {ground:>10.2} {fraction:>6.3}  {}   {note}", links.join(""));
+    }
+    Ok(())
+}
+
 fn layers_command(root: &Path) -> Result<(), String> {
     let site = load_site(root)?;
     let grid = load_grid(root)?;
@@ -308,7 +339,7 @@ fn point(root: &Path, x: f64, y: f64) -> Result<(), String> {
 }
 
 fn usage() -> String {
-    "usage: engine [--root <dir>] check\n       engine [--root <dir>] point <x> <y>   (local metres)\n       engine [--root <dir>] layers".to_string()
+    "usage: engine [--root <dir>] check\n       engine [--root <dir>] point <x> <y>   (local metres)\n       engine [--root <dir>] layers\n       engine [--root <dir>] base-candidates".to_string()
 }
 
 fn run() -> Result<bool, String> {
@@ -323,6 +354,7 @@ fn run() -> Result<bool, String> {
     match args.iter().map(String::as_str).collect::<Vec<_>>().as_slice() {
         ["check"] => check(&root),
         ["layers"] => layers_command(&root).map(|_| true),
+        ["base-candidates"] => base_candidates(&root).map(|_| true),
         ["point", x, y] => {
             let parse = |s: &str| s.parse::<f64>().map_err(|_| format!("not a number: {s}"));
             point(&root, parse(x)?, parse(y)?).map(|_| true)
