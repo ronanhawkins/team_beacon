@@ -23,9 +23,9 @@
     "sunset": "18:51",
     "uvIndex": "Moderate"
   },
-  "doseBudgetMicroGray": 5.3,
+  "doseBudgetMicroGray": 18.9,
   "doseRateMicroGrayPerHour": 6.305,
-  "endDoseFraction": 0.205,
+  "endDoseFraction": 0.0576,
   "endOxygenFraction": 0.9782,
   "minutes": 10.47,
   "plannedDoseMicroGray": 1.1,
@@ -48,8 +48,8 @@
     "windowHours": 72.0
   },
   "stormDoseMaxAt": "m30",
-  "stormDoseMicroGrayMax": 183.9,
-  "stormDoseMultiplier": 7.985,
+  "stormDoseMicroGrayMax": 764.7,
+  "stormDoseMultiplier": 33.28,
   "stormMinutes": 240.0,
   "sunlitFraction": 0.903,
   "version": 1,

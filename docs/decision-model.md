@@ -54,7 +54,7 @@ Most numbers below are assumptions for the demo. The storm's length and strength
 | Time limit to be under cover | 5 minutes | Hard rule. Normally equal to the warning time |
 | Warning time `L` | 5 minutes | Time before the storm arrives |
 | Storm length `D` | 240 minutes | Measured: the May 2024 storm stayed above 1.5 times the normal rate for about 38 hours. The model caps it at 4 hours |
-| Storm multiplier `M` | 8.0 | Measured: the mean rate over those 38 hours, relative to normal. The peak was 56 times normal |
+| Storm multiplier `M` | 33 | Measured: the mean rate over the first 4 hours, relative to normal. The peak was 56 times normal; over the whole 38 hours the mean was 8 |
 | Base dose factor | 0.5 | The base is a normal shielded habitat |
 | Shelter shielding factor | 0.5 | Converts blocked sky into dose, using the calibration above |
 | Open-ground blocked sky | 0.075 | The blocked fraction where the dose rate is exactly 1 (measured at sol1468, with the distant horizon from MOLA) |

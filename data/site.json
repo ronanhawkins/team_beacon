@@ -156,14 +156,14 @@
   "storm": {
     "leadMinutes": 5,
     "stormMinutes": 240,
-    "doseMultiplier": 7.985,
+    "doseMultiplier": 33.28,
     "stormMinutesCap": 240,
     "noLinkPenalty": 0.05,
     "maxMinutesToCover": 5,
     "notes": {
       "leadMinutes": "Assumption: minutes of warning between the storm being declared and the storm arriving",
       "stormMinutes": "Measured: minutes the 20 May 2024 storm stayed above 1.5 x the quiet dose rate at Curiosity (RAD detector E), capped at stormMinutesCap. Measured 2308.9 minutes (still just above at the end of sol 4191's file). The engine sets this from data/cache/rad_storm.json when it exists; was 120 (assumption)",
-      "doseMultiplier": "Measured: mean dose rate over those 2308.9 minutes as a multiple of the quiet rate (6.30 microgray per hour, RAD detector E, median of sol 4186). Peak was 351.4 (x 55.7). Applied to walking and sheltering once the storm arrives (and to reroute dose). The engine sets this from data/cache/rad_storm.json when it exists; was 2 (assumption)",
+      "doseMultiplier": "Measured: mean dose rate over the minutes the model simulates (the first stormMinutes = 240 after onset) as a multiple of the quiet rate (6.30 microgray per hour, RAD detector E, median of sol 4186). Over the whole 2308.9 minutes above 1.5 x the mean is 7.985; the peak was 351.4 (x 55.7). Applied to walking and sheltering once the storm arrives (and to reroute dose). The engine sets this from data/cache/rad_storm.json when it exists; was 2 (assumption)",
       "stormMinutesCap": "Assumption: the longest storm the measured length may set, in minutes",
       "source": "Curiosity RAD RDR, sols 4186, 4190 and 4191, via tools/fetch_rad.py; https://pds-ppi.igpp.ucla.edu/data/MSL-M-RAD-3-RDR-V1.0/DATA/SOL_04134_04257/",
       "noLinkPenalty": "Assumption: a site without a base link scores this fraction worse (0.05 = 5 percent)",

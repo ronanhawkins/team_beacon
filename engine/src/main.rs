@@ -101,6 +101,38 @@ struct RadCache {
     /// First reading above 1.5 x the baseline, UTC.
     #[serde(default)]
     onset: Option<String>,
+    /// "B" or "E": the detector the summary fields are for.
+    primary_detector: String,
+    /// Every reading: start time, length and dose rate per detector.
+    series: Vec<RadReading>,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct RadReading {
+    time: String,
+    duration_s: f64,
+    dose_b: Option<f64>,
+    dose_e: Option<f64>,
+}
+
+impl RadCache {
+    /// Mean dose rate over the first `minutes` after onset, as a multiple of the baseline,
+    /// weighted by observation length. None without an onset or readings in that window.
+    fn mean_multiplier_first(&self, minutes: f64) -> Option<f64> {
+        let start = space::hours(self.onset.as_deref()?)?;
+        let end = start + minutes / 60.0;
+        let (mut sum, mut secs) = (0.0, 0.0);
+        for r in &self.series {
+            let t = space::hours(&r.time)?;
+            let dose = if self.primary_detector == "B" { r.dose_b } else { r.dose_e };
+            if let (true, Some(d)) = (t >= start - 1e-9 && t < end, dose) {
+                sum += d * r.duration_s;
+                secs += r.duration_s;
+            }
+        }
+        (secs > 0.0).then(|| sum / secs / self.baseline_rate)
+    }
 }
 
 /// Default for storm.stormMinutesCap.
@@ -183,8 +215,15 @@ fn load_site(root: &Path) -> Result<Site, String> {
     let mut site: Site = serde_json::from_str(&text).map_err(|e| format!("{}: {}", path.display(), e))?;
     site.rad = load_rad(root);
     if let Some(rad) = &site.rad {
-        site.storm.storm_minutes = rad.minutes_above.min(site.storm.storm_minutes_cap.unwrap_or(STORM_MINUTES_CAP));
-        site.storm.dose_multiplier = rad.mean_multiplier_above;
+        let cap = site.storm.storm_minutes_cap.unwrap_or(STORM_MINUTES_CAP);
+        site.storm.storm_minutes = rad.minutes_above.min(cap);
+        // The multiplier is the mean over the minutes the model simulates: the whole period above
+        // 1.5 x baseline, or its first `cap` minutes when the cap shortens it.
+        site.storm.dose_multiplier = if rad.minutes_above <= cap {
+            rad.mean_multiplier_above
+        } else {
+            rad.mean_multiplier_first(cap).map_or(rad.mean_multiplier_above, |m| (m * 1000.0).round() / 1000.0)
+        };
     }
     site.space_weather = load_space_weather(root, &site);
     site.conditions = load_conditions(root, &site);
