@@ -106,7 +106,7 @@ namespace Beacon
             if(passthrough!=null) passthrough.hidden=enabled;
             if(atmosphere!=null) atmosphere.SetImmersive(enabled);
             if(vrScenery!=null) vrScenery.SetActive(enabled);
-            Debug.Log("BEACON_VIEW: "+(enabled ? "Murray Buttes VR" : "AR passthrough"));
+            Debug.Log("BEACON_VIEW: "+(enabled ? "Mars VR" : "AR passthrough"));
         }
         void Update()
         {
@@ -128,6 +128,7 @@ namespace Beacon
             if(ring==null) return;
             NorthYaw=Mathf.LerpAngle(NorthYaw,targetNorth,1-Mathf.Exp(-delta*5));
             ring.position=rig.centerEyeAnchor.position; ring.rotation=Quaternion.Euler(0,NorthYaw,0);
+            vrScenery?.TickBeacon();
             bool available=relay.Connected && relay.Selection!=null;
             ring.gameObject.SetActive(available && (RingVisible || Immersive));
             if(!available) return;

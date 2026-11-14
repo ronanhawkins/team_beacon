@@ -55,6 +55,10 @@ public static class BeaconVrVerify
         Check(terrain.GroundAt(rig.centerEyeAnchor.position,out var hit),"starting view has measured ground below it");
         Check(Mathf.Abs(hit.point.y)<.2f,"original scene scale and spawn height are correct");
         Check(Navigation.Distance(scenery.Position,p.pos)<.05,"VR starts at the actual mission point, not an unrelated photo origin");
+        scenery.TickBeacon();
+        Check(scenery.Beacon.Visible && scenery.Beacon.TargetIndex==20,"VR beacon selects the next main waypoint");
+        var beaconAnchor=terrain.WorldPoint(document.main[20].pos)+Vector3.up*.06f;
+        Check(Vector3.Distance(scenery.Beacon.WorldPosition,beaconAnchor)<.01f,"beacon is anchored on the measured target ground");
         for(int i=0;i<50;i++) {scenery.Step(Vector2.zero,Vector2.zero,0,.02f);Physics.SyncTransforms();}
         var start=scenery.playerRoot.position;
         for(int i=0;i<100;i++)
@@ -68,6 +72,10 @@ public static class BeaconVrVerify
         Check(Mathf.Abs(Mathf.DeltaAngle(yaw,rig.centerEyeAnchor.eulerAngles.y)-.8f)<.01f,"right stick turns smoothly");
         Check(JsonConvert.SerializeObject(relay.State)==beforeState,"walking and turning leave the mission route unchanged");
         Check(view.NorthYaw==north && Vector3.Angle(view.SkyDirection(p.sun),sun)<.01f,"walking and turning preserve the measured Sun frame");
+        scenery.TickBeacon();
+        Check(Vector3.Distance(scenery.Beacon.WorldPosition,beaconAnchor)<.01f,"beacon stays at the waypoint while the wearer walks and turns");
+        relay.PreviewOffline();scenery.TickBeacon();Check(!scenery.Beacon.Visible,"offline data hides the world beacon");
+        relay.Preview(state,document,relay.Site);scenery.TickBeacon();Check(scenery.Beacon.Visible,"reconnection restores the world beacon");
         Check(BeaconVrScenery.Stick(new Vector2(.1f,0))==Vector2.zero,"stick dead zone");
         Check(Mathf.Abs(BeaconVrScenery.Stick(Vector2.one).magnitude-1)<.001f,"diagonal speed normalization");
         view.SetImmersive(false);view.SetImmersive(true);Physics.SyncTransforms();
@@ -105,7 +113,10 @@ public static class BeaconVrVerify
                     baseLink=q.@base.visible,sunlit=q.sun.visible,earthLink=q.earth.visible,minutesToShelter=q.shelter.minutes,shelterBearingDeg=q.shelter.az,earthDelayMinutes=11};
                 relay.Preview(s,document,relay.Site);
             }
-            Publish(0);scenery.ReturnToRoute();Physics.SyncTransforms();
+            Publish(0);scenery.ReturnToRoute();Physics.SyncTransforms();scenery.TickBeacon();
+            Check(scenery.Beacon.Visible && scenery.Beacon.TargetIndex==1,"beacon follows the active main or emergency route");
+            Check(Vector3.Distance(scenery.Beacon.WorldPosition,terrain.WorldPoint(path[1].pos)+Vector3.up*.06f)<.01f,"route change places beacon on its own next waypoint");
+            Check(reroute ? scenery.Beacon.Tone.r>scenery.Beacon.Tone.g : scenery.Beacon.Tone.g>scenery.Beacon.Tone.r,"emergency beacon uses a distinct warm colour");
             for(int i=0;i<50;i++) {scenery.Step(Vector2.zero,Vector2.zero,0,.02f);Physics.SyncTransforms();}
             for(int index=1;index<path.Count;index++)
             {
@@ -122,12 +133,14 @@ public static class BeaconVrVerify
                 Publish(index);
             }
             Check(!reroute || scenery.InShelter,"walking the shelter route produces actual arrival");
+            scenery.TickBeacon();Check(!scenery.Beacon.Visible,"destination beacon disappears on actual arrival");
         }
         WalkPath(document.main,false);WalkPath(document.reroutes[(document.main.Count-1).ToString()],true);
         view.SetImmersive(false);var arPosition=scenery.playerRoot.position;
         scenery.Step(Vector2.up,Vector2.right,1,.05f);
         Check(!terrain.gameObject.activeSelf && !view.passthrough.hidden && !scenery.Sprinting,"AR restores passthrough and hides VR terrain / sprint");
         Check(arPosition==Vector3.zero && scenery.playerRoot.position==arPosition && scenery.playerRoot.rotation==Quaternion.identity,"AR restores the physical tracking frame and ignores sticks");
+        Check(!scenery.Beacon.Visible,"AR does not project a false Mars waypoint into the room");
         Check(!ShaderUtil.ShaderHasError(terrain.surfaceShader),"photo shader compiles");
         Check(File.Exists("Assets/StreamingAssets/ThirdParty/AccessMars-LICENSE.txt"),"redistributed licence is included in APK assets");
         EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);Debug.Log($"BEACON_VR_CHECKS_PASSED: {checks}");

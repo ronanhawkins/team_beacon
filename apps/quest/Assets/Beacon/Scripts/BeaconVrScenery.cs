@@ -15,6 +15,7 @@ namespace Beacon
         public float Speed { get; private set; }
         public bool AtBoundary { get; private set; }
         public bool Sprinting { get; private set; }
+        public WaypointBeacon Beacon { get; private set; }
         CharacterController body;
         Vector3 velocity;
         float falling,lastNorth,diagnosticAt;
@@ -61,10 +62,12 @@ namespace Beacon
             terrain.Create();
             body=playerRoot.GetComponent<CharacterController>();body.enabled=false;
             body.radius=.22f;body.skinWidth=.025f;body.stepOffset=.3f;body.slopeLimit=45;body.minMoveDistance=0;
+            Beacon=new WaypointBeacon(this);
             initialized=true;terrain.gameObject.SetActive(false);missionView.relay.Changed+=MissionChanged;
         }
         void MissionChanged() {if(Active && missionView.relay.Connected && !MatchesMission) missionView.SetImmersive(false);}
-        void OnDestroy() {if(missionView?.relay!=null) missionView.relay.Changed-=MissionChanged;}
+        void OnDestroy() {if(missionView?.relay!=null) missionView.relay.Changed-=MissionChanged;Beacon?.Dispose();}
+        public void TickBeacon() => Beacon?.Tick();
         void Start() {Create();SetActive(missionView.Immersive);}
         public void SetActive(bool active)
         {
@@ -78,6 +81,7 @@ namespace Beacon
             {
                 ReturnToRoute();
             }
+            TickBeacon();
             Debug.Log("BEACON_VR_SCENERY: "+(active ? "Planner-aligned Mars walking" : "AR room restored"));
         }
         public void ReturnToRoute()

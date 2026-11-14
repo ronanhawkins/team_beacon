@@ -2,7 +2,15 @@
 
 The supplied screenshots are the functional checklist. The user's later native Unity/USB requirement replaces their original browser/HTTPS/Three.js delivery instructions. The current export is the authority for numbers and shelter ids.
 
-**Current target: 0.15 Jezero.** The wearer explicitly switched from Murray Buttes to Jezero. Historical Gale reference values below remain evidence for earlier builds, not the current Jezero mission. The wearer resumed live testing after the earlier deferral.
+**Current target: 0.16 Jezero.** The wearer explicitly switched from Murray Buttes to Jezero. Historical Gale reference values below remain evidence for earlier builds, not the current Jezero mission. The wearer resumed live testing after the earlier deferral.
+
+## Version 0.16 distant waypoint beacon
+
+The wearer requested a beacon at the next waypoint. VR now renders a soft mint light column and ground ring at the actual measured target, with an outlined distance label. Shelter diversions use amber, and storm routes use orange. The beacon follows the existing target selection without choosing or advancing a route itself. It hides inside the arrival radius, at a completed destination, while disconnected and in AR. Leaving a completed destination can show its return marker. The beam/ring add 126 triangles, plus the label UI; no dynamic light or particle system is added.
+
+**8,817 VR checks** passed, including the new world-anchor, movement/turn stability, main/reroute selection, colour, offline/reconnect, final arrival and AR checks. Existing HUD/shelter-input checks also passed. Initial preview inspection prompted a larger distance label; near, distant and emergency previews cover the final appearance. The distant editor preview now updates the sky dome's camera position just as runtime does.
+
+The final 15 m and 115 m previews were visually inspected with the enlarged label. The Android build succeeded and the Quest package manager confirms **0.16.0 / code 16** installed over USB. The relay retains main waypoint 41, with a valid next waypoint. The headset is asleep, so the app and mirror have not been reopened; on-headset beacon readability and performance remain for the next live check. Prior mirror confirmation remains applicable to the unchanged mirror helper.
 
 ## Version 0.15 clear lower view
 
@@ -43,7 +51,7 @@ Current Jezero reference: 44 main points; base has **92.8% open sky**. A storm a
 | Main readings | Open sky from `openSky`; left column adds oxygen and dose; right column shows shelter, base link and sunlight. Fractions displayed as percentages. |
 | Modes and arrival | Nominal calm, warning amber with reason, storm red border/chime/pulsing shelter, arrival “In shelter” with active storm retained. |
 | Route and decision | Exact `route`, `waypointIndex`, `rerouteFrom`; decision reason from `rerouteInfo`. No locally chosen shelter or independently running countdown. |
-| Science stop and next waypoint | Named science card; one waypoint arrow on the compass, preserving the user's compass-only navigation preference. |
+| Science stop and next waypoint | Named science card and compass arrow. The user's later request adds a terrain-anchored next-waypoint beacon in VR in 0.16. |
 | Offline operation and reconnect | Local relay and cached real data over USB; existing retry loop and explicit reroute origin. Relay reconnect regression tests pass. No headset internet needed. |
 | Sources | HiRISE/USGS and the Jezero JPL Horizons scenario at 15 Nov 2026 00:00 UT remain in site metadata and the APK notice. The HUD credit was removed at the wearer's request in 0.15. |
 | Visual QA | Current Unity previews cover Jezero mission states, shelter feedback and AR/VR scenery. Historical Gale previews and findings are documented below. |
