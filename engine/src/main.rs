@@ -7,8 +7,8 @@
 //!   engine base-candidates        base link coverage for each candidate base position
 //!   engine plan                   planner: shelters, main route, reroutes -> data/out/
 //!   engine plan --stops "x,y;x,y;..." --out <dir>   plan other stops (first is the start) into <dir>
-//!   engine decide <mainIndex> [--lead L] [--storm D] [--habitat-minutes H]   storm decision table
-//!   engine decide <mainIndex> --sweep   chosen site over lead and habitat return times
+//!   engine decide <mainIndex> [--lead L] [--limit X]   storm decision table at one main waypoint
+//!   engine decide --sweep         chosen site at four waypoints for warnings of 0 to 15 minutes
 //!
 //! Positions are local metres: x east, y north, origin at the crop's south-west
 //! outer corner (shared/conventions.md).
@@ -90,6 +90,7 @@ struct BaseFile {
     x: f64,
     y: f64,
     mast_height: f64,
+    dose_factor: f64,
 }
 
 #[derive(Deserialize)]
@@ -367,22 +368,22 @@ fn plan_inputs<'a>(site: &Site, grid: &'a terrain::Grid, far72: &'a [f32], far36
         bounds: site.planner_bounds,
         cfg: site.planner.clone(),
         storm: site.storm,
+        base_dose_factor: site.base.dose_factor,
         stops,
     }
 }
 
-const SWEEP_LEADS: [f64; 5] = [0.0, 5.0, 15.0, 30.0, 60.0];
-const SWEEP_HABITAT: [f64; 5] = [30.0, 60.0, 90.0, 120.0, 150.0];
+/// Warnings for the sweep; the limit to cover equals the warning.
+const SWEEP_WARNINGS: [f64; 5] = [0.0, 2.0, 5.0, 10.0, 15.0];
 
 struct DecideArgs {
-    index: usize,
+    index: Option<usize>,
     lead: Option<f64>,
-    storm: Option<f64>,
-    habitat_minutes: Option<f64>,
+    limit: Option<f64>,
     sweep: bool,
 }
 
-/// Storm decision at one main waypoint of data/out/waypoints.json (run `engine plan` first).
+/// Storm decisions at main waypoints of data/out/waypoints.json (run `engine plan` first).
 fn decide_command(root: &Path, a: DecideArgs) -> Result<(), String> {
     let site = load_site(root)?;
     let wp_path = root.join("data/out/waypoints.json");
@@ -390,10 +391,12 @@ fn decide_command(root: &Path, a: DecideArgs) -> Result<(), String> {
         &std::fs::read_to_string(&wp_path).map_err(|e| format!("cannot read {} (run engine plan first): {}", wp_path.display(), e))?,
     )
     .map_err(|e| format!("{}: {}", wp_path.display(), e))?;
-    let main = doc["main"].as_array().ok_or("waypoints.json has no main route")?;
-    let wp = main.get(a.index).ok_or_else(|| format!("main index {} is out of range (0..{})", a.index, main.len() - 1))?;
-    let (x, y) = (wp["pos"]["x"].as_f64().unwrap_or(f64::NAN), wp["pos"]["y"].as_f64().unwrap_or(f64::NAN));
-    let id = wp["id"].as_str().unwrap_or("?").to_string();
+    let main = doc["main"].as_array().ok_or("waypoints.json has no main route")?.clone();
+    if main.is_empty() {
+        return Err("waypoints.json has an empty main route".into());
+    }
+    let pos = |i: usize| (main[i]["pos"]["x"].as_f64().unwrap_or(f64::NAN), main[i]["pos"]["y"].as_f64().unwrap_or(f64::NAN));
+    let name = |i: usize| main[i]["id"].as_str().unwrap_or("?").to_string();
 
     let grid = load_grid(root)?;
     let far_grid = load_far(root)?;
@@ -403,43 +406,66 @@ fn decide_command(root: &Path, a: DecideArgs) -> Result<(), String> {
     let inputs = plan_inputs(&site, &grid, &far72, &far360, Vec::new());
     let ctx = route::prepare(&inputs)?;
 
-    let mut storm = site.storm;
-    storm.lead_minutes = a.lead.unwrap_or(storm.lead_minutes);
-    storm.storm_minutes = a.storm.unwrap_or(storm.storm_minutes);
-    storm.habitat.return_minutes = a.habitat_minutes.unwrap_or(storm.habitat.return_minutes);
-    println!("\nStorm decision at {id} ({x:.1}, {y:.1})");
-
     if !a.sweep {
-        let opts = route::options_from(&ctx, &inputs, &storm, x, y)?;
-        route::print_table(&decision::rank(&opts.candidates, &storm), &storm);
+        let i = a.index.ok_or_else(usage)?;
+        if i >= main.len() {
+            return Err(format!("main index {i} is out of range (0..{})", main.len() - 1));
+        }
+        let mut storm = site.storm;
+        storm.lead_minutes = a.lead.unwrap_or(storm.lead_minutes);
+        storm.max_minutes_to_cover = a.limit.unwrap_or(storm.max_minutes_to_cover);
+        let (x, y) = pos(i);
+        println!("\nStorm decision at {} ({x:.1}, {y:.1})", name(i));
+        let opts = route::options_from(&ctx, &inputs, x, y)?;
+        route::print_table(&decision::decide(&opts.candidates, &storm), &storm);
         return Ok(());
     }
 
+    // Four waypoints: open ground about a third of the way out, the Quela stop, the butte outcrop, the far point.
+    let by_label = |label: &str| main.iter().position(|w| w["label"] == label).ok_or_else(|| format!("no main waypoint labelled {label:?}"));
+    let picks = [
+        ("open ground", (main.len() as f64 / 3.0).round() as usize),
+        ("Quela drill site", by_label("Quela drill site")?),
+        ("butte outcrop", by_label("Butte outcrop")?),
+        ("far point", main.len() - 1),
+    ];
+    println!("\nChosen site by warning time (limit to cover = warning); storm {} min, multiplier {}\n", site.storm.storm_minutes, site.storm.dose_multiplier);
+    println!("  {:<22} {}", "waypoint", SWEEP_WARNINGS.iter().map(|w| format!("{:>16}", format!("{w} min"))).collect::<String>());
     let mut rows = Vec::new();
-    println!("Chosen site by lead time (rows) and habitat return minutes (columns); storm {} min, multiplier {}\n", storm.storm_minutes, storm.dose_multiplier);
-    println!("  {:>9} {}", "lead \\ H", SWEEP_HABITAT.iter().map(|h| format!("{h:>16}")).collect::<String>());
-    for lead in SWEEP_LEADS {
-        let mut line = format!("  {lead:>9}");
-        for h in SWEEP_HABITAT {
-            let mut s = storm;
-            s.lead_minutes = lead;
-            s.habitat.return_minutes = h;
-            let opts = route::options_from(&ctx, &inputs, &s, x, y)?;
-            let best = &decision::rank(&opts.candidates, &s)[0];
-            line += &format!("{:>16}", format!("{} {:.0}", best.candidate.id, best.score));
-            rows.push(serde_json::json!({
-                "leadMinutes": lead, "habitatReturnMinutes": h,
-                "chosen": { "id": best.candidate.id, "kind": best.candidate.kind.as_str(), "minutes": (best.candidate.t * 100.0).round() / 100.0,
-                            "dose": (best.dose * 10.0).round() / 10.0, "score": (best.score * 10.0).round() / 10.0 },
-            }));
+    for (what, i) in picks {
+        let (x, y) = pos(i);
+        let opts = route::options_from(&ctx, &inputs, x, y)?;
+        let mut line = format!("  {:<22}", format!("{} {}", name(i), what));
+        let mut results = Vec::new();
+        for warning in SWEEP_WARNINGS {
+            let mut storm = site.storm;
+            storm.lead_minutes = warning;
+            storm.max_minutes_to_cover = warning;
+            let d = decision::decide(&opts.candidates, &storm);
+            let c = &d.chosen.candidate;
+            let cell = match d.minutes_late {
+                Some(late) => format!("{} LATE {:.1}", c.id, late),
+                None => format!("{} {:.1}m", c.id, c.t),
+            };
+            line += &format!("{cell:>16}");
+            let mut chosen = serde_json::json!({
+                "id": c.id, "kind": c.kind.as_str(), "minutes": (c.t * 100.0).round() / 100.0,
+                "score": (d.chosen.score * 10.0).round() / 10.0, "late": d.minutes_late.is_some(),
+            });
+            if let Some(late) = d.minutes_late {
+                chosen["minutesLate"] = serde_json::json!((late * 100.0).round() / 100.0);
+            }
+            results.push(serde_json::json!({ "warningMinutes": warning, "limitMinutes": warning, "chosen": chosen }));
         }
         println!("{line}");
+        rows.push(serde_json::json!({
+            "waypoint": name(i), "mainIndex": i, "what": what, "label": main[i]["label"], "pos": { "x": x, "y": y }, "results": results,
+        }));
     }
-    println!("\n  (each cell: chosen site and its score, in minutes at the open-ground dose rate)");
+    println!("\n  (each cell: chosen site and walking minutes, or LATE and minutes past the limit when nothing is reachable)");
     let out = serde_json::json!({
-        "version": 1, "waypoint": id, "mainIndex": a.index, "pos": { "x": x, "y": y },
-        "stormMinutes": storm.storm_minutes, "doseMultiplier": storm.dose_multiplier, "noLinkPenalty": storm.no_link_penalty,
-        "habitatDoseFactor": storm.habitat.dose_factor, "sweep": rows,
+        "version": 1, "stormMinutes": site.storm.storm_minutes, "doseMultiplier": site.storm.dose_multiplier,
+        "noLinkPenalty": site.storm.no_link_penalty, "baseDoseFactor": site.base.dose_factor, "waypoints": rows,
     });
     let path = root.join("data/out/decision-sweep.json");
     std::fs::write(&path, serde_json::to_string_pretty(&out).map_err(|e| e.to_string())? + "\n").map_err(|e| format!("cannot write {}: {}", path.display(), e))?;
@@ -477,7 +503,7 @@ fn point(root: &Path, x: f64, y: f64) -> Result<(), String> {
 }
 
 fn usage() -> String {
-    "usage: engine [--root <dir>] check\n       engine [--root <dir>] point <x> <y>   (local metres)\n       engine [--root <dir>] layers\n       engine [--root <dir>] base-candidates\n       engine [--root <dir>] plan [--stops \"x,y;x,y;...\" --out <dir>]\n       engine [--root <dir>] decide <mainIndex> [--lead L] [--storm D] [--habitat-minutes H] [--sweep]".to_string()
+    "usage: engine [--root <dir>] check\n       engine [--root <dir>] point <x> <y>   (local metres)\n       engine [--root <dir>] layers\n       engine [--root <dir>] base-candidates\n       engine [--root <dir>] plan [--stops \"x,y;x,y;...\" --out <dir>]\n       engine [--root <dir>] decide <mainIndex> [--lead L] [--limit X]\n       engine [--root <dir>] decide --sweep".to_string()
 }
 
 fn run() -> Result<bool, String> {
@@ -493,27 +519,23 @@ fn run() -> Result<bool, String> {
         ["check"] => check(&root),
         ["layers"] => layers_command(&root).map(|_| true),
         ["base-candidates"] => base_candidates(&root).map(|_| true),
-        ["decide", index, rest @ ..] => {
-            let mut a = DecideArgs {
-                index: index.parse().map_err(|_| format!("main index must be a whole number: {index}"))?,
-                lead: None,
-                storm: None,
-                habitat_minutes: None,
-                sweep: false,
-            };
+        ["decide", rest @ ..] => {
+            let mut a = DecideArgs { index: None, lead: None, limit: None, sweep: false };
             let mut it = rest.iter();
             let num = |v: Option<&&str>| -> Result<f64, String> {
                 let v = v.ok_or_else(usage)?;
                 v.parse::<f64>().map_err(|_| format!("not a number: {v}"))
             };
-            while let Some(&flag) = it.next() {
-                match flag {
+            while let Some(&arg) = it.next() {
+                match arg {
                     "--lead" => a.lead = Some(num(it.next())?),
-                    "--storm" => a.storm = Some(num(it.next())?),
-                    "--habitat-minutes" => a.habitat_minutes = Some(num(it.next())?),
+                    "--limit" => a.limit = Some(num(it.next())?),
                     "--sweep" => a.sweep = true,
-                    _ => return Err(usage()),
+                    other => a.index = Some(other.parse().map_err(|_| format!("main index must be a whole number: {other}"))?),
                 }
+            }
+            if a.sweep && (a.index.is_some() || a.lead.is_some() || a.limit.is_some()) {
+                return Err("--sweep takes no index, --lead or --limit".into());
             }
             decide_command(&root, a).map(|_| true)
         }

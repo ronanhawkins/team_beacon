@@ -72,33 +72,35 @@ The `skyline` above is shortened. Real files always have `skylineSamples` values
 
 ## Storm decision (optional additions)
 
-These fields come from the engine's storm decision model (`docs/decision-model.md`). Files without them are still valid, and clients that do not use them can ignore them.
+These fields come from the engine's storm decision (`docs/decision-model.md`). Files without them are still valid, and clients that do not use them can ignore them.
 
-- `shelter.id` on a waypoint: the id of the site the model chose from that point (`"base"`, `"habitat"` or a shelter id from `data/out/shelters.json`). When it is `"habitat"`, `az`, `distance` and `minutes` describe the walk to the base, where the drive to the habitat starts.
+- `shelter.id` on a waypoint: the id of the site chosen from that point: `"base"` or a shelter id from `data/out/shelters.json`.
 - `rerouteInfo` at the top level: maps a `main` index (as a string, like `reroutes`) to the decision made there.
 
 | Field | Type | Meaning |
 |---|---|---|
-| `chosen` | option | The site the reroute goes to |
-| `options` | array of options | The best five by score, plus the nearest refuge and the habitat, best first |
+| `chosen` | option, plus `dose`, `late` and `minutesLate` | The site the reroute goes to. `late` is true when no site could be reached within the limit and the nearest was taken; `minutesLate` is then how far over the limit it is |
+| `options` | array of options | Every candidate within 12 walking minutes: reachable ones by score, then the rest |
+| `base` | `{minutes, excludedByLimit}` | Walking minutes to the base, and whether the time limit ruled it out |
 
 Each option:
 
 | Field | Type | Meaning |
 |---|---|---|
-| `id` | string | `"base"`, `"habitat"` or a shelter id |
-| `kind` | string | `"shelter"`, `"base"` or `"habitat"` |
-| `minutes` | number | Minutes until sheltered: walking time, plus the drive for the habitat |
-| `blocked` | number or null | Blocked-sky fraction at the site; `null` for the habitat |
+| `id` | string | `"base"` or a shelter id |
+| `kind` | string | `"shelter"` or `"base"` |
+| `minutes` | number | Walking minutes to the site |
+| `blocked` | number | Blocked-sky fraction at the site |
 | `baseLink` | boolean | Line of sight to the base mast from the site |
-| `dose` | number | Modelled storm dose, in minutes at the open-ground dose rate |
-| `score` | number | `dose`, raised by the no-link penalty when there is no base link. Lowest wins |
+| `reachable` | boolean | Walking minutes are within the limit to be under cover |
+| `score` | number | Modelled storm dose, raised by the no-link penalty when there is no base link. Lowest wins among reachable sites |
 
 ```json
 "rerouteInfo": {
   "30": {
-    "chosen": { "id": "s04", "kind": "shelter", "minutes": 4.52, "blocked": 0.254, "baseLink": true, "dose": 221.7, "score": 221.7 },
-    "options": [ { "...": "same fields" } ]
+    "chosen": { "id": "s04", "kind": "shelter", "minutes": 4.52, "blocked": 0.254, "baseLink": true, "reachable": true, "score": 221.7, "dose": 221.7, "late": false },
+    "options": [ { "...": "same fields as above, without dose and late" } ],
+    "base": { "minutes": 9.73, "excludedByLimit": true }
   }
 }
 ```

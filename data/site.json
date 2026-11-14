@@ -97,6 +97,8 @@
     "x": 1598.0,
     "y": 1250.0,
     "mastHeight": 10.0,
+    "doseFactor": 0.5,
+    "doseFactorNote": "Assumption: the base is a normal shielded habitat; its dose rate is this fraction of open ground",
     "note": "Candidate C from engine base-candidates: the highest base-link coverage of the three southern candidates (0.504 of layer cells, against 0.455 at Curiosity's sol 1480 position and 0.383 at sol 1471). The previous base at Curiosity's sol 1439 position (1506.1, 1678.3), among the buttes, linked only 0.084. Chosen for line of sight, not a rover position"
   },
 
@@ -144,13 +146,13 @@
     "stormMinutes": 120,
     "doseMultiplier": 2,
     "noLinkPenalty": 0.05,
-    "habitat": { "returnMinutes": 150, "doseFactor": 0.5 },
+    "maxMinutesToCover": 5,
     "notes": {
       "leadMinutes": "Assumption: minutes of warning between the storm being declared and the storm arriving",
       "stormMinutes": "Assumption: how long the storm lasts once it arrives, in minutes",
       "doseMultiplier": "Assumption: dose rate during the storm relative to normal, applied to walking and sheltering once it arrives (and to reroute dose)",
       "noLinkPenalty": "Assumption: a site without a base link scores this fraction worse (0.05 = 5 percent)",
-      "habitat": "Assumption: the shielded habitat is a long drive away; the \"Base\" on the map is a rover and relay mast with no shielding of its own. returnMinutes is walking to the base plus driving back; doseFactor is the habitat's dose rate relative to open ground"
+      "maxMinutesToCover": "Hard rule. The astronaut must be under cover within this many minutes of the warning, so they are not walking in the open when the storm arrives. Normally equal to leadMinutes"
     }
   },
 

@@ -6,7 +6,7 @@ use std::time::Instant;
 use rayon::prelude::*;
 use serde_json::{json, Map, Value};
 
-use crate::decision::{self, Candidate, Kind, Scored, StormConfig};
+use crate::decision::{self, Candidate, Decision, Kind, Scored, StormConfig};
 use crate::layers::{self, Base};
 use crate::planner::{self, Bounds, PlanGrid, PlannerConfig, RefugeField, SiteSky};
 use crate::sight::line_of_sight;
@@ -21,8 +21,8 @@ const MINUTES_LAYER_MAX: f64 = 30.0;
 const PRECISE_DIRS: usize = 360;
 const PRECISE_STEP_M: f64 = 0.5;
 const PRECISE_MAX_M: f64 = 700.0;
-/// rerouteInfo lists this many best options, plus the nearest refuge and the habitat.
-const OPTIONS_SHOWN: usize = 5;
+/// rerouteInfo lists every candidate within this many walking minutes.
+const OPTIONS_WITHIN_MINUTES: f64 = 12.0;
 
 pub struct Stop {
     pub id: String,
@@ -42,6 +42,8 @@ pub struct PlanInputs<'a> {
     pub bounds: Bounds,
     pub cfg: PlannerConfig,
     pub storm: StormConfig,
+    /// Dose rate inside the base (a shielded habitat), relative to open ground.
+    pub base_dose_factor: f64,
     pub stops: Vec<Stop>,
 }
 
@@ -62,10 +64,10 @@ pub struct Context {
     pub shelter_count: usize,
 }
 
-/// A candidate site from one position, with the refuge it leads to.
+/// Candidate sites from one position, with the refuge each one is.
 pub struct Options {
     pub candidates: Vec<Candidate>,
-    /// Refuge index for each candidate (the habitat leads to the base, index 0).
+    /// Refuge index for each candidate (index 0 is the base).
     pub refuge_of: Vec<usize>,
     /// Walking field from the position: minutes and metres to every cell, pointers back to the position.
     pub walk: RefugeField,
@@ -223,8 +225,8 @@ pub fn prepare(inp: &PlanInputs) -> Result<Context, String> {
     Ok(Context { g, refuges, base_cell, nearest, shelter_count: shelter_cells.len() })
 }
 
-/// Candidate sites from a position: every refuge, plus the habitat behind the base.
-pub fn options_from(ctx: &Context, inp: &PlanInputs, storm: &StormConfig, x: f64, y: f64) -> Result<Options, String> {
+/// Candidate sites from a position: the base and every shelter, with walking minutes.
+pub fn options_from(ctx: &Context, inp: &PlanInputs, x: f64, y: f64) -> Result<Options, String> {
     let g = &ctx.g;
     let start = g.cell_at(x, y).filter(|&c| g.passable[c]).ok_or_else(|| format!("({x:.1}, {y:.1}) is not on passable ground inside the planner bounds"))?;
     let walk = planner::refuge_field(g, &[(start, 0.0)], &inp.cfg);
@@ -239,23 +241,15 @@ pub fn options_from(ctx: &Context, inp: &PlanInputs, storm: &StormConfig, x: f64
             id: rf.id.clone(),
             kind: if rf.is_base { Kind::Base } else { Kind::Shelter },
             t,
-            blocked: Some(blocked),
-            f: decision::site_factor(blocked, inp.cfg.dose_shielding_factor, inp.cfg.open_blocked),
+            blocked,
+            f: if rf.is_base {
+                inp.base_dose_factor
+            } else {
+                decision::site_factor(blocked, inp.cfg.dose_shielding_factor, inp.cfg.open_blocked)
+            },
             base_link: rf.is_base || g.base_link[rf.cell],
         });
         refuge_of.push(k);
-    }
-    let to_base = walk.minutes[ctx.base_cell];
-    if to_base.is_finite() {
-        candidates.push(Candidate {
-            id: "habitat".into(),
-            kind: Kind::Habitat,
-            t: to_base + storm.habitat.return_minutes,
-            blocked: None,
-            f: storm.habitat.dose_factor,
-            base_link: true,
-        });
-        refuge_of.push(0);
     }
     if candidates.is_empty() {
         return Err(format!("no refuge reachable from ({x:.1}, {y:.1})"));
@@ -263,44 +257,48 @@ pub fn options_from(ctx: &Context, inp: &PlanInputs, storm: &StormConfig, x: f64
     Ok(Options { candidates, refuge_of, walk })
 }
 
-fn scored_json(s: &Scored) -> Value {
+fn option_json(s: &Scored) -> Value {
     let c = &s.candidate;
     json!({
-        "id": c.id, "kind": c.kind.as_str(), "minutes": r(c.t, 2),
-        "blocked": c.blocked.map(|b| r(b, 3)), "baseLink": c.base_link,
-        "dose": r(s.dose, 1), "score": r(s.score, 1),
+        "id": c.id, "kind": c.kind.as_str(), "minutes": r(c.t, 2), "blocked": r(c.blocked, 3),
+        "baseLink": c.base_link, "reachable": s.reachable, "score": r(s.score, 1),
     })
 }
 
-/// The chosen site and the options worth showing: the best few, the nearest refuge and the habitat.
-fn reroute_info(ranked: &[Scored]) -> Value {
-    let nearest = ranked.iter().filter(|s| s.candidate.kind != Kind::Habitat).min_by(|a, b| a.candidate.t.total_cmp(&b.candidate.t));
-    let habitat = ranked.iter().find(|s| s.candidate.kind == Kind::Habitat);
-    let mut shown: Vec<&Scored> = ranked.iter().take(OPTIONS_SHOWN).collect();
-    for extra in [nearest, habitat].into_iter().flatten() {
-        if !shown.iter().any(|s| s.candidate.id == extra.candidate.id) {
-            shown.push(extra);
-        }
+/// The chosen site, every option within OPTIONS_WITHIN_MINUTES, and the base's walking time.
+fn reroute_info(d: &Decision, s: &StormConfig) -> Value {
+    let mut chosen = option_json(&d.chosen);
+    chosen["dose"] = json!(r(d.chosen.dose, 1));
+    chosen["late"] = json!(d.minutes_late.is_some());
+    if let Some(late) = d.minutes_late {
+        chosen["minutesLate"] = json!(r(late, 2));
     }
-    shown.sort_by(|a, b| a.score.total_cmp(&b.score).then(a.candidate.t.total_cmp(&b.candidate.t)));
-    json!({ "chosen": scored_json(&ranked[0]), "options": shown.into_iter().map(scored_json).collect::<Vec<_>>() })
+    let options: Vec<Value> = d.ranked.iter().filter(|o| o.candidate.t <= OPTIONS_WITHIN_MINUTES).map(option_json).collect();
+    let base = d.ranked.iter().find(|o| o.candidate.kind == Kind::Base).map(|b| {
+        json!({ "minutes": r(b.candidate.t, 2), "excludedByLimit": b.candidate.t > s.max_minutes_to_cover })
+    });
+    json!({ "chosen": chosen, "options": options, "base": base })
 }
 
 /// Prints the scored table for one position.
-pub fn print_table(ranked: &[Scored], storm: &StormConfig) {
+pub fn print_table(d: &Decision, storm: &StormConfig) {
     println!(
-        "Lead {} min, storm {} min, multiplier {}, no-link penalty {}, habitat {} min away at dose factor {}\n",
-        storm.lead_minutes, storm.storm_minutes, storm.dose_multiplier, storm.no_link_penalty, storm.habitat.return_minutes, storm.habitat.dose_factor
+        "Lead {} min, limit {} min to cover, storm {} min, multiplier {}, no-link penalty {}\n",
+        storm.lead_minutes, storm.max_minutes_to_cover, storm.storm_minutes, storm.dose_multiplier, storm.no_link_penalty
     );
-    println!("  {:<8} {:<8} {:>8} {:>8} {:>6} {:>5} {:>8} {:>8} {:>8} {:>8} {:>8}", "id", "kind", "t min", "blocked", "f", "link", "walking", "waiting", "storm", "dose", "score");
-    for (i, s) in ranked.iter().enumerate() {
+    println!("  {:<6} {:<8} {:>7} {:>8} {:>6} {:>5} {:>6} {:>8} {:>8} {:>8} {:>8} {:>8}", "id", "kind", "t min", "blocked", "f", "link", "in time", "walking", "waiting", "storm", "dose", "score");
+    for s in &d.ranked {
         let c = &s.candidate;
+        let mark = if c.id == d.chosen.candidate.id { ">" } else { " " };
         println!(
-            "{} {:<8} {:<8} {:>8.2} {:>8} {:>6.3} {:>5} {:>8.1} {:>8.1} {:>8.1} {:>8.1} {:>8.1}",
-            if i == 0 { ">" } else { " " }, c.id, c.kind.as_str(), c.t,
-            c.blocked.map_or("-".to_string(), |b| format!("{b:.3}")), c.f, if c.base_link { "yes" } else { "-" },
+            "{mark} {:<6} {:<8} {:>7.2} {:>8.3} {:>6.3} {:>5} {:>6} {:>8.1} {:>8.1} {:>8.1} {:>8.1} {:>8.1}",
+            c.id, c.kind.as_str(), c.t, c.blocked, c.f, if c.base_link { "yes" } else { "-" }, if s.reachable { "yes" } else { "-" },
             s.walking, s.waiting, s.storm, s.dose, s.score
         );
+    }
+    match d.minutes_late {
+        Some(late) => println!("\nNothing reachable within {} min: nearest is {}, {:.2} min late", storm.max_minutes_to_cover, d.chosen.candidate.id, late),
+        None => println!("\nChosen: {} ({}), {:.2} min", d.chosen.candidate.id, d.chosen.candidate.kind.as_str(), d.chosen.candidate.t),
     }
 }
 
@@ -359,13 +357,14 @@ pub fn run(inp: &PlanInputs, out_dir: &Path) -> Result<(), String> {
         refuge: usize,
         kind: Kind,
         id: String,
+        minutes_late: Option<f64>,
         info: Value,
     }
     let mut reroutes_plan: Vec<Reroute> = Vec::new();
     for p in &main_pts {
-        let opts = options_from(&ctx, inp, &inp.storm, p.x, p.y)?;
-        let ranked = decision::rank(&opts.candidates, &inp.storm);
-        let best = &ranked[0];
+        let opts = options_from(&ctx, inp, p.x, p.y)?;
+        let decision = decision::decide(&opts.candidates, &inp.storm);
+        let best = &decision.chosen;
         let idx = opts.candidates.iter().position(|c| c.id == best.candidate.id).unwrap();
         let rf = opts.refuge_of[idx];
         let target_cell = refuges[rf].cell;
@@ -399,7 +398,8 @@ pub fn run(inp: &PlanInputs, out_dir: &Path) -> Result<(), String> {
             refuge: rf,
             kind: best.candidate.kind,
             id: best.candidate.id.clone(),
-            info: reroute_info(&ranked),
+            minutes_late: decision.minutes_late,
+            info: reroute_info(&decision, &inp.storm),
         });
     }
 
@@ -470,7 +470,6 @@ pub fn run(inp: &PlanInputs, out_dir: &Path) -> Result<(), String> {
         let head = headings(&rr.pts, main_head[k]);
         let target = (refuges[rr.refuge].x, refuges[rr.refuge].y);
         let end_label = match rr.kind {
-            Kind::Habitat => "Base, return to habitat",
             Kind::Base => "Base",
             Kind::Shelter => "Shelter",
         };
@@ -563,14 +562,18 @@ pub fn run(inp: &PlanInputs, out_dir: &Path) -> Result<(), String> {
         );
     }
 
-    let k = main_pts.len() - 1;
-    let rr = &reroutes_plan[k];
-    let target = &refuges[rr.refuge];
-    println!(
-        "\nStorm reroute from the far point (m{k:02}): {} ({}) at ({:.1}, {:.1}), {:.2} min walking, {} waypoints",
-        rr.id, rr.kind.as_str(), target.x, target.y, rr.total_minutes, rr.pts.len()
-    );
-    println!("  {}", serde_json::to_string(&rr.info["chosen"]).unwrap());
+    println!("\nStorm choice from every main waypoint (limit {} min to cover)", inp.storm.max_minutes_to_cover);
+    println!("  {:<4} {:<17} {:<6} {:<8} {:>7} {:>9}", "wp", "label", "site", "kind", "minutes", "base min");
+    for (i, rr) in reroutes_plan.iter().enumerate() {
+        let base_min = rr.info["base"]["minutes"].as_f64().unwrap_or(f64::NAN);
+        let late = rr.minutes_late.map_or(String::new(), |l| format!("  LATE by {l:.2} min"));
+        println!(
+            "  m{i:02}  {:<17} {:<6} {:<8} {:>7.2} {:>9.2}{late}",
+            main_json[i]["label"].as_str().unwrap_or(""), rr.id, rr.kind.as_str(), rr.total_minutes, base_min
+        );
+    }
+    let late_count = reroutes_plan.iter().filter(|rr| rr.minutes_late.is_some()).count();
+    println!("  {} of {} waypoints have a site within the limit", reroutes_plan.len() - late_count, reroutes_plan.len());
     println!("\nWrote waypoints.json, shelters.json, briefing.json and layers/minutesToShelter.png to {}", out_dir.display());
     Ok(())
 }
