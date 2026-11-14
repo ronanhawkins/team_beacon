@@ -31,15 +31,15 @@ public static class BeaconMissionPreview
         camera.clearFlags=CameraClearFlags.SolidColor; camera.backgroundColor=new Color(.25f,.27f,.29f,1);
         camera.nearClipPlane=.05f; camera.farClipPlane=100; camera.fieldOfView=90; camera.stereoTargetEye=StereoTargetEyeMask.None;
         var target=new RenderTexture(1600,1000,24,RenderTextureFormat.ARGB32); target.Create(); camera.targetTexture=target;
-        void Capture(string name,int index,bool storm=false,bool vr=false,bool lookAtButte=false,bool offline=false,bool recenter=false)
+        void Capture(string name,int index,bool storm=false,bool vr=false,bool lookAtButte=false,bool offline=false,bool recenter=false,bool calibrate=true,float gaze=0)
         {
             var p=storm ? doc.reroutes["30"][index] : doc.main[index];
             var state=new MissionState {version=1,route=storm ? "reroute":"main",rerouteFrom=storm ? 30:(int?)null,waypointIndex=index,
                 storm=storm,mode=storm ? "storm":p.@base.visible ? "nominal":"warning",headingDeg=p.headingDeg,
                 shelterBearingDeg=p.shelter.az,minutesToShelter=p.shelter.minutes,openSky=p.openSky,doseFraction=p.doseFraction,
                 oxygenFraction=p.oxygenFraction,sunlit=p.sun.visible,baseLink=p.@base.visible,earthLink=p.earth.visible,earthDelayMinutes=delay};
-            rig.centerEyeAnchor.rotation=Quaternion.identity;
-            relay.Preview(state,doc,site); view.Calibrate(); view.SetImmersive(vr); view.Tick(10);
+            rig.centerEyeAnchor.rotation=Quaternion.Euler(0,gaze,0);
+            relay.Preview(state,doc,site); if(calibrate) view.Calibrate(); view.SetImmersive(vr); view.Tick(10);
             if(lookAtButte) rig.centerEyeAnchor.rotation=Quaternion.Euler(0,view.NorthYaw+315,0);
             if(offline) relay.PreviewOffline();
             if(recenter) view.Recenter();
@@ -51,7 +51,20 @@ public static class BeaconMissionPreview
             var image=new Texture2D(1600,1000,TextureFormat.RGB24,false); image.ReadPixels(new Rect(0,0,1600,1000),0,0); image.Apply();
             File.WriteAllBytes(Path.Combine(folder,name+".png"),image.EncodeToPNG()); UnityEngine.Object.DestroyImmediate(image);
         }
-        Capture("m00-base",0); Capture("m19-science",19); Capture("m19-northwest",19,lookAtButte:true);
+        Capture("m00-base",0);
+        var fixedSun=view.SkyDirection(doc.main[0].sun); float fixedNorth=view.NorthYaw;
+        Capture("fixed-sun-after-route-step",19,calibrate:false,gaze:90);
+        if(Mathf.Abs(Mathf.DeltaAngle(fixedNorth,view.NorthYaw))>.001f || Vector3.Angle(fixedSun,view.SkyDirection(doc.main[0].sun))>.01f)
+            throw new Exception("Head turn / route step rotated the calibrated Sun");
+        var skyMesh=view.transform.Find("Waypoint skyline ring/72-sample blocked sky").GetComponent<MeshFilter>().sharedMesh;
+        for(int i=0;i<72;i++)
+            if(skyMesh.vertices[i*6].y<-.001f || skyMesh.colors[i*6+4].a!=0)
+                throw new Exception("Skyline masks the ground or draws a horizontal baseline");
+        var atmosphereRoot=atmosphere.transform.Find("Mars atmosphere effects");
+        if(atmosphereRoot.GetComponentsInChildren<MeshRenderer>(true).Length!=1)
+            throw new Exception("Moving dust geometry was not removed");
+        Debug.Log("BEACON_VISUAL_REGRESSIONS_PASSED: fixed Sun, unchanged north, clear ground, no baseline, no particles");
+        Capture("m19-science",19); Capture("m19-northwest",19,lookAtButte:true);
         Capture("m25-warning",25); Capture("m30-storm",0,storm:true);
         Capture("shelter-arrival",doc.reroutes["30"].Count-1,storm:true); Capture("vr-fallback",19,vr:true);
         Capture("offline-calm",19,offline:true); Capture("offline-emergency",0,storm:true,offline:true);

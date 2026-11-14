@@ -16,6 +16,8 @@ namespace Beacon
         }
         public static bool AlertBorder(MissionState s, bool connected) => s?.Emergency==true || (connected && s?.mode=="warning");
         public static bool StormAtmosphere(MissionState s, bool connected) => connected && s?.storm==true;
+        public static bool ShowBaseMarker(Waypoint p) => p?.@base!=null && p.@base.distance>1;
+        public static bool ShowShelterMarker(Waypoint p) => p?.shelter!=null && !p.isShelter && p.shelter.distance>1;
         public static string Decision(MissionState state, RouteDocument doc)
         {
             if (state?.route != "reroute" || !state.rerouteFrom.HasValue || doc?.rerouteInfo == null ||

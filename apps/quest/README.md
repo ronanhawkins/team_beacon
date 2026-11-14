@@ -13,33 +13,34 @@ The laptop relay remains the authority. The app loads `/session.json` and that s
 - A readable lower strip shows minutes to shelter, base link, sunlight, oxygen and dose. It sits 18 degrees below forward gaze, with larger text than 0.3/0.4 and no far-corner readouts.
 - The compass is lowered from 27 to 16 degrees above forward gaze. One arrow marks the supplied direction of travel. The watch remains the detailed navigator; there is no route line or mini-map.
 - Open-sky percentage is prominent 24 degrees to the left. A named science-stop card appears at the same distance to the right. The HUD plane remains 1.2 m forward.
-- The ring uses the current waypoint's 72 skyline samples, with translucent blocked sky, a contour and N/E/S/W labels. Sample heights and orientation blend smoothly as the presenter advances. Each new travel direction is aligned in front of the wearer, who can then look around naturally.
-- Sun and Earth markers use supplied azimuth, elevation and visibility. Earth includes the relay's delay. Base includes its supplied distance and dims on loss of contact. Shelter includes the supplied walking minutes and pulses during emergencies. These markers describe the mission view, not furniture.
+- The ring uses the current waypoint's 72 skyline samples, with faint warm shading above the horizon, a soft sandstone contour and N/E/S/W labels. There is no flat horizontal baseline or fill over the ground. Sample heights blend as the route advances. North is calibrated once and remains fixed across route changes and head turns; explicit left-stick recentering can recalibrate it.
+- Sun and Earth markers use supplied azimuth, elevation and visibility. Earth includes the relay's delay. Base includes its supplied distance and dims on loss of contact. Shelter includes the supplied walking minutes and pulses during emergencies. Base and shelter destination markers disappear at arrival; the lower status still says “In shelter”. These markers describe the mission view, not furniture.
 - Warning mode shows an amber border and reason. Storm mode shows a red border, “Solar storm, take cover”, chime and pulsing shelter marker. Arrival says “In shelter” and keeps the shelter skyline and active storm warning.
 - The lower explanation comes directly from `rerouteInfo`, including the initial chosen-route time and why base was excluded. Current remaining minutes always come from the relay; the headset does not run its own timer or planner.
 - Data credit uses the site file's JPL Horizons time. Missing decision or metadata fields are not fabricated.
 - Disconnection labels readings as last-known data, hides navigation and retains any last-known emergency with a red border. Reconnection or arrival does not repeat the alert chime; a new emergency does.
 - Holding B shows a temporary progress bar, then the request/result. Already-sheltered and already-rerouted states give confirmation without another request. Feedback disappears automatically to keep the centre clear.
 
-Physical room movement and controller sticks do not advance the Mars route. The presenter uses the hub's Next/Storm/Reset controls. A surveyed lecture-hall route and persistent spatial anchors are a separate next step.
+Physical room movement does not advance the Mars route. Flick the right stick up/down to request one next/previous waypoint from the relay; release to the centre before another step. This is discrete route movement, not free locomotion. The hub's Next/Storm/Reset controls still work and all clients share the same state. A surveyed lecture-hall route and persistent spatial anchors are a separate next step.
 
 | Controller | Action |
 | --- | --- |
 | Right A | Toggle Mars atmosphere / clear passthrough |
 | Right B, hold one second | Ask the relay for a shelter route |
-| Left X | Toggle AR passthrough / VR fallback |
+| Right stick up/down | Next/previous route point; return stick to centre between steps |
+| Left X | Toggle AR passthrough / NASA panorama |
 | Left Y | Show or hide the skyline ring in AR |
 | Left stick click | Smoothly recenter the mission's forward direction to the current gaze |
 
-VR fallback uses an opaque dusty sky and the same data-driven skyline filled as a solid silhouette. X returns to AR. It is a fallback scene; the full textured terrain/panorama remains a later enhancement. The ring is always present in VR.
+VR uses a real [NASA/JPL-Caltech/MSSS Murray Buttes panorama](https://www.jpl.nasa.gov/images/pia20840-rovers-panorama-taken-amid-murray-buttes-on-mars/) (PIA20840, sol 1451), a warm sky, and the faint calculated skyline overlay. X returns to AR. This historical panorama is reference scenery, not a route-matched 3D terrain model. Its partial vertical coverage fades into the background. The original image is bundled and compressed to a 4096-pixel ASTC texture for Quest. See [image source and rendering notes](Assets/Beacon/Art/README.md).
 
 ## Mars atmosphere
 
-The native AR view starts with a translucent ochre sky, a small low sun and halo, low red mist and wind-blown sand. The room remains visible. Press **A on the right controller** to switch between Mars effects and clear passthrough; the HUD and live mission continue in both modes. **B held for one second** still requests shelter.
+The native AR view starts with a translucent ochre sky, a small Sun and halo, and static red horizon haze. All moving sand and mist particles have been removed. The room remains visible. Press **A on the right controller** to switch between Mars effects and clear passthrough; the HUD and live mission continue in both modes. **B held for one second** still requests shelter.
 
-The live solar-storm flag gradually thickens the illustrative dust and strengthens a quiet wind loop over four seconds. A panic request alone does not change the weather effect. Disconnected mission data lets the effect return to calm while the HUD retains its last-known emergency. The effect has two mesh draws (184 dust billboards and a small sky dome), no post-processing, and excludes particles close to the face. It never adds a route line or centre navigation panel.
+The live solar-storm flag gradually deepens the static red haze and strengthens a quiet wind loop over four seconds. A panic request alone does not change the weather effect. Disconnected mission data lets the effect return to calm while the HUD retains its last-known emergency. The effect uses one sky-dome draw, with no particles or post-processing. It never adds a route line or centre navigation panel.
 
-The dust and wind are artistic effects. The Sun now follows the waypoint's JPL Horizons direction and disappears behind the supplied skyline when `sun.visible` is false; its ring marker remains dimmed. The real terrain assets remain in `data/out/terrain/` for a later textured immersive scene. Shader stereo handling follows [Unity's single-pass instancing guidance](https://docs.unity.com/en-us/engine/6000.3/manual/xr/graphics/stereo-rendering/single-pass-instancing).
+The tint, haze and wind are artistic effects. The Sun follows the waypoint's JPL Horizons direction and disappears behind the supplied skyline when `sun.visible` is false; its ring marker remains dimmed. The current source Sun is at azimuth 280.4°, elevation 12°, for the scenario time 14 Nov 2026 19:40 UT. It stays anchored in the calibrated Mars frame; only its supplied visibility changes at different route points. A route turn no longer swings the Sun or Earth around the wearer. The real DEM remains in `data/out/terrain/` for a later navigable terrain scene. Shader stereo handling follows [Unity's single-pass instancing guidance](https://docs.unity.com/en-us/engine/6000.3/manual/xr/graphics/stereo-rendering/single-pass-instancing).
 
 ## Build and install
 
@@ -60,6 +61,8 @@ Development builds allow HTTP for the local USB mission connection. Do not treat
 `Mirror Quest USB.cmd` opens a read-only USB mirror using [the official scrcpy Windows release](https://github.com/Genymobile/scrcpy/blob/master/doc/windows.md). This laptop has version 5.0.1 in `.local/scrcpy/scrcpy-win64-v5.0.1/`; the download is excluded from Git. Connect the laptop to the projector over HDMI. No Meta casting sign-in is involved. The captured view depends on the Quest compositor; check the view with the app running before a presentation. The mirror does not capture microphone audio.
 
 ## Verified demo
+
+Version **0.7.0** is installed on Quest 3 (version code 7). It fixes the Sun/Earth frame across route changes, removes moving particles and ground fill, replaces the blue baseline with a faint warm contour, hides arrived destination markers, adds relay-backed right-stick route steps, and bundles the NASA panorama for VR. It passed **816 native checks**, **16 relay/client tests**, and eleven rendered mission previews. Scene regression checks exercise a 90° head turn plus route change, unchanged Sun/north, no ground mask, no flat baseline and one atmosphere draw with no dust geometry. The panorama was visually checked after feathering uncaptured mosaic boundaries without cutting out dark rocks. The Quest was asleep after installation; wearer confirmation of the new stick controls, fixed Sun and final appearance is still pending. USB mirroring is restored.
 
 Version **0.6.0** adds hold-to-request feedback, left-stick recentering, explicit stale readings and persistent last-known emergency alerts on USB loss. It passed **812 native checks**, built successfully, rendered ten mission previews, and was installed over USB (version code 6). The new offline and recenter screens were visually checked. The headset was asleep after this update, so the new controller actions await wearer confirmation. The USB mirror was reopened. The full live recording and measured frame rate below are from 0.5 immediately before this usability update.
 

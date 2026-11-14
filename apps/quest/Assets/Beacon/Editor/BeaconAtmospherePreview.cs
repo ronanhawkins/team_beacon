@@ -20,7 +20,6 @@ public static class BeaconAtmospherePreview
         camera.stereoTargetEye = StereoTargetEyeMask.None;
         var atmosphere = new GameObject("Preview atmosphere").AddComponent<MarsAtmosphere>();
         atmosphere.skyShader = AssetDatabase.LoadAssetAtPath<Shader>("Assets/Beacon/Shaders/MarsAtmosphere.shader");
-        atmosphere.dustShader = AssetDatabase.LoadAssetAtPath<Shader>("Assets/Beacon/Shaders/MarsDust.shader");
         atmosphere.CreateVisuals(camera.transform);
         var target = new RenderTexture(1280,720,24,RenderTextureFormat.ARGB32); target.Create(); camera.targetTexture = target;
         string folder = Path.GetFullPath("../../.local"); Directory.CreateDirectory(folder);
@@ -34,7 +33,7 @@ public static class BeaconAtmospherePreview
             UnityEngine.Object.DestroyImmediate(image);
         }
         RenderTexture.active = null; camera.targetTexture = null; target.Release(); UnityEngine.Object.DestroyImmediate(target);
-        foreach (var shader in new[] { atmosphere.skyShader, atmosphere.dustShader })
+        foreach (var shader in new[] { atmosphere.skyShader })
             if (ShaderUtil.ShaderHasError(shader)) throw new Exception("Atmosphere shader did not compile: " + shader.name);
         UnityEngine.Object.DestroyImmediate(atmosphere.gameObject); UnityEngine.Object.DestroyImmediate(camera.gameObject);
         Debug.Log("BEACON_ATMOSPHERE_PREVIEW_READY");

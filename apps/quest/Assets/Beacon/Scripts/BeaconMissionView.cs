@@ -84,9 +84,9 @@ namespace Beacon
             string key=relay.State.route+":"+relay.State.rerouteFrom+":"+relay.Selection.Point.id;
             if(key!=pointKey)
             {
-                // Each presenter step puts the new travel heading in front. Head
-                // turns between steps still look naturally around the whole ring.
-                targetNorth=EyeYaw-(float)relay.State.headingDeg; pointKey=key;
+                // Route changes must never rotate north, the Sun or the scenery.
+                // Only initial calibration / an explicit recenter sets this frame.
+                pointKey=key;
                 if(!hasSamples) { for(int i=0;i<72;i++) elevations[i]=(float)relay.Selection.Point.skyline[i]; hasSamples=true; }
             }
         }
@@ -111,7 +111,7 @@ namespace Beacon
         }
         void LateUpdate()
         {
-            if(!aligned && Time.timeSinceLevelLoad>1 && OVRPlugin.GetNodeOrientationTracked(OVRPlugin.Node.EyeCenter)) Calibrate();
+            if(!aligned && relay.Connected && relay.Selection!=null && Time.timeSinceLevelLoad>1 && OVRPlugin.GetNodeOrientationTracked(OVRPlugin.Node.EyeCenter)) Calibrate();
             Tick(Time.unscaledDeltaTime);
         }
         public void Tick(float delta)
@@ -123,27 +123,31 @@ namespace Beacon
             ring.gameObject.SetActive(available && (RingVisible || Immersive));
             if(!available) return;
             var p=relay.Selection.Point; var s=relay.State;
-            Color tone=s.Emergency ? new Color(1,.39f,.30f) : s.mode=="warning" ? new Color(1,.72f,.26f) : new Color(.46f,.86f,.92f);
+            Color tone=s.Emergency ? new Color(1,.48f,.34f) : s.mode=="warning" ? new Color(1,.72f,.38f) : new Color(.85f,.62f,.42f);
             float blend=1-Mathf.Exp(-delta*5);
             for(int i=0;i<72;i++) elevations[i]=Mathf.Lerp(elevations[i],(float)p.skyline[i],blend);
             for(int i=0;i<=72;i++)
             {
                 float az=i*5,el=elevations[i%72]; int v=i*6;
-                vertices[v]=Direction(az,Immersive ? -89.9f : -18)*6;
+                // The measured mask covers blocked SKY only. Never paint the
+                // room's floor or the photographic ground with a flat silhouette.
+                vertices[v]=Direction(az,0)*6;
                 vertices[v+1]=Direction(az,el)*6;
                 vertices[v+2]=Direction(az,el-.12f)*5.995f;
                 vertices[v+3]=Direction(az,el+.12f)*5.995f;
                 vertices[v+4]=Direction(az,-.055f)*5.99f; vertices[v+5]=Direction(az,.055f)*5.99f;
-                colours[v]=Immersive ? new Color(.22f,.10f,.055f,1) : new Color(.30f,.49f,.52f,0);
-                colours[v+1]=Immersive ? new Color(.36f,.20f,.12f,1) : new Color(tone.r,tone.g,tone.b,.16f);
-                colours[v+2]=colours[v+3]=new Color(tone.r,tone.g,tone.b,.68f);
-                colours[v+4]=colours[v+5]=new Color(.65f,.78f,.81f,.22f);
+                colours[v]=new Color(tone.r,tone.g,tone.b,0);
+                colours[v+1]=new Color(tone.r,tone.g,tone.b,.055f);
+                colours[v+2]=colours[v+3]=new Color(tone.r,tone.g,tone.b,.32f);
+                colours[v+4]=colours[v+5]=Color.clear;
             }
             mesh.vertices=vertices; mesh.colors=colours;
             Place(sun,(float)p.sun.az,(float)p.sun.el,"Sun",new Color(1,.83f,.43f),p.sun.visible && s.sunlit);
             Place(earth,(float)p.earth.az,(float)p.earth.el,earthText,new Color(.56f,.76f,1),p.earth.visible && s.earthLink);
             Place(baseMarker,(float)p.@base.az,-1,baseText,Color.white,p.@base.visible && s.baseLink);
             Place(shelter,(float)s.shelterBearingDeg,4,shelterText,tone,true);
+            baseMarker.root.gameObject.SetActive(MissionPresentation.ShowBaseMarker(p));
+            shelter.root.gameObject.SetActive(MissionPresentation.ShowShelterMarker(p));
             shelter.root.localScale *= s.Emergency ? 1+.06f*Mathf.Sin(Time.unscaledTime*4) : 1;
             for(int i=0;i<4;i++) Place(cardinal[i],i*90,-5,Cardinals[i],Color.white,true,true);
         }

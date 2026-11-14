@@ -48,6 +48,12 @@ if (!$UseSourceProject) {
             Get-ChildItem -LiteralPath $from -Force | Copy-Item -Destination $to -Recurse -Force
         }
     }
+    # Return derived panorama coverage and importer settings, never overwrite the
+    # original NASA photo or source credit document with an older working copy.
+    foreach ($name in @('PanoramaBounds.asset', 'PanoramaBounds.asset.meta', 'MurrayButtes-PIA20840.jpg.meta')) {
+        $relative = Join-Path 'Assets\Beacon\Art' $name
+        Copy-Item -LiteralPath (Join-Path $project $relative) -Destination (Join-Path $sourceProject $relative) -Force
+    }
     Get-ChildItem -LiteralPath (Join-Path $project 'Assets') -Filter '*.meta' -Recurse | ForEach-Object {
         $relative = $_.FullName.Substring($project.Length + 1); $to = Join-Path $sourceProject $relative
         $asset = $to.Substring(0, $to.Length - 5)

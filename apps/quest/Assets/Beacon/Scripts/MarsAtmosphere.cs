@@ -5,17 +5,18 @@ using UnityEngine.Rendering;
 namespace Beacon
 {
     // An illustrative AR atmosphere, not a terrain or weather simulation.
-    // Two lightweight mesh draws; no camera feed processing or depth assumptions.
+    // One static sky draw; no moving particles or camera-feed processing.
     public sealed class MarsAtmosphere : MonoBehaviour
     {
         public OVRCameraRig rig;
         public BeaconRelay relay;
         public BeaconMissionView missionView;
-        public Shader skyShader, dustShader;
+        public Shader skyShader;
+        public Texture2D panorama, panoramaBounds;
         public bool effectsEnabled = true;
-        Transform eye, visuals, sky, dust;
-        Material skyMaterial, dustMaterial;
-        Mesh skyMesh, dustMesh;
+        Transform eye, visuals, sky;
+        Material skyMaterial;
+        Mesh skyMesh;
         AudioSource wind;
         AudioClip windClip;
         float storm;
@@ -26,16 +27,18 @@ namespace Beacon
         public void CreateVisuals(Transform viewpoint)
         {
             if (visuals != null) return;
-            if (skyShader == null || dustShader == null) throw new InvalidOperationException("Mars atmosphere shaders are missing");
+            if (skyShader == null) throw new InvalidOperationException("Mars atmosphere shaders are missing");
             eye = viewpoint;
             visuals = new GameObject("Mars atmosphere effects").transform;
             visuals.SetParent(transform, false);
             skyMaterial = new Material(skyShader) { name = "Mars sky and sun" };
-            dustMaterial = new Material(dustShader) { name = "Airborne ochre dust" };
-            skyMesh = MakeDome(); dustMesh = MakeDust();
+            skyMaterial.SetFloat("_SunVisibility",0);
+            skyMaterial.SetTexture("_Panorama",panorama);
+            skyMaterial.SetTexture("_PanoramaBounds",panoramaBounds);
+            skyMaterial.SetFloat("_HasPanorama",panorama!=null ? 1 : 0);
+            skyMesh = MakeDome();
             sky = Draw("Dusty sky, sun and horizon haze", skyMesh, skyMaterial);
-            dust=Draw("Drifting sand and low red mist", dustMesh, dustMaterial);
-            SetSun(45);
+            sky.position=eye.position;
             wind = gameObject.AddComponent<AudioSource>(); wind.loop = true; wind.spatialBlend = 0;
             wind.volume = .04f; windClip = MakeWind(); wind.clip = windClip;
             SetEffectsEnabled(effectsEnabled);
@@ -57,7 +60,6 @@ namespace Beacon
             effectsEnabled = enabled;
             if (visuals == null) return;
             visuals.gameObject.SetActive(enabled || immersive);
-            dust.gameObject.SetActive(enabled);
             if (enabled && !paused) wind.Play(); else wind.Stop();
             Debug.Log("BEACON_ATMOSPHERE: " + (enabled ? "Mars AR" : "Clear passthrough"));
         }
@@ -67,11 +69,11 @@ namespace Beacon
             if(visuals==null) return;
             skyMaterial.SetFloat("_Immersive",enabled ? 1 : 0);
             visuals.gameObject.SetActive(effectsEnabled || enabled);
-            dust.gameObject.SetActive(effectsEnabled);
         }
         public void UpdateSun()
         {
             if(skyMaterial==null || missionView==null) return;
+            skyMaterial.SetFloat("_NorthYaw",missionView.NorthYaw);
             bool available=relay!=null && relay.Connected && relay.Selection!=null;
             skyMaterial.SetFloat("_SunVisibility",available && relay.Selection.Point.sun.visible && relay.State.sunlit ? 1 : 0);
             if(available) skyMaterial.SetVector("_SunDirection",missionView.SkyDirection(relay.Selection.Point.sun));
@@ -79,14 +81,9 @@ namespace Beacon
         public void SetStormStrength(float strength)
         {
             storm = Mathf.Clamp01(strength);
-            skyMaterial.SetFloat("_Storm", storm); dustMaterial.SetFloat("_Storm", storm);
+            skyMaterial.SetFloat("_Storm", storm);
             wind.volume = Mathf.Lerp(.04f, .10f, storm);
             wind.pitch = Mathf.Lerp(.8f, 1.05f, storm);
-        }
-        void SetSun(float azimuth)
-        {
-            float radians = azimuth * Mathf.Deg2Rad, elevation = 12 * Mathf.Deg2Rad;
-            skyMaterial.SetVector("_SunDirection", new Vector4(Mathf.Sin(radians) * Mathf.Cos(elevation), Mathf.Sin(elevation), Mathf.Cos(radians) * Mathf.Cos(elevation), 0));
         }
         void LateUpdate()
         {
@@ -108,7 +105,7 @@ namespace Beacon
         void OnDestroy()
         {
             if (visuals != null) Release(visuals.gameObject);
-            Release(skyMesh); Release(dustMesh); Release(skyMaterial); Release(dustMaterial); Release(windClip);
+            Release(skyMesh); Release(skyMaterial); Release(windClip);
         }
         static void Release(UnityEngine.Object asset)
         { if (asset == null) return; if (Application.isPlaying) Destroy(asset); else DestroyImmediate(asset); }
@@ -131,33 +128,6 @@ namespace Beacon
             }
             var mesh = new Mesh { name = "Low-poly atmosphere dome", vertices = vertices, triangles = triangles };
             mesh.RecalculateBounds(); mesh.UploadMeshData(true); return mesh;
-        }
-        static Mesh MakeDust()
-        {
-            const int grains = 160, wisps = 24, count = grains + wisps;
-            var random = new System.Random(7361);
-            float Range(float min, float max) => Mathf.Lerp(min, max, (float)random.NextDouble());
-            var vertices = new Vector3[count * 4]; var uv = new Vector2[count * 4];
-            var sizes = new Vector2[count * 4]; var drift = new Vector2[count * 4];
-            var colours = new Color[count * 4]; var triangles = new int[count * 6];
-            var corners = new[] { new Vector2(-1,-1), new Vector2(-1,1), new Vector2(1,1), new Vector2(1,-1) };
-            for (int n = 0; n < count; n++)
-            {
-                bool mist = n >= grains;
-                var centre = new Vector3(0, mist ? Range(.10f, .65f) : Range(.08f, n % 5 == 0 ? 3 : 1.1f), Range(-12, 12));
-                float radius = Range(.018f, .045f);
-                var size = mist ? new Vector2(Range(2.4f, 5.5f), Range(.25f, .55f)) : new Vector2(radius, radius * .38f);
-                var motion = new Vector2(mist ? Range(.010f,.018f) : Range(.025f,.045f), Range(0,1));
-                var colour = mist ? new Color(.68f,.23f,.09f,.13f) : Color.Lerp(new Color(.64f,.32f,.13f,.55f), new Color(.94f,.65f,.32f,.75f), Range(0,1));
-                for (int k = 0; k < 4; k++) { int i = n * 4 + k; vertices[i] = centre; uv[i] = corners[k]; sizes[i] = size; drift[i] = motion; colours[i] = colour; }
-                int t = n * 6, v = n * 4;
-                triangles[t] = v; triangles[t+1] = v+1; triangles[t+2] = v+2;
-                triangles[t+3] = v; triangles[t+4] = v+2; triangles[t+5] = v+3;
-            }
-            var mesh = new Mesh { name = "184 lightweight dust billboards", vertices = vertices, uv = uv, uv2 = sizes, uv3 = drift, colors = colours, triangles = triangles };
-            // Vertex animation crosses the field; static centres alone are not its bounds.
-            mesh.bounds = new Bounds(new Vector3(0,2,0), new Vector3(38,9,30));
-            mesh.UploadMeshData(true); return mesh;
         }
         static AudioClip MakeWind()
         {

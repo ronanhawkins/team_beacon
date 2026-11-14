@@ -30,6 +30,10 @@ namespace Beacon
         AudioSource sound;
         float pulseUntil,requestHeld,feedbackUntil,requestDeadline;
         bool requestSent,requestPending,wasEmergency;
+        bool stepPending,stickReady=true;
+        float stepDeadline;
+        string stepOrigin;
+        string CurrentPoint => relay.State?.route+":"+relay.State?.rerouteFrom+":"+relay.Selection?.Point.id;
 
         RectTransform Surface(string name,float yaw,float pitch,float width,float height,float metres)
         {
@@ -125,6 +129,7 @@ namespace Beacon
             decisionPanel.gameObject.SetActive(!string.IsNullOrEmpty(decision.text));
             credit.text=MissionPresentation.Credit(relay.Site);
             if(requestPending && live && s.route=="reroute") { requestPending=false; ShowFeedback("SHELTER ROUTE ACTIVE"); }
+            if(stepPending && live && CurrentPoint!=stepOrigin) { stepPending=false; ShowFeedback("ARRIVED · "+p.Name); }
         }
         public void Tick()
         {
@@ -144,7 +149,9 @@ namespace Beacon
                 waypoint.localEulerAngles=new Vector3(0,0,Mathf.Abs(relative)>CompassHalfSpan ? -Mathf.Sign(relative)*90 : 0);
             }
             viewMode.text=missionView.Immersive ? "VR · X: AR" : "AR · X: VR";
+            credit.text=missionView.Immersive ? "Scenery: NASA/JPL-Caltech/MSSS · Sol 1451 reference panorama" : MissionPresentation.Credit(relay.Site);
             if(alertGroup.gameObject.activeSelf) alertGroup.alpha=Time.unscaledTime<pulseUntil ? .88f+.12f*Mathf.Sin(Time.unscaledTime*5) : 1;
+            if(stepPending && Time.unscaledTime>=stepDeadline) { stepPending=false; ShowFeedback("NO REPLY · TRY STICK AGAIN"); }
             if(requestPending && Time.unscaledTime>=requestDeadline) { requestPending=false; ShowFeedback("NO REPLY · TRY B AGAIN"); }
             bool holding=requestHeld>0 && !requestSent;
             feedbackPanel.gameObject.SetActive(holding || Time.unscaledTime<feedbackUntil);
@@ -153,6 +160,19 @@ namespace Beacon
         }
         void ShowFeedback(string text,float seconds=2.5f) { feedback.text=text; feedbackUntil=Time.unscaledTime+seconds; }
         void OnRecenter() => ShowFeedback("VIEW RECENTERED");
+        async Task StepWithFeedback(bool forward)
+        {
+            if(stepPending) return;
+            var selected=relay.Selection;
+            if(!relay.Connected || selected==null) { ShowFeedback("OFFLINE · CHECK USB"); return; }
+            if(forward && selected.Index>=selected.Points.Count-1) { ShowFeedback("ROUTE COMPLETE"); return; }
+            if(!forward && selected.Index==0) { ShowFeedback("START OF ROUTE"); return; }
+            stepOrigin=CurrentPoint; stepPending=true; stepDeadline=Time.unscaledTime+5;
+            ShowFeedback(forward ? "NEXT STOP…" : "PREVIOUS STOP…",5);
+            bool sent=await relay.StepRoute(forward);
+            if(this==null) return;
+            if(!sent) { stepPending=false; ShowFeedback("MOVE FAILED · TRY AGAIN"); }
+        }
         async Task RequestShelterWithFeedback()
         {
             if(!relay.Connected) { ShowFeedback("OFFLINE · CHECK USB"); return; }
@@ -168,6 +188,10 @@ namespace Beacon
         void LateUpdate()
         {
             Tick();
+            var stick=OVRInput.Get(OVRInput.Axis2D.PrimaryThumbstick,OVRInput.Controller.RTouch);
+            if(Mathf.Abs(stick.y)<.25f) stickReady=true;
+            else if(stickReady && Mathf.Abs(stick.y)>.75f && Mathf.Abs(stick.x)<.5f)
+            { stickReady=false; _=StepWithFeedback(stick.y>0); }
             if(OVRInput.Get(OVRInput.Button.Two,OVRInput.Controller.RTouch))
             {
                 if(requestHeld==0) feedbackUntil=0;

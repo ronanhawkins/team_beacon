@@ -90,9 +90,13 @@ public static class BeaconVerify
         Check(MissionPresentation.Alert(solar,true,true)=="IN SHELTER · HOLD POSITION" && MissionPresentation.AlertBorder(solar,true), "arrival does not dismiss active emergency");
         var disconnected=new GameObject("Offline shelter request check").AddComponent<BeaconRelay>();
         Check(!disconnected.RequestShelter().GetAwaiter().GetResult(), "offline request reports failure instead of false confirmation");
+        Check(!disconnected.StepRoute(true).GetAwaiter().GetResult() && !disconnected.StepRoute(false).GetAwaiter().GetResult(), "offline route controls never claim to advance");
         UnityEngine.Object.DestroyImmediate(disconnected.gameObject);
         var site=JsonConvert.DeserializeObject<MissionSite>(File.ReadAllText(Path.GetFullPath("../../data/site.json")));
         Check(MissionPresentation.Credit(site).Contains("14 Nov 2026 19:40 UT"), "sky credit uses source time");
+        Check(!MissionPresentation.ShowBaseMarker(exported.main[0]), "base marker disappears at base");
+        Check(!MissionPresentation.ShowShelterMarker(arrival), "arrived shelter is not a horizon destination");
+        Check(MissionPresentation.ShowShelterMarker(exported.main[30]), "shelter remains a destination before arrival");
         foreach(var graphicType in new[] {typeof(CompassGraphic),typeof(ArrowGraphic),typeof(HudBorderGraphic)})
         {
             var graphic=new GameObject("Renderer regression check",graphicType);

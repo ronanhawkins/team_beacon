@@ -25,7 +25,7 @@ public static class BeaconBuild
         Directory.CreateDirectory("Assets/Beacon/Scenes"); Directory.CreateDirectory("Assets/XR");
         PlayerSettings.companyName = "Team Beacon"; PlayerSettings.productName = "Beacon AR";
         PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, "com.teambeacon.ar");
-        PlayerSettings.bundleVersion = "0.6.0"; PlayerSettings.Android.bundleVersionCode = 6;
+        PlayerSettings.bundleVersion = "0.7.0"; PlayerSettings.Android.bundleVersionCode = 7;
         PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android, ScriptingImplementation.IL2CPP);
         PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64;
         PlayerSettings.Android.minSdkVersion = AndroidSdkVersions.AndroidApiLevel32;
@@ -104,12 +104,55 @@ public static class BeaconBuild
         var atmosphere = app.AddComponent<MarsAtmosphere>(); atmosphere.rig = rig; atmosphere.relay = relay;
         atmosphere.missionView=missionView; missionView.atmosphere=atmosphere;
         atmosphere.skyShader = AssetDatabase.LoadAssetAtPath<Shader>("Assets/Beacon/Shaders/MarsAtmosphere.shader");
-        atmosphere.dustShader = AssetDatabase.LoadAssetAtPath<Shader>("Assets/Beacon/Shaders/MarsDust.shader");
-        if (atmosphere.skyShader == null || atmosphere.dustShader == null) throw new Exception("Mars atmosphere shaders are missing");
+        const string photoPath="Assets/Beacon/Art/MurrayButtes-PIA20840.jpg";
+        var photoImporter=AssetImporter.GetAtPath(photoPath) as TextureImporter;
+        if(photoImporter==null) throw new Exception("NASA panorama is missing");
+        photoImporter.textureType=TextureImporterType.Default; photoImporter.sRGBTexture=true;
+        photoImporter.maxTextureSize=4096; photoImporter.mipmapEnabled=true; photoImporter.isReadable=true;
+        photoImporter.wrapModeU=TextureWrapMode.Repeat; photoImporter.wrapModeV=TextureWrapMode.Clamp;
+        photoImporter.SetPlatformTextureSettings(new TextureImporterPlatformSettings {name="Android",overridden=true,maxTextureSize=4096,format=TextureImporterFormat.ASTC_6x6});
+        photoImporter.SaveAndReimport();
+        atmosphere.panorama=AssetDatabase.LoadAssetAtPath<Texture2D>(photoPath);
+        atmosphere.panoramaBounds=MakePanoramaBounds(atmosphere.panorama);
+        photoImporter.isReadable=false; photoImporter.SaveAndReimport();
+        if (atmosphere.skyShader == null || atmosphere.panorama==null) throw new Exception("Mars atmosphere assets are missing");
         EditorSceneManager.SaveScene(scene, ScenePath);
         EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
         AssetDatabase.SaveAssets();
         Debug.Log("BEACON_PREPARED: Native passthrough scene and OpenXR settings ready");
+    }
+    static Texture2D MakePanoramaBounds(Texture2D photo)
+    {
+        const string path="Assets/Beacon/Art/PanoramaBounds.asset";
+        const int columns=256;
+        var bounds=AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+        if(bounds==null) { bounds=new Texture2D(columns,1,TextureFormat.RGBA32,false,true); AssetDatabase.CreateAsset(bounds,path); }
+        bounds.name="NASA mosaic captured bounds"; bounds.wrapMode=TextureWrapMode.Repeat; bounds.filterMode=FilterMode.Bilinear;
+        var pixels=photo.GetPixels32(); var values=new Color[columns];
+        bool Missing(int x,int y) { var c=pixels[y*photo.width+x]; return c.r+c.g+c.b<20; }
+        for(int i=0;i<columns;i++)
+        {
+            int lower=0,upper=photo.height-1;
+            for(int neighbour=-2;neighbour<=2;neighbour++)
+            {
+                int x=((int)((i+.5f)*photo.width/columns)+neighbour+photo.width)%photo.width;
+                int lo=0,hi=photo.height-1;
+                while(lo<photo.height-1 && Missing(x,lo)) lo++;
+                while(hi>lo && Missing(x,hi)) hi--;
+                lower=Mathf.Max(lower,lo); upper=Mathf.Min(upper,hi);
+            }
+            values[i]=new Color((lower+3f)/photo.height,(upper-3f)/photo.height,0,1);
+        }
+        // Be conservative near abrupt stitching edges. Bilinear interpolation
+        // between a tall and short captured column must not reveal a black sliver.
+        var guarded=new Color[columns];
+        for(int i=0;i<columns;i++)
+        {
+            float low=0,high=1;
+            for(int j=-3;j<=3;j++) { var v=values[(i+j+columns)%columns]; low=Mathf.Max(low,v.r); high=Mathf.Min(high,v.g); }
+            guarded[i]=new Color(low,high,0,1);
+        }
+        bounds.SetPixels(guarded); bounds.Apply(false,false); EditorUtility.SetDirty(bounds); return bounds;
     }
     [MenuItem("Beacon/Build Quest APK")]
     public static void BuildAndroid()
