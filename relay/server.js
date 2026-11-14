@@ -26,6 +26,20 @@ const DEFAULT_EARTH_DELAY_MINUTES = 14;
 const PING_INTERVAL_MS = 15000;
 
 const ROOT = path.resolve(__dirname, '..');
+
+// Site: SITE=<name> in the environment, or --site <name>, serves data/sites/<name>/site.json,
+// data/out/<name>/waypoints.json and data/out/<name>/ as /data/. Without one (the default, Gale) it is
+// data/site.json and data/out/, as before. The apps keep the same URLs either way.
+const SITE = (() => {
+  const i = process.argv.indexOf('--site');
+  const name = i >= 0 ? process.argv[i + 1] : process.env.SITE;
+  if (!name) return null;
+  if (!/^[A-Za-z0-9_-]+$/.test(name)) throw new Error(`Site name "${name}" must be letters, digits, - or _`);
+  return name;
+})();
+const SITE_FILE = SITE ? path.join(ROOT, 'data/sites', SITE, 'site.json') : path.join(ROOT, 'data/site.json');
+const DATA_OUT = SITE ? path.join(ROOT, 'data/out', SITE) : path.join(ROOT, 'data/out');
+if (SITE && !fs.existsSync(SITE_FILE)) throw new Error(`No site file for site "${SITE}": ${path.relative(ROOT, SITE_FILE)}`);
 const CERT_DIR = path.join(__dirname, 'certs');
 
 // The headset is built with Vite (root package.json, vite.config.js) into dist/.
@@ -40,7 +54,7 @@ const MOUNTS = {
   ...(HEADSET_IS_BUILT ? { '/assets/': path.join(ROOT, 'dist/assets') } : {}),
   '/wrist/': path.join(ROOT, 'apps/wrist'),
   '/shared/': path.join(ROOT, 'shared'),
-  '/data/': path.join(ROOT, 'data/out'),
+  '/data/': DATA_OUT,
 };
 
 const MIME = {
@@ -63,7 +77,8 @@ function log(...args) {
 function loadWaypoints() {
   const candidates = process.env.WAYPOINTS
     ? [path.resolve(process.env.WAYPOINTS)]
-    : [path.join(ROOT, 'data/out/waypoints.json'), path.join(ROOT, 'shared/fake/waypoints.json')];
+    // A named site has no fake fallback: the fake route belongs to no site.
+    : [path.join(DATA_OUT, 'waypoints.json'), ...(SITE ? [] : [path.join(ROOT, 'shared/fake/waypoints.json')])];
   const file = candidates.find((f) => fs.existsSync(f));
   if (!file) throw new Error(`No waypoint file found. Tried: ${candidates.join(', ')}`);
   const doc = JSON.parse(fs.readFileSync(file, 'utf8'));
@@ -74,12 +89,13 @@ function loadWaypoints() {
 
 function loadSite() {
   try {
-    return JSON.parse(fs.readFileSync(path.join(ROOT, 'data/site.json'), 'utf8'));
+    return JSON.parse(fs.readFileSync(SITE_FILE, 'utf8'));
   } catch {
     return {}; // missing or unreadable: every value falls back to its default
   }
 }
 
+log(SITE ? `Site ${SITE}: ${path.relative(ROOT, SITE_FILE)}, /data/ = ${path.relative(ROOT, DATA_OUT)}/` : 'Site: default (Gale): data/site.json, /data/ = data/out/');
 const { doc: waypoints, synthetic } = loadWaypoints();
 const site = loadSite();
 const earthDelayMinutes = typeof site.earthDelayMinutes === 'number' ? site.earthDelayMinutes : DEFAULT_EARTH_DELAY_MINUTES;
@@ -121,6 +137,8 @@ function buildState() {
     baseLink: wp.base.visible,
     earthLink: wp.earth.visible,
     earthDelayMinutes,
+    // Optional addition (shared/state.md): which site the relay serves. Only sent when one was chosen.
+    ...(SITE && { site: SITE }),
   };
   if (state.storm || state.panic) state.mode = 'storm';
   else if (!state.baseLink || state.minutesToShelter > WARNING_MINUTES_TO_SHELTER) state.mode = 'warning';
@@ -279,7 +297,7 @@ function onRequest(req, res) {
   if (urlPath === '/session.json') return send(res, 200, 'application/json', JSON.stringify({ version: 1, waypoints: '/mission/waypoints.json', synthetic }));
   if (urlPath === '/mission/waypoints.json') return send(res, 200, 'application/json', JSON.stringify(waypoints));
   // The one file outside data/out/ that pages may read.
-  if (urlPath === '/data/site.json') return serveFile(res, path.join(ROOT, 'data/site.json'));
+  if (urlPath === '/data/site.json') return serveFile(res, SITE_FILE);
   if (urlPath === '/clients') {
     const list = [...clients].map(({ role, transport, address, since }) => ({ role, transport, address, since }));
     return send(res, 200, 'application/json', JSON.stringify(list));

@@ -42,6 +42,18 @@
     "note": "parkingSpotInCrop is in GDAL pixel coordinates, where whole numbers are cell corners. Code should use parkingSpotLocal (local metres, see shared/conventions.md)"
   },
 
+  "grid": {
+    "description": "The frame of the crops in data/raw (near.bin): local metres are measured from the crop's south-west corner (shared/conventions.md). The engine checks near.bin's header against this",
+    "metresPerPixel": 1.0,
+    "southWestEasting": 8140057.492786,
+    "southWestNorthing": -279807.075189,
+    "projection": "PROJCS[\"Mars_Equirectangular_clon0\",GEOGCS[\"GCS_Mars_2000_Sphere\",DATUM[\"D_Mars_2000_Sphere\",SPHEROID[\"Mars_2000_Sphere_IAU_IAG\",3396190.0,0.0]],PRIMEM[\"Reference_Meridian\",0.0],UNIT[\"Degree\",0.0174532925199433]],PROJECTION[\"Equidistant_Cylindrical\"],PARAMETER[\"False_Easting\",0.0],PARAMETER[\"False_Northing\",0.0],PARAMETER[\"Central_Meridian\",0.0],PARAMETER[\"Standard_Parallel_1\",0.0],UNIT[\"Meter\",1.0]]"
+  },
+
+  "farFieldCentre": { "x": 1500.415, "y": 1500.383, "note": "Where the far-field skyline is computed once and reused everywhere. The parking spot (nearCrop.parkingSpotLocal)" },
+
+  "layersRegion": { "originX": 748.0, "originY": 748.0, "cells": 375, "metresPerPixel": 4.0, "note": "The square engine layers covers, local metres: x and y from 748 to 2248 m in 4 m cells" },
+
   "farCrop": {
     "description": "Whole mosaic at 20 m per pixel, for the distant horizon",
     "command": "gdal_translate -tr 20 20 -r average -of ENVI -ot Float32 MSL_Gale_DEM_Mosaic_1m_v3.tif far.bin"
@@ -70,30 +82,37 @@
     { "sol": 1471, "easting": 8141650.196, "northing": -278417.532, "elevation": -4372.68 }
   ],
 
-  "paperTarget": {
-    "source": "Ehresmann et al. 2021, Natural Radiation Shielding on Mars Measured With the MSL/RAD Instrument, JGR Planets",
-    "skyBlockedAtButte": 0.19,
-    "skyBlockedReference": 0.10,
-    "doseReduction": "about 4 to 5 percent"
-  },
+  "validation": {
+    "description": "Ground truth for engine check. A site without this section gets only the fast-against-precise self-check at its first route stop",
+    "checkPoint": { "name": "parking spot", "x": 1500.415, "y": 1500.383 },
+    "openGroundStop": "sol1468",
+    "skyCheckStops": ["sol1471"],
 
-  "referenceCheck": {
-    "description": "Values from a quick independent script, for testing the engine against. Not from the paper",
-    "method": "Observer 1 m above the terrain. 360 azimuths. Marched in 0.5 m steps out to 280 m with bilinear sampling. Local terrain only, no distant horizon and no curvature. Blocked fraction is the mean of sin(skyline elevation), negative elevations counted as 0. Positions are in local metres and cell centres are at half-pixel offsets",
-    "note": "An earlier version gave blockedAtParkingSpot 0.149. That run sampled with a half-pixel offset (whole-number pixel coordinates treated as cell centres)",
-    "blockedAtParkingSpot": 0.154,
-    "blockedWithin5mTowardsButte": "0.19 to 0.21 (5 m north and north-west of the spot)",
-    "blockedOpenGroundSol1468": 0.026,
-    "blockedSol1454": 0.086,
-    "blockedSol1446": 0.078,
-    "skylineAtParkingSpotDeg": {
-      "0": 26.4, "15": 19.2, "30": 5.4, "45": 2.4, "60": 1.9, "75": 3.1,
-      "90": 1.1, "105": 1.9, "120": 2.4, "135": 3.1, "150": 3.4, "165": 3.5,
-      "180": 2.6, "195": 1.6, "210": 1.6, "225": 2.3, "240": 2.5, "255": 2.1,
-      "270": 6.9, "285": 17.8, "300": 21.2, "315": 27.2, "330": 28.9, "345": 28.0
+    "paperTarget": {
+      "source": "Ehresmann et al. 2021, Natural Radiation Shielding on Mars Measured With the MSL/RAD Instrument, JGR Planets",
+      "skyBlockedAtButte": 0.19,
+      "skyBlockedReference": 0.10,
+      "doseReduction": "about 4 to 5 percent"
     },
-    "terrainAtParkingSpot": -4379.406,
-    "butteTopAboveSpot": "about 8 to 9 m, 10 to 20 m to the north and north-west"
+
+    "referenceCheck": {
+      "description": "Values from a quick independent script, for testing the engine against. Not from the paper",
+      "method": "Observer 1 m above the terrain. 360 azimuths. Marched in 0.5 m steps out to 280 m with bilinear sampling. Local terrain only, no distant horizon and no curvature. Blocked fraction is the mean of sin(skyline elevation), negative elevations counted as 0. Positions are in local metres and cell centres are at half-pixel offsets",
+      "note": "An earlier version gave blockedAtParkingSpot 0.149. That run sampled with a half-pixel offset (whole-number pixel coordinates treated as cell centres)",
+      "blockedAtParkingSpot": 0.154,
+      "blockedWithin5mTowardsButte": "0.19 to 0.21 (5 m north and north-west of the spot)",
+      "blockedOpenGroundSol1468": 0.026,
+      "blockedSol1454": 0.086,
+      "blockedSol1446": 0.078,
+      "skylineAtParkingSpotDeg": {
+        "0": 26.4, "15": 19.2, "30": 5.4, "45": 2.4, "60": 1.9, "75": 3.1,
+        "90": 1.1, "105": 1.9, "120": 2.4, "135": 3.1, "150": 3.4, "165": 3.5,
+        "180": 2.6, "195": 1.6, "210": 1.6, "225": 2.3, "240": 2.5, "255": 2.1,
+        "270": 6.9, "285": 17.8, "300": 21.2, "315": 27.2, "330": 28.9, "345": 28.0
+      },
+      "terrainAtParkingSpot": -4379.406,
+      "butteTopAboveSpot": "about 8 to 9 m, 10 to 20 m to the north and north-west"
+    }
   },
 
   "earthDelayMinutes": 11.0,
@@ -129,6 +148,28 @@
   ],
   "shelterLabelsNote": "Optional names: the shelter nearest each listed routeStops id gets the label. Shelter ids come from position (s-<x>-<y>, metres), so they stay the same when the shelter set changes",
 
+  "baseCandidates": {
+    "mastHeight": 10.0,
+    "candidates": [
+      { "id": "A", "x": 1596.6, "y": 1312.7, "note": "Curiosity sol 1480" },
+      { "id": "B", "x": 1592.7, "y": 1389.5, "note": "sol 1471" },
+      { "id": "C", "x": 1598.0, "y": 1250.0, "note": "" },
+      { "id": "D", "x": 1506.1, "y": 1678.3, "note": "previous base, sol 1439" }
+    ]
+  },
+
+  "decisionSweep": [
+    { "label": "Quela drill site", "what": "Quela drill site" },
+    { "label": "Butte outcrop", "what": "butte outcrop" }
+  ],
+  "decisionSweepNote": "Main waypoints, by label, that engine decide --sweep reports besides open ground about a third of the way out and the far point",
+
+  "stopImageQueries": [
+    { "stop": "quela", "query": "Curiosity Quela drill", "mustName": "Quela" },
+    { "stop": "sol1448", "query": "Curiosity Murray Buttes", "mustName": "Murray Buttes" }
+  ],
+  "stopImageQueriesNote": "tools/fetch_stop_images.py: NASA Image and Video Library searches per routeStops id; a result is kept only if it names mustName",
+
   "plannerBounds": {
     "xMin": 1250, "xMax": 1650, "yMin": 1200, "yMax": 1750,
     "note": "Local metres. A mosaic seam runs roughly north-south at local x 1580 to 1605, inside these bounds; its step is about 0.5 m north of y 1600 and under 0.15 m further south, too small to affect planning. The east limit excludes a separate doubtful band near x 1700"
@@ -144,6 +185,7 @@
     "openBlocked": 0.075,
     "doseShieldingFactor": 0.5,
     "oxygenMinutes": 480,
+    "expectedShelterCount": [4, 40],
     "notes": {
       "walkSpeed": "Assumption: suited walking speed on flat ground, metres per second. Walking time per metre is (1 / walkSpeed) * (1 + (slope / 15)^2)",
       "maxSlopeDeg": "Assumption: ground steeper than this, in degrees, is impassable",
@@ -154,6 +196,7 @@
       "openBlocked": "Blocked-sky fraction of open ground, where the relative dose rate is 1. Computed by engine check at sol1468 (near field to 700 m plus the far field with MOLA). Was 0.06 with far.bin alone; without data/raw/mola.bin the engine's own value would no longer match this one",
       "doseShieldingFactor": "Assumption: relative dose rate = 1 - doseShieldingFactor * (blocked - openBlocked), kept between 0.5 and 1.05. Calibrated to Curiosity's measurement that about 9 more points of blocked sky cut the dose by about 5 percent. Simulated, not a dose model",
       "oxygenMinutes": "Assumption: minutes of oxygen at the start; oxygenFraction = 1 - minutes elapsed / oxygenMinutes",
+      "expectedShelterCount": "Sanity range for the number of shelters found inside plannerBounds; engine plan stops outside it instead of retuning the thresholds. Set for Gale's bounds",
       "doseBudget": "Simulated: doseFraction is accumulated rate * minutes (times the storm multiplier on reroutes) divided by a budget chosen so the largest doseFraction over the main route and every reroute is 0.9. briefing.json gives the budget in microgray when the RAD cache exists"
     }
   },

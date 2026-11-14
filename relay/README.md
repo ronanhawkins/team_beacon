@@ -36,6 +36,13 @@ On start the relay prints the waypoint file it loaded and the URL of each app fo
 
 - Waypoints: `data/out/waypoints.json` if it exists, otherwise `shared/fake/waypoints.json`. Override with `WAYPOINTS=path/to/file.json npm start`.
 - `earthDelayMinutes`: `data/site.json` field `earthDelayMinutes` if present, otherwise 14.
+
+### Site
+
+With no site set the relay serves Gale exactly as before: `data/site.json`, `data/out/waypoints.json` (or the fake route), and `data/out/` as `/data/`.
+`SITE=<name> node relay/server.js` (or `--site <name>`) serves `data/sites/<name>/site.json` at `/data/site.json`, `data/out/<name>/waypoints.json`, and
+`data/out/<name>/` as `/data/`, so the apps keep the same URLs. A named site has no fake fallback; `WAYPOINTS` still overrides the route.
+The site is logged at startup and sent as the optional `site` field in the state (`shared/state.md`).
 - Warning limit for `minutesToShelter`: `WARNING_MINUTES_TO_SHELTER` at the top of `server.js`.
 
 ## Files

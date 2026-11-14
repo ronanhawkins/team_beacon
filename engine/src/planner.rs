@@ -33,6 +33,8 @@ pub struct PlannerConfig {
     pub open_blocked: f64,
     pub dose_shielding_factor: f64,
     pub oxygen_minutes: f64,
+    /// [min, max] shelters the planner expects to find; outside it, `engine plan` stops rather than retune itself.
+    pub expected_shelter_count: [usize; 2],
 }
 
 #[derive(Deserialize, Clone, Copy, Debug)]
@@ -357,6 +359,7 @@ mod tests {
             open_blocked: 0.06,
             dose_shielding_factor: 0.5,
             oxygen_minutes: 480.0,
+            expected_shelter_count: [4, 40],
         }
     }
 

@@ -57,6 +57,8 @@ pub struct PlanInputs<'a> {
     /// Labels for the shelter nearest each point: (x, y, label), from data/site.json shelterLabels.
     pub shelter_labels: Vec<(f64, f64, String)>,
     pub stops: Vec<Stop>,
+    /// The square the map layers cover (site file `layersRegion`); the minutesToShelter layer uses it too.
+    pub region: layers::Region,
 }
 
 /// The doseFraction budget is set so the largest doseFraction over every route is this.
@@ -227,9 +229,10 @@ pub fn prepare(inp: &PlanInputs) -> Result<Context, String> {
         "Shelters found: {} (blocked >= {} + {} = {:.3}, slope <= {} deg, groups of 3+ cells)",
         shelter_cells.len(), cfg.open_blocked, cfg.shelter_extra_blocked, cfg.open_blocked + cfg.shelter_extra_blocked, cfg.shelter_max_slope_deg
     );
-    if shelter_cells.len() < 4 || shelter_cells.len() > 40 {
+    let [lo, hi] = cfg.expected_shelter_count;
+    if shelter_cells.len() < lo || shelter_cells.len() > hi {
         return Err(format!(
-            "{} shelters is outside the expected 4 to 40. Stopping without tuning the threshold; change the planner values in data/site.json deliberately",
+            "{} shelters is outside the expected {lo} to {hi} (planner.expectedShelterCount). Stopping without tuning the threshold; change the planner values in the site file deliberately",
             shelter_cells.len()
         ));
     }
@@ -650,7 +653,7 @@ pub fn run(inp: &PlanInputs, out_dir: &Path) -> Result<(), String> {
         })
         .collect();
     write("stops.json", &json!({ "version": 1, "stops": stops_json }))?;
-    write_minutes_layer(g, field, &out_dir.join("layers"))?;
+    write_minutes_layer(g, field, &inp.region, &out_dir.join("layers"))?;
 
     // Report.
     println!("Main route: {} legs, {} smoothed points put back on passable ground; {} waypoints; {} reroutes; done in {:.2} s\n",
@@ -694,11 +697,11 @@ pub fn run(inp: &PlanInputs, out_dir: &Path) -> Result<(), String> {
 
 /// minutesToShelter at layer resolution: plain walking minutes to the nearest refuge of any kind.
 /// Cells outside the planner bounds (or unreachable) get the maximum.
-fn write_minutes_layer(g: &PlanGrid, field: &RefugeField, dir: &Path) -> Result<(), String> {
-    let n = layers::CELLS;
+fn write_minutes_layer(g: &PlanGrid, field: &RefugeField, region: &layers::Region, dir: &Path) -> Result<(), String> {
+    let n = region.cells;
     let bytes: Vec<u8> = (0..n * n)
         .map(|i| {
-            let (x, y) = layers::cell_centre(i % n, i / n);
+            let (x, y) = region.cell_centre(i % n, i / n);
             let minutes = g.cell_at(x, y).map(|c| field.minutes[c]).filter(|m| m.is_finite()).unwrap_or(MINUTES_LAYER_MAX);
             ((minutes / MINUTES_LAYER_MAX).clamp(0.0, 1.0) * 255.0).round() as u8
         })
@@ -713,7 +716,7 @@ fn write_minutes_layer(g: &PlanGrid, field: &RefugeField, dir: &Path) -> Result<
         json!({ "file": "minutesToShelter.png", "min": 0.0, "max": MINUTES_LAYER_MAX,
                 "validBounds": { "xMin": b.x_min, "xMax": b.x_max, "yMin": b.y_min, "yMax": b.y_max } }),
     );
-    layers::update_meta(dir, entry)
+    layers::update_meta(dir, region, entry)
 }
 
 #[cfg(test)]

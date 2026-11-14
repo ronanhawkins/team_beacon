@@ -14,6 +14,12 @@
 //! outer corner (shared/conventions.md).
 //!
 //! Paths are relative to the repo root (the folder above engine/). Override with --root <dir>.
+//!
+//! Site: with no site chosen (the default, Gale), the engine reads data/site.json and data/raw/ and
+//! writes data/out/. With SITE=<name> in the environment, or --site <name>, it reads
+//! data/sites/<name>/site.json and data/raw/<name>/ and writes data/out/<name>/. Site-independent caches
+//! (the RAD storm, DONKI) stay in data/cache/; site-specific ones (REMS, stop images) go in
+//! data/cache/<name>/. --site wins over SITE.
 
 mod decision;
 mod dose;
@@ -32,15 +38,75 @@ use std::process::ExitCode;
 
 use serde::Deserialize;
 
-const NEAR_BIN: &str = "data/raw/near.bin";
-const FAR_BIN: &str = "data/raw/far.bin";
-const MOLA_BIN: &str = "data/raw/mola.bin";
-const LAYERS_DIR: &str = "data/out/layers";
-const SITE_JSON: &str = "data/site.json";
-const RAD_CACHE: &str = "data/cache/rad_storm.json";
-const DONKI_CACHE: &str = "data/cache/donki_mars.json";
-const REMS_CACHE: &str = "data/cache/rems.json";
-const IMAGES_CACHE: &str = "data/cache/stop_images.json";
+/// Where one site's files are. Every path is relative to the repo root; `file` joins it on.
+struct Paths {
+    root: PathBuf,
+    /// None for the default site (Gale), which keeps the original layout.
+    site: Option<String>,
+    site_json: String,
+    raw: String,
+    out: String,
+    /// Caches that do not depend on the site: the RAD storm and DONKI.
+    cache_shared: String,
+    /// Caches that do: REMS weather, stop images. data/cache/ for the default site.
+    cache_site: String,
+}
+
+impl Paths {
+    fn new(root: PathBuf, site: Option<String>) -> Result<Paths, String> {
+        let Some(name) = site else {
+            return Ok(Paths {
+                root,
+                site: None,
+                site_json: "data/site.json".into(),
+                raw: "data/raw".into(),
+                out: "data/out".into(),
+                cache_shared: "data/cache".into(),
+                cache_site: "data/cache".into(),
+            });
+        };
+        if name.is_empty() || !name.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_') {
+            return Err(format!("site name {name:?} must be letters, digits, - or _"));
+        }
+        let p = Paths {
+            site_json: format!("data/sites/{name}/site.json"),
+            raw: format!("data/raw/{name}"),
+            out: format!("data/out/{name}"),
+            cache_shared: "data/cache".into(),
+            cache_site: format!("data/cache/{name}"),
+            root,
+            site: Some(name),
+        };
+        if !p.file(&p.site_json).exists() {
+            return Err(format!("no site file at {} for site {:?}", p.site_json, p.site.as_deref().unwrap_or_default()));
+        }
+        Ok(p)
+    }
+    fn file(&self, rel: &str) -> PathBuf {
+        self.root.join(rel)
+    }
+    fn near_bin(&self) -> String {
+        format!("{}/near.bin", self.raw)
+    }
+    fn far_bin(&self) -> String {
+        format!("{}/far.bin", self.raw)
+    }
+    fn mola_bin(&self) -> String {
+        format!("{}/mola.bin", self.raw)
+    }
+    fn rad_cache(&self) -> String {
+        format!("{}/rad_storm.json", self.cache_shared)
+    }
+    fn donki_cache(&self) -> String {
+        format!("{}/donki_mars.json", self.cache_shared)
+    }
+    fn rems_cache(&self) -> String {
+        format!("{}/rems.json", self.cache_site)
+    }
+    fn images_cache(&self) -> String {
+        format!("{}/stop_images.json", self.cache_site)
+    }
+}
 
 // Settings matching referenceCheck.method in data/site.json.
 const EYE_HEIGHT_M: f64 = 1.0;
@@ -60,10 +126,24 @@ const PROOF_MAX_DIST_M: f64 = 700.0;
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
 struct Site {
-    parking_spot: ParkingSpot,
-    near_crop: NearCrop,
-    reference_check: ReferenceCheck,
-    paper_target: PaperTarget,
+    /// Only its longitude is used, for local solar time in the REMS conditions.
+    #[serde(default)]
+    parking_spot: Option<ParkingSpot>,
+    /// The frame of the crops in the raw folder; checked against near.bin's header.
+    grid: GridFrame,
+    /// Where the far-field skyline is computed once and reused for every point (local metres).
+    far_field_centre: LocalXY,
+    /// The square the map layers cover.
+    layers_region: layers::Region,
+    /// Ground truth for `engine check`. Absent at sites that have none.
+    #[serde(default)]
+    validation: Option<Validation>,
+    /// Positions compared by `engine base-candidates` (optional).
+    #[serde(default)]
+    base_candidates: Option<BaseCandidates>,
+    /// Main waypoints, by label, that `engine decide --sweep` reports besides open ground and the far point (optional).
+    #[serde(default)]
+    decision_sweep: Vec<SweepStop>,
     sky: SkyFile,
     base: BaseFile,
     route_stops: Vec<RouteStop>,
@@ -85,6 +165,64 @@ struct Site {
     /// Images per stop id, from data/cache/stop_images.json when present.
     #[serde(skip)]
     stop_images: Option<serde_json::Value>,
+    /// The site file's path, for messages.
+    #[serde(skip)]
+    file: String,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct GridFrame {
+    metres_per_pixel: f64,
+    south_west_easting: f64,
+    south_west_northing: f64,
+    /// Projection of the crops (WKT, as in their ENVI headers). Recorded for tools; not parsed by the engine.
+    #[allow(dead_code)]
+    projection: String,
+}
+
+/// Ground truth for `engine check`: an independent skyline at one point, published values, and the
+/// routeStops used as the open-ground reference and for the Sun and Earth line.
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct Validation {
+    check_point: NamedPoint,
+    open_ground_stop: String,
+    #[serde(default)]
+    sky_check_stops: Vec<String>,
+    paper_target: PaperTarget,
+    reference_check: ReferenceCheck,
+}
+
+#[derive(Deserialize)]
+struct NamedPoint {
+    name: String,
+    x: f64,
+    y: f64,
+}
+
+#[derive(Deserialize)]
+#[serde(rename_all = "camelCase")]
+struct BaseCandidates {
+    mast_height: f64,
+    candidates: Vec<BaseCandidate>,
+}
+
+#[derive(Deserialize)]
+struct BaseCandidate {
+    id: String,
+    x: f64,
+    y: f64,
+    #[serde(default)]
+    note: String,
+}
+
+#[derive(Deserialize)]
+struct SweepStop {
+    /// A main waypoint label in waypoints.json.
+    label: String,
+    /// How the row is described in the output.
+    what: String,
 }
 
 #[derive(Deserialize)]
@@ -197,14 +335,8 @@ impl Site {
             .iter()
             .find(|s| s.id == id)
             .map(|s| (s.x, s.y))
-            .ok_or_else(|| format!("{SITE_JSON}: no routeStops entry with id {id:?}"))
+            .ok_or_else(|| format!("{}: no routeStops entry with id {id:?}", self.file))
     }
-}
-
-#[derive(Deserialize)]
-#[serde(rename_all = "camelCase")]
-struct NearCrop {
-    parking_spot_local: LocalXY,
 }
 
 #[derive(Deserialize)]
@@ -220,11 +352,15 @@ struct ReferenceCheck {
     skyline_at_parking_spot_deg: BTreeMap<String, f32>,
 }
 
-fn load_site(root: &Path) -> Result<Site, String> {
-    let path = root.join(SITE_JSON);
+fn load_site(p: &Paths) -> Result<Site, String> {
+    let path = p.file(&p.site_json);
     let text = std::fs::read_to_string(&path).map_err(|e| format!("cannot read {}: {}", path.display(), e))?;
     let mut site: Site = serde_json::from_str(&text).map_err(|e| format!("{}: {}", path.display(), e))?;
-    site.rad = load_rad(root);
+    site.file = p.site_json.clone();
+    if let Some(name) = &p.site {
+        eprintln!("site {name}: {}, raw {}, out {}", p.site_json, p.raw, p.out);
+    }
+    site.rad = load_rad(p, &site.file);
     if let Some(rad) = &site.rad {
         let cap = site.storm.storm_minutes_cap.unwrap_or(STORM_MINUTES_CAP);
         site.storm.storm_minutes = rad.minutes_above.min(cap);
@@ -236,48 +372,55 @@ fn load_site(root: &Path) -> Result<Site, String> {
             rad.mean_multiplier_first(cap).map_or(rad.mean_multiplier_above, |m| (m * 1000.0).round() / 1000.0)
         };
     }
-    site.space_weather = load_space_weather(root, &site);
-    site.conditions = load_conditions(root, &site);
-    site.stop_images = load_stop_images(root);
+    site.space_weather = load_space_weather(p, &site);
+    site.conditions = load_conditions(p, &site);
+    site.stop_images = load_stop_images(p);
     Ok(site)
 }
 
 /// DONKI forecasts summarised for the briefing, or None (with a warning if the file is there but unreadable).
-fn load_space_weather(root: &Path, site: &Site) -> Option<serde_json::Value> {
-    let text = std::fs::read_to_string(root.join(DONKI_CACHE)).ok()?;
+fn load_space_weather(p: &Paths, site: &Site) -> Option<serde_json::Value> {
+    let cache = p.donki_cache();
+    let text = std::fs::read_to_string(p.file(&cache)).ok()?;
     let onset = site.rad.as_ref().and_then(|r| r.onset.as_deref());
     match serde_json::from_str::<space::Cache>(&text).map_err(|e| e.to_string()).and_then(|c| space::briefing(&c, &site.sky.time_u_t, onset)) {
         Ok(v) => Some(v),
         Err(e) => {
-            eprintln!("warning: cannot read {DONKI_CACHE} ({e}); the briefing has no spaceWeather");
+            eprintln!("warning: cannot read {cache} ({e}); the briefing has no spaceWeather");
             None
         }
     }
 }
 
 /// REMS conditions for the briefing, or None (with a warning if the file is there but unreadable).
-fn load_conditions(root: &Path, site: &Site) -> Option<(serde_json::Value, String)> {
-    let text = std::fs::read_to_string(root.join(REMS_CACHE)).ok()?;
-    match serde_json::from_str::<rems::Cache>(&text).map_err(|e| e.to_string()).and_then(|c| rems::briefing(&c, &site.sky.time_u_t, site.parking_spot.lon)) {
+fn load_conditions(p: &Paths, site: &Site) -> Option<(serde_json::Value, String)> {
+    let cache = p.rems_cache();
+    let text = std::fs::read_to_string(p.file(&cache)).ok()?;
+    let Some(spot) = &site.parking_spot else {
+        eprintln!("warning: {} has no parkingSpot.lon for local time; the briefing has no conditions", site.file);
+        return None;
+    };
+    match serde_json::from_str::<rems::Cache>(&text).map_err(|e| e.to_string()).and_then(|c| rems::briefing(&c, &site.sky.time_u_t, spot.lon, &cache)) {
         Ok(v) => Some(v),
         Err(e) => {
-            eprintln!("warning: cannot read {REMS_CACHE} ({e}); the briefing has no conditions");
+            eprintln!("warning: cannot read {cache} ({e}); the briefing has no conditions");
             None
         }
     }
 }
 
 /// The "stops" map of data/cache/stop_images.json, or None (with a warning if the file is there but unreadable).
-fn load_stop_images(root: &Path) -> Option<serde_json::Value> {
-    let text = std::fs::read_to_string(root.join(IMAGES_CACHE)).ok()?;
+fn load_stop_images(p: &Paths) -> Option<serde_json::Value> {
+    let cache = p.images_cache();
+    let text = std::fs::read_to_string(p.file(&cache)).ok()?;
     match serde_json::from_str::<serde_json::Value>(&text).map(|v| v["stops"].clone()) {
         Ok(stops) if stops.is_object() => Some(stops),
         Ok(_) => {
-            eprintln!("warning: {IMAGES_CACHE} has no \"stops\" object; stops.json will have no images");
+            eprintln!("warning: {cache} has no \"stops\" object; stops.json will have no images");
             None
         }
         Err(e) => {
-            eprintln!("warning: cannot read {IMAGES_CACHE} ({e}); stops.json will have no images");
+            eprintln!("warning: cannot read {cache} ({e}); stops.json will have no images");
             None
         }
     }
@@ -285,24 +428,36 @@ fn load_stop_images(root: &Path) -> Option<serde_json::Value> {
 
 /// The measured storm, or None (with a warning if the file is there but unreadable).
 /// Without it the storm settings in data/site.json are used as they are.
-fn load_rad(root: &Path) -> Option<RadCache> {
-    let path = root.join(RAD_CACHE);
+fn load_rad(p: &Paths, site_file: &str) -> Option<RadCache> {
+    let cache = p.rad_cache();
+    let path = p.file(&cache);
     let text = std::fs::read_to_string(&path).ok()?;
     match serde_json::from_str::<RadCache>(&text) {
         Ok(rad) if rad.baseline_rate > 0.0 && rad.minutes_above > 0.0 && rad.mean_multiplier_above > 0.0 => Some(rad),
         Ok(_) => {
-            eprintln!("warning: {RAD_CACHE} has non-positive values; using the storm settings in {SITE_JSON}");
+            eprintln!("warning: {cache} has non-positive values; using the storm settings in {site_file}");
             None
         }
         Err(e) => {
-            eprintln!("warning: cannot read {RAD_CACHE} ({e}); using the storm settings in {SITE_JSON}");
+            eprintln!("warning: cannot read {cache} ({e}); using the storm settings in {site_file}");
             None
         }
     }
 }
 
-fn load_grid(root: &Path) -> Result<terrain::Grid, String> {
-    terrain::load(&root.join(NEAR_BIN))
+/// near.bin, after checking that its header agrees with the site file's grid frame.
+fn load_grid(p: &Paths, site: &Site) -> Result<terrain::Grid, String> {
+    let grid = terrain::load(&p.file(&p.near_bin()))?;
+    let f = &site.grid;
+    let (e, n) = grid.local_to_en(0.0, 0.0);
+    let close = |a: f64, b: f64| (a - b).abs() <= 1e-3;
+    if !close(grid.metres_per_pixel, f.metres_per_pixel) || !close(e, f.south_west_easting) || !close(n, f.south_west_northing) {
+        return Err(format!(
+            "{} does not match the grid in {}: header has {} m per pixel, south-west corner {e:.3}, {n:.3}; site file has {} m, {:.3}, {:.3}",
+            p.near_bin(), site.file, grid.metres_per_pixel, f.metres_per_pixel, f.south_west_easting, f.south_west_northing
+        ));
+    }
+    Ok(grid)
 }
 
 /// The far-field grids: far.bin, and the MOLA crop when it has been downloaded.
@@ -320,45 +475,62 @@ impl FarGrids {
     }
 }
 
-fn load_far(root: &Path) -> Result<FarGrids, String> {
-    let far = terrain::load(&root.join(FAR_BIN))?;
-    let mola_path = root.join(MOLA_BIN);
+fn load_far(p: &Paths) -> Result<FarGrids, String> {
+    let far = terrain::load(&p.file(&p.far_bin()))?;
+    let mola_path = p.file(&p.mola_bin());
     let mola = if mola_path.exists() {
         Some(terrain::load(&mola_path)?)
     } else {
-        eprintln!("warning: {MOLA_BIN} not found (run python3 tools/fetch_mola.py); the far field stops at the edge of far.bin");
+        let site = p.site.as_deref().map_or(String::new(), |s| format!(" --site {s}"));
+        eprintln!("warning: {} not found (run python3 tools/fetch_mola.py{site}); the far field stops at the edge of far.bin", p.mola_bin());
         None
     };
     Ok(FarGrids { far, mola })
 }
 
-/// Far-field skyline at the parking spot with `n_dirs` directions, from FAR_FROM_M outwards.
-fn far_at_parking(near: &terrain::Grid, far: &FarGrids, spot: &LocalXY, n_dirs: usize) -> Result<Vec<f32>, String> {
-    let ground = near.sample_local(spot.x, spot.y).ok_or("parking spot is on no-data")?;
+/// Far-field skyline at the site's farFieldCentre with `n_dirs` directions, from FAR_FROM_M outwards.
+fn far_at_centre(near: &terrain::Grid, far: &FarGrids, spot: &LocalXY, n_dirs: usize) -> Result<Vec<f32>, String> {
+    let ground = near.sample_local(spot.x, spot.y).ok_or("farFieldCentre is on no-data")?;
     let (e, n) = near.local_to_en(spot.x, spot.y);
     Ok(skyline::far_skyline(&far.far, far.mola.as_ref(), e, n, ground as f64 + EYE_HEIGHT_M, n_dirs, FAR_FROM_M))
 }
 
-fn check(root: &Path) -> Result<bool, String> {
-    let site = load_site(root)?;
-    let grid = load_grid(root)?;
-    let reference_ok = check_reference(&site, &grid)?;
-    let fast_ok = check_fast(&site, &grid)?;
-    proof_numbers(root, &site, &grid)?;
+fn check(p: &Paths) -> Result<bool, String> {
+    let site = load_site(p)?;
+    let grid = load_grid(p, &site)?;
+    let Some(v) = &site.validation else {
+        // No ground truth: only the fast-against-precise self-check, at the first route stop.
+        println!("no ground truth at this site ({} has no validation section)", site.file);
+        let first = site.route_stops.first().ok_or_else(|| format!("{}: no routeStops", site.file))?;
+        let at = NamedPoint { name: format!("route stop {}", first.id), x: first.x, y: first.y };
+        let ok = check_fast(&at, &grid)?;
+        println!();
+        println!("{}", if ok { "PASS  self-check" } else { "FAIL  see above" });
+        return Ok(ok);
+    };
+    let reference_ok = check_reference(p, v, &grid)?;
+    let fast_ok = check_fast(&v.check_point, &grid)?;
+    proof_numbers(p, &site, v, &grid)?;
     println!();
     println!("{}", if reference_ok && fast_ok { "PASS  all checks" } else { "FAIL  see above" });
     Ok(reference_ok && fast_ok)
 }
 
-fn check_reference(site: &Site, grid: &terrain::Grid) -> Result<bool, String> {
-    let spot = &site.near_crop.parking_spot_local;
-    let reference = &site.reference_check;
+/// "parking spot" -> "Parking spot".
+fn capitalised(s: &str) -> String {
+    let mut c = s.chars();
+    c.next().map_or(String::new(), |f| f.to_uppercase().collect::<String>() + c.as_str())
+}
+
+fn check_reference(p: &Paths, v: &Validation, grid: &terrain::Grid) -> Result<bool, String> {
+    let spot = &v.check_point;
+    let reference = &v.reference_check;
 
     let sky = skyline::skyline(grid, spot.x, spot.y, EYE_HEIGHT_M, N_DIRS, STEP_M, MAX_DIST_M)?;
     let blocked = skyline::blocked_fraction(&sky);
     let blocked_diff = blocked - reference.blocked_at_parking_spot;
 
-    println!("Parking spot: x {} m, y {} m in {} ({} x {})", spot.x, spot.y, NEAR_BIN, grid.width, grid.height);
+    println!("{}: x {} m, y {} m in {} ({} x {})", capitalised(&spot.name), spot.x, spot.y, p.near_bin(), grid.width, grid.height);
     println!("Eye {EYE_HEIGHT_M} m, {N_DIRS} directions, step {STEP_M} m, out to {MAX_DIST_M} m\n");
     println!(
         "Blocked fraction: {:.3}   reference {:.3}   diff {:+.3}\n",
@@ -405,9 +577,8 @@ fn check_reference(site: &Site, grid: &terrain::Grid) -> Result<bool, String> {
     Ok(blocked_ok && angles_ok)
 }
 
-/// The fast layer settings must agree with the precise settings at the parking spot.
-fn check_fast(site: &Site, grid: &terrain::Grid) -> Result<bool, String> {
-    let spot = &site.near_crop.parking_spot_local;
+/// The fast layer settings must agree with the precise settings at one point.
+fn check_fast(spot: &NamedPoint, grid: &terrain::Grid) -> Result<bool, String> {
     let precise = skyline::blocked_fraction(&skyline::skyline(grid, spot.x, spot.y, EYE_HEIGHT_M, N_DIRS, STEP_M, MAX_DIST_M)?);
     let dists = skyline::fast_distances();
     let fast = skyline::blocked_fraction(&skyline::fast_skyline(grid, spot.x, spot.y, EYE_HEIGHT_M, &dists)?);
@@ -433,11 +604,12 @@ fn precise_with_far(grid: &terrain::Grid, far: &[f32], x: f64, y: f64) -> Result
     Ok((skyline::blocked_fraction(&merged), merged))
 }
 
-fn proof_numbers(root: &Path, site: &Site, grid: &terrain::Grid) -> Result<(), String> {
-    let spot = &site.near_crop.parking_spot_local;
-    let far_grid = load_far(root)?;
-    let far = far_at_parking(grid, &far_grid, spot, N_DIRS)?;
-    let paper = &site.paper_target;
+fn proof_numbers(p: &Paths, site: &Site, v: &Validation, grid: &terrain::Grid) -> Result<(), String> {
+    let far_grid = load_far(p)?;
+    let far = far_at_centre(grid, &far_grid, &site.far_field_centre, N_DIRS)?;
+    let paper = &v.paper_target;
+    let spot = &v.check_point;
+    let name = &spot.name;
 
     let near_280 = skyline::blocked_fraction(&skyline::skyline(grid, spot.x, spot.y, EYE_HEIGHT_M, N_DIRS, STEP_M, MAX_DIST_M)?);
     let near_700 = skyline::blocked_fraction(&skyline::skyline(grid, spot.x, spot.y, EYE_HEIGHT_M, N_DIRS, STEP_M, PROOF_MAX_DIST_M)?);
@@ -452,23 +624,28 @@ fn proof_numbers(root: &Path, site: &Site, grid: &terrain::Grid) -> Result<(), S
     }
     let (lo, hi) = around.iter().fold((f32::MAX, f32::MIN), |(a, b), &v| (a.min(v), b.max(v)));
 
-    let (ox, oy) = site.stop("sol1468")?;
+    let open_id = &v.open_ground_stop;
+    let (ox, oy) = site.stop(open_id)?;
     let (open_ground, _) = precise_with_far(grid, &far, ox, oy)?;
 
-    println!("\nProof numbers (eye {EYE_HEIGHT_M} m, {N_DIRS} directions, step {STEP_M} m; far field from {FAR_FROM_M} m on {}, computed at the parking spot)", far_grid.describe());
+    // The far field is computed at farFieldCentre; at Gale that is the check point, the parking spot.
+    println!("\nProof numbers (eye {EYE_HEIGHT_M} m, {N_DIRS} directions, step {STEP_M} m; far field from {FAR_FROM_M} m on {}, computed at the {name})", far_grid.describe());
     println!("  Blocked fraction                                     engine   paper");
-    println!("  parking spot, near field to {MAX_DIST_M} m (reference)         {near_280:.3}");
-    println!("  parking spot, near field to {PROOF_MAX_DIST_M} m                     {near_700:.3}");
+    println!("  {name}, near field to {MAX_DIST_M} m (reference)         {near_280:.3}");
+    println!("  {name}, near field to {PROOF_MAX_DIST_M} m                     {near_700:.3}");
     println!("  far field alone                                       {far_only:.3}");
-    println!("  parking spot, near to {PROOF_MAX_DIST_M} m + far field              {with_far:.3}    {:.2}", paper.sky_blocked_at_butte);
+    println!("  {name}, near to {PROOF_MAX_DIST_M} m + far field              {with_far:.3}    {:.2}", paper.sky_blocked_at_butte);
     println!("  5 x 5 points, 2.5 m apart, around the spot: min      {lo:.3}");
     println!("                                               max      {hi:.3}    {:.2}", paper.sky_blocked_at_butte);
-    println!("  open ground at sol1468 ({ox}, {oy}), with far field   {open_ground:.3}    {:.2}", paper.sky_blocked_reference);
+    println!("  open ground at {open_id} ({ox}, {oy}), with far field   {open_ground:.3}    {:.2}", paper.sky_blocked_reference);
 
-    let (sx, sy) = site.stop("sol1471")?;
-    let (_, sol1471_sky) = precise_with_far(grid, &far, sx, sy)?;
+    let mut skies: Vec<(String, Vec<f32>)> = vec![(name.clone(), spot_sky)];
+    for id in &v.sky_check_stops {
+        let (sx, sy) = site.stop(id)?;
+        skies.push((id.clone(), precise_with_far(grid, &far, sx, sy)?.1));
+    }
     println!("\n  Sky at {} UT: Sun az {} el {}, Earth az {} el {}", site.sky.time_u_t, site.sky.sun.az, site.sky.sun.el, site.sky.earth.az, site.sky.earth.el);
-    for (name, sky) in [("parking spot", &spot_sky), ("sol1471", &sol1471_sky)] {
+    for (name, sky) in &skies {
         let describe = |body: AzEl| {
             let horizon = skyline::elevation_at(sky, body.az);
             let seen = if skyline::visible(sky, body.az, body.el) { "visible" } else { "hidden " };
@@ -479,27 +656,23 @@ fn proof_numbers(root: &Path, site: &Site, grid: &terrain::Grid) -> Result<(), S
     Ok(())
 }
 
-/// Candidate base positions (local metres) compared by `base-candidates`.
-const BASE_CANDIDATES: [(&str, f64, f64, &str); 4] = [
-    ("A", 1596.6, 1312.7, "Curiosity sol 1480"),
-    ("B", 1592.7, 1389.5, "sol 1471"),
-    ("C", 1598.0, 1250.0, ""),
-    ("D", 1506.1, 1678.3, "previous base, sol 1439"),
-];
-const CANDIDATE_MAST_M: f64 = 10.0;
-
-fn base_candidates(root: &Path) -> Result<(), String> {
-    let site = load_site(root)?;
-    let grid = load_grid(root)?;
+/// Compares the site file's baseCandidates (local metres) by base-link coverage and links to each route stop.
+fn base_candidates(p: &Paths) -> Result<(), String> {
+    let site = load_site(p)?;
+    let grid = load_grid(p, &site)?;
+    let bc = site.base_candidates.as_ref().ok_or_else(|| format!("{} has no baseCandidates", site.file))?;
+    let mast = bc.mast_height;
+    let r = &site.layers_region;
     let stops: Vec<&RouteStop> = site.route_stops.iter().filter(|s| s.id != "base").collect();
-    println!("Mast {CANDIDATE_MAST_M} m, eye 1 m, {} x {} layer cells of {} m over x/y {}..{} m\n",
-        layers::CELLS, layers::CELLS, layers::CELL_M, layers::ORIGIN_M, layers::ORIGIN_M + layers::CELLS as f64 * layers::CELL_M);
+    println!("Mast {mast} m, eye 1 m, {} x {} layer cells of {} m over x/y {}..{} m\n",
+        r.cells, r.cells, r.metres_per_pixel, r.origin_x, r.origin_x + r.cells as f64 * r.metres_per_pixel);
     let header: Vec<String> = stops.iter().map(|s| format!("{:>8}", s.id)).collect();
     println!("{:<3} {:>7} {:>7} {:>10} {:>6}  {}   note", "id", "x", "y", "ground m", "link", header.join(""));
-    for (id, x, y, note) in BASE_CANDIDATES {
-        let base = layers::Base { x, y, mast_height_m: CANDIDATE_MAST_M };
+    for c in &bc.candidates {
+        let (id, x, y, note) = (&c.id, c.x, c.y, &c.note);
+        let base = layers::Base { x, y, mast_height_m: mast };
         let ground = grid.sample_local(x, y).ok_or_else(|| format!("candidate {id} is on no-data"))?;
-        let fraction = layers::base_link_fraction(&grid, &base);
+        let fraction = layers::base_link_fraction(&grid, &base, r);
         let links: Vec<String> = stops
             .iter()
             .map(|s| format!("{:>8}", if layers::base_link(&grid, s.x, s.y, &base) { "yes" } else { "-" }))
@@ -509,13 +682,13 @@ fn base_candidates(root: &Path) -> Result<(), String> {
     Ok(())
 }
 
-fn plan_command(root: &Path, stops_arg: Option<&str>, out: Option<&str>) -> Result<(), String> {
-    let site = load_site(root)?;
-    let grid = load_grid(root)?;
-    let far_grid = load_far(root)?;
-    let spot = &site.near_crop.parking_spot_local;
-    let far72 = far_at_parking(&grid, &far_grid, spot, skyline::FAST_DIRS)?;
-    let far360 = far_at_parking(&grid, &far_grid, spot, N_DIRS)?;
+fn plan_command(p: &Paths, stops_arg: Option<&str>, out: Option<&str>) -> Result<(), String> {
+    let site = load_site(p)?;
+    let grid = load_grid(p, &site)?;
+    let far_grid = load_far(p)?;
+    let spot = &site.far_field_centre;
+    let far72 = far_at_centre(&grid, &far_grid, spot, skyline::FAST_DIRS)?;
+    let far360 = far_at_centre(&grid, &far_grid, spot, N_DIRS)?;
     let stops: Vec<route::Stop> = match stops_arg {
         None => site
             .route_stops
@@ -536,7 +709,7 @@ fn plan_command(root: &Path, stops_arg: Option<&str>, out: Option<&str>) -> Resu
     if stops.len() < 2 {
         return Err("a plan needs at least two stops".into());
     }
-    let out_dir = out.map_or_else(|| root.join("data/out"), PathBuf::from);
+    let out_dir = out.map_or_else(|| p.file(&p.out), PathBuf::from);
     if let Some((_, line)) = &site.conditions {
         println!("{line}\n");
     }
@@ -572,6 +745,7 @@ fn plan_inputs<'a>(site: &Site, grid: &'a terrain::Grid, far72: &'a [f32], far36
             })
             .collect(),
         stops,
+        region: site.layers_region,
     }
 }
 
@@ -586,9 +760,9 @@ struct DecideArgs {
 }
 
 /// Storm decisions at main waypoints of data/out/waypoints.json (run `engine plan` first).
-fn decide_command(root: &Path, a: DecideArgs) -> Result<(), String> {
-    let site = load_site(root)?;
-    let wp_path = root.join("data/out/waypoints.json");
+fn decide_command(p: &Paths, a: DecideArgs) -> Result<(), String> {
+    let site = load_site(p)?;
+    let wp_path = p.file(&format!("{}/waypoints.json", p.out));
     let doc: serde_json::Value = serde_json::from_str(
         &std::fs::read_to_string(&wp_path).map_err(|e| format!("cannot read {} (run engine plan first): {}", wp_path.display(), e))?,
     )
@@ -600,11 +774,11 @@ fn decide_command(root: &Path, a: DecideArgs) -> Result<(), String> {
     let pos = |i: usize| (main[i]["pos"]["x"].as_f64().unwrap_or(f64::NAN), main[i]["pos"]["y"].as_f64().unwrap_or(f64::NAN));
     let name = |i: usize| main[i]["id"].as_str().unwrap_or("?").to_string();
 
-    let grid = load_grid(root)?;
-    let far_grid = load_far(root)?;
-    let spot = &site.near_crop.parking_spot_local;
-    let far72 = far_at_parking(&grid, &far_grid, spot, skyline::FAST_DIRS)?;
-    let far360 = far_at_parking(&grid, &far_grid, spot, N_DIRS)?;
+    let grid = load_grid(p, &site)?;
+    let far_grid = load_far(p)?;
+    let spot = &site.far_field_centre;
+    let far72 = far_at_centre(&grid, &far_grid, spot, skyline::FAST_DIRS)?;
+    let far360 = far_at_centre(&grid, &far_grid, spot, N_DIRS)?;
     let inputs = plan_inputs(&site, &grid, &far72, &far360, Vec::new());
     let ctx = route::prepare(&inputs)?;
 
@@ -623,14 +797,14 @@ fn decide_command(root: &Path, a: DecideArgs) -> Result<(), String> {
         return Ok(());
     }
 
-    // Four waypoints: open ground about a third of the way out, the Quela stop, the butte outcrop, the far point.
+    // Open ground about a third of the way out, the site file's decisionSweep stops (at Gale the Quela stop
+    // and the butte outcrop), and the far point.
     let by_label = |label: &str| main.iter().position(|w| w["label"] == label).ok_or_else(|| format!("no main waypoint labelled {label:?}"));
-    let picks = [
-        ("open ground", (main.len() as f64 / 3.0).round() as usize),
-        ("Quela drill site", by_label("Quela drill site")?),
-        ("butte outcrop", by_label("Butte outcrop")?),
-        ("far point", main.len() - 1),
-    ];
+    let mut picks = vec![("open ground".to_string(), (main.len() as f64 / 3.0).round() as usize)];
+    for s in &site.decision_sweep {
+        picks.push((s.what.clone(), by_label(&s.label)?));
+    }
+    picks.push(("far point".to_string(), main.len() - 1));
     println!("\nChosen site by warning time (limit to cover = warning); storm {} min, multiplier {}\n", site.storm.storm_minutes, site.storm.dose_multiplier);
     println!("  {:<22} {}", "waypoint", SWEEP_WARNINGS.iter().map(|w| format!("{:>22}", format!("{w} min"))).collect::<String>());
     let mut rows = Vec::new();
@@ -669,25 +843,26 @@ fn decide_command(root: &Path, a: DecideArgs) -> Result<(), String> {
         "version": 1, "stormMinutes": site.storm.storm_minutes, "doseMultiplier": site.storm.dose_multiplier,
         "noLinkPenalty": site.storm.no_link_penalty, "baseDoseFactor": site.base.dose_factor, "waypoints": rows,
     });
-    let path = root.join("data/out/decision-sweep.json");
+    let path = p.file(&format!("{}/decision-sweep.json", p.out));
     std::fs::write(&path, serde_json::to_string_pretty(&out).map_err(|e| e.to_string())? + "\n").map_err(|e| format!("cannot write {}: {}", path.display(), e))?;
     println!("wrote {}", path.display());
     Ok(())
 }
 
-fn layers_command(root: &Path) -> Result<(), String> {
-    let site = load_site(root)?;
-    let grid = load_grid(root)?;
-    let far_grid = load_far(root)?;
-    let far = far_at_parking(&grid, &far_grid, &site.near_crop.parking_spot_local, skyline::FAST_DIRS)?;
+fn layers_command(p: &Paths) -> Result<(), String> {
+    let site = load_site(p)?;
+    let grid = load_grid(p, &site)?;
+    let far_grid = load_far(p)?;
+    let far = far_at_centre(&grid, &far_grid, &site.far_field_centre, skyline::FAST_DIRS)?;
     let sky = layers::Sky { sun: (site.sky.sun.az, site.sky.sun.el), earth: (site.sky.earth.az, site.sky.earth.el) };
     let base = layers::Base { x: site.base.x, y: site.base.y, mast_height_m: site.base.mast_height };
     println!("Sun az {} el {}, Earth az {} el {}, base ({}, {}) mast {} m", sky.sun.0, sky.sun.1, sky.earth.0, sky.earth.1, base.x, base.y, base.mast_height_m);
-    layers::write_layers(&grid, &far, &sky, &base, &root.join(LAYERS_DIR))
+    layers::write_layers(&grid, &far, &sky, &base, &site.layers_region, &p.file(&format!("{}/layers", p.out)))
 }
 
-fn point(root: &Path, x: f64, y: f64) -> Result<(), String> {
-    let grid = load_grid(root)?;
+fn point(p: &Paths, x: f64, y: f64) -> Result<(), String> {
+    let site = load_site(p)?;
+    let grid = load_grid(p, &site)?;
     let sky = skyline::skyline(&grid, x, y, EYE_HEIGHT_M, N_DIRS, STEP_M, MAX_DIST_M)?;
     let blocked = skyline::blocked_fraction(&sky);
     let sky72: Vec<f64> = skyline::resample(&sky, CONTRACT_SAMPLES)
@@ -705,7 +880,7 @@ fn point(root: &Path, x: f64, y: f64) -> Result<(), String> {
 }
 
 fn usage() -> String {
-    "usage: engine [--root <dir>] check\n       engine [--root <dir>] point <x> <y>   (local metres)\n       engine [--root <dir>] layers\n       engine [--root <dir>] base-candidates\n       engine [--root <dir>] plan [--stops \"x,y;x,y;...\" --out <dir>]\n       engine [--root <dir>] decide <mainIndex> [--lead L] [--limit X]\n       engine [--root <dir>] decide --sweep".to_string()
+    "usage: engine [--root <dir>] [--site <name>] <command>   (or SITE=<name>; no site = Gale in data/)\n       engine [--root <dir>] check\n       engine [--root <dir>] point <x> <y>   (local metres)\n       engine [--root <dir>] layers\n       engine [--root <dir>] base-candidates\n       engine [--root <dir>] plan [--stops \"x,y;x,y;...\" --out <dir>]\n       engine [--root <dir>] decide <mainIndex> [--lead L] [--limit X]\n       engine [--root <dir>] decide --sweep".to_string()
 }
 
 fn run() -> Result<bool, String> {
@@ -716,11 +891,18 @@ fn run() -> Result<bool, String> {
         root = PathBuf::from(dir);
         args.drain(i..=i + 1);
     }
+    let mut site = std::env::var("SITE").ok().filter(|s| !s.is_empty());
+    if let Some(i) = args.iter().position(|a| a == "--site") {
+        site = Some(args.get(i + 1).ok_or_else(usage)?.clone());
+        args.drain(i..=i + 1);
+    }
+    let paths = Paths::new(root, site)?;
+    let root = &paths;
 
     match args.iter().map(String::as_str).collect::<Vec<_>>().as_slice() {
-        ["check"] => check(&root),
-        ["layers"] => layers_command(&root).map(|_| true),
-        ["base-candidates"] => base_candidates(&root).map(|_| true),
+        ["check"] => check(root),
+        ["layers"] => layers_command(root).map(|_| true),
+        ["base-candidates"] => base_candidates(root).map(|_| true),
         ["decide", rest @ ..] => {
             let mut a = DecideArgs { index: None, lead: None, limit: None, sweep: false };
             let mut it = rest.iter();
@@ -739,7 +921,7 @@ fn run() -> Result<bool, String> {
             if a.sweep && (a.index.is_some() || a.lead.is_some() || a.limit.is_some()) {
                 return Err("--sweep takes no index, --lead or --limit".into());
             }
-            decide_command(&root, a).map(|_| true)
+            decide_command(root, a).map(|_| true)
         }
         ["plan", rest @ ..] => {
             let mut stops = None;
@@ -753,13 +935,13 @@ fn run() -> Result<bool, String> {
                 }
             }
             if stops.is_some() != out.is_some() {
-                return Err("--stops and --out go together, so a custom plan never overwrites data/out".into());
+                return Err("--stops and --out go together, so a custom plan never overwrites the site's out folder".into());
             }
-            plan_command(&root, stops, out).map(|_| true)
+            plan_command(root, stops, out).map(|_| true)
         }
         ["point", x, y] => {
             let parse = |s: &str| s.parse::<f64>().map_err(|_| format!("not a number: {s}"));
-            point(&root, parse(x)?, parse(y)?).map(|_| true)
+            point(root, parse(x)?, parse(y)?).map(|_| true)
         }
         _ => Err(usage()),
     }
@@ -773,5 +955,42 @@ fn main() -> ExitCode {
             eprintln!("error: {e}");
             ExitCode::from(2)
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn default_site_keeps_the_gale_layout() {
+        let p = Paths::new(PathBuf::from("/repo"), None).unwrap();
+        assert_eq!((p.site_json.as_str(), p.raw.as_str(), p.out.as_str()), ("data/site.json", "data/raw", "data/out"));
+        assert_eq!((p.rems_cache(), p.rad_cache()), ("data/cache/rems.json".to_string(), "data/cache/rad_storm.json".to_string()));
+        assert_eq!(p.near_bin(), "data/raw/near.bin");
+    }
+
+    #[test]
+    fn named_site_uses_its_own_folders_and_shares_site_independent_caches() {
+        let dir = std::env::temp_dir().join(format!("beacon-site-test-{}", std::process::id()));
+        std::fs::create_dir_all(dir.join("data/sites/mawrth")).unwrap();
+        std::fs::write(dir.join("data/sites/mawrth/site.json"), "{}").unwrap();
+        let p = Paths::new(dir.clone(), Some("mawrth".into())).unwrap();
+        assert_eq!((p.site_json.as_str(), p.raw.as_str(), p.out.as_str()), ("data/sites/mawrth/site.json", "data/raw/mawrth", "data/out/mawrth"));
+        assert_eq!((p.rems_cache(), p.images_cache()), ("data/cache/mawrth/rems.json".to_string(), "data/cache/mawrth/stop_images.json".to_string()));
+        assert_eq!((p.rad_cache(), p.donki_cache()), ("data/cache/rad_storm.json".to_string(), "data/cache/donki_mars.json".to_string()));
+        assert!(Paths::new(dir.clone(), Some("nope".into())).is_err());
+        assert!(Paths::new(dir.clone(), Some("../x".into())).is_err());
+        std::fs::remove_dir_all(dir).unwrap();
+    }
+
+    #[test]
+    fn gale_site_file_parses_with_its_validation_section() {
+        let text = std::fs::read_to_string(Path::new(env!("CARGO_MANIFEST_DIR")).join("../data/site.json")).unwrap();
+        let site: Site = serde_json::from_str(&text).unwrap();
+        let v = site.validation.expect("Gale has ground truth");
+        assert_eq!((v.check_point.name.as_str(), v.open_ground_stop.as_str()), ("parking spot", "sol1468"));
+        assert_eq!(site.layers_region, layers::Region { origin_x: 748.0, origin_y: 748.0, cells: 375, metres_per_pixel: 4.0 });
+        assert_eq!(site.base_candidates.unwrap().candidates.len(), 4);
     }
 }

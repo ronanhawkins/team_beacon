@@ -42,6 +42,10 @@ Optional, present when the waypoint file has them (the engine writes them when i
 - `doseMicroGray` (number): dose so far in microgray, counts up. From the current waypoint.
 - `doseRateMicroGrayPerHour` (number): dose rate at this point now, microgray per hour; rises once a storm has arrived. From the current waypoint.
 
+Addition, optional: present only when the relay was started for a named site (`SITE=<name>` or `--site <name>`, see `relay/README.md`). Absent for the default site, Gale. Clients that do not use it can ignore it:
+
+- `site` (string): the site name, the `<name>` in `data/sites/<name>/`.
+
 ## Mode rules
 
 - `storm` when `storm` or `panic` is true.

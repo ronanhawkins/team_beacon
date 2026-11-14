@@ -2,20 +2,24 @@
 """Curiosity images for the science stops, from the NASA Image and Video Library.
 
 Searches https://images-api.nasa.gov/search?q=<query>&media_type=image and keeps
-up to 3 relevant results per query, in the library's order:
+up to 3 relevant results per query, in the library's order. The queries are the site file's
+"stopImageQueries"; at Gale:
 
   - "Curiosity Quela drill"   -> the quela stop
   - "Curiosity Murray Buttes" -> the sol1448 stop (Butte outcrop)
 
-Relevant means: the title or description names the place ("Quela" or
-"Murray Buttes"), and it is a photograph, not a graphic, map or chart. An image
+Relevant means: the title or description names the place (the query's "mustName",
+here "Quela" or "Murray Buttes"), and it is a photograph, not a graphic, map or chart. An image
 already kept for an earlier query is not repeated. Fewer than 3 are kept when
 fewer are relevant.
 
 Writes data/cache/stop_images.json (committed) and downloads each thumbnail to
 data/out/media/<nasa_id>.jpg.
 
-    python3 tools/fetch_stop_images.py [--force]
+    python3 tools/fetch_stop_images.py [--force] [--site <name>]
+
+With --site <name> (or SITE=<name>) it reads data/sites/<name>/site.json and writes
+data/cache/<name>/stop_images.json and data/out/<name>/media/.
 
 Standard library only.
 """
@@ -27,16 +31,17 @@ import sys
 import urllib.parse
 import urllib.request
 
+from sitepaths import site_paths
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-CACHE = os.path.join(ROOT, "data", "cache", "stop_images.json")
-MEDIA = os.path.join(ROOT, "data", "out", "media")
+P = site_paths()
+CACHE = os.path.join(P.cache_site, "stop_images.json")
+MEDIA = os.path.join(P.out, "media")
 SEARCH = "https://images-api.nasa.gov/search"
 HEADERS = {"User-Agent": "beacon-fetch/1.0"}
 KEEP = 3
-QUERIES = [
-    {"stop": "quela", "query": "Curiosity Quela drill", "mustName": "Quela"},
-    {"stop": "sol1448", "query": "Curiosity Murray Buttes", "mustName": "Murray Buttes"},
-]
+with open(P.site_json) as _f:
+    QUERIES = json.load(_f).get("stopImageQueries", [])
 # Descriptions that start like this are graphics, not photographs.
 NOT_A_PHOTO = re.compile(r"\b(graphic|map|maps|chart|charts|graphed|diagram)\b", re.I)
 

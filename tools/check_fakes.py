@@ -2,6 +2,7 @@
 
 Usage: python3 tools/check_fakes.py                     shared/fake/ (waypoints and both state files)
        python3 tools/check_fakes.py data/out/waypoints.json   any waypoint file on its own
+       python3 tools/check_fakes.py --site <name>        data/out/<name>/waypoints.json (or SITE=<name>)
 (standard library only)
 
 For a real waypoint file openSky may differ from the 72-value formula by up to
@@ -18,6 +19,8 @@ import math
 import re
 import sys
 from pathlib import Path
+
+from sitepaths import site_paths
 
 ROOT = Path(__file__).resolve().parent.parent
 SHARED = ROOT / "shared"
@@ -86,7 +89,8 @@ def load(path):
 
 
 def main(argv):
-    wp_path = Path(argv[1]) if len(argv) > 1 else FAKE / "waypoints.json"
+    site = site_paths(argv)
+    wp_path = Path(argv[1]) if len(argv) > 1 else Path(site.out) / "waypoints.json" if site.name else FAKE / "waypoints.json"
     is_fake = wp_path.resolve() == (FAKE / "waypoints.json").resolve()
     tolerance = OPEN_SKY_TOLERANCE_FAKE if is_fake else OPEN_SKY_TOLERANCE_REAL
     print(f"Checking {wp_path}" + ("" if is_fake else " (real file: openSky tolerance 0.02, no state files)"))

@@ -24,7 +24,10 @@ import statistics
 import sys
 import urllib.request
 
+from sitepaths import site_paths
+
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+site_paths()  # accepts --site / SITE like every tool; the RAD storm is site-independent, so its paths stay shared
 RAW = os.path.join(ROOT, "data", "raw", "rad")
 CACHE = os.path.join(ROOT, "data", "cache", "rad_storm.json")
 BASE_URL = "https://pds-ppi.igpp.ucla.edu/data/MSL-M-RAD-3-RDR-V1.0/DATA/SOL_04134_04257/"
