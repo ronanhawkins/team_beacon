@@ -13,6 +13,7 @@ import { buildWalks, weekStats, readiness, doseUnits, loadRecorded, saveRecorded
 import { createVitals, ITEMS, GROUPS, worse } from './vitals.js';
 import { makeWalkGrid, findPath } from './pathfind.js';
 import { drawProfile, profileFromPoints, sampleLine } from './profile.js';
+import { walkField, fieldImage } from './walkfield.js';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -70,6 +71,7 @@ function live() {
     sunlit: nn(s.sunlit, w.sun ? w.sun.visible : null), baseLink: nn(s.baseLink, w.base ? w.base.visible : null), earthLink: nn(s.earthLink, w.earth ? w.earth.visible : null),
     headingDeg: nn(s.headingDeg, w.headingDeg), shelterBearingDeg: nn(s.shelterBearingDeg, w.shelter ? w.shelter.az : null),
     shelterMin: nn(s.shelterMin, w.shelter ? w.shelter.min : null), shelter, atShelter: !!w.isShelter,
+    baseMin: baseMinAt(w.x, w.y),
   };
 }
 function stopInfo() {
@@ -119,6 +121,20 @@ function warnOnce(key, text) { if (!app.warned[key]) { app.warned[key] = 1; log(
 
 // ---------- incoming ----------
 let routeSerial = 0;
+// Walking time to the base from everywhere on the terrain (walkfield.js): the "Minutes to base" layer and the
+// astronaut panel's "To base". Recomputed only when the base moves.
+function buildBaseField() {
+  const b = app.route && app.route.base, l = CONFIG.LAYERS.find((x) => x.id === 'minutesToBase');
+  if (!app.walkGrid || !b || !l || !app.map) return;
+  const key = `${Math.round(b.x)},${Math.round(b.y)}`; if (app.baseField && app.baseField.key === key) return;
+  const t0 = performance.now(), P = app.planner || {};
+  const F = walkField(app.walkGrid, b, { walkSpeed: P.walkSpeed || 0.8, maxSlopeDeg: P.maxSlopeDeg || 25 }); F.key = key;
+  app.baseField = F;
+  let slot = app.layers.findIndex((x) => x.id === l.id); if (slot < 0) { if (app.layers.length >= 7) return; slot = app.layers.length; app.layers.push(l); }
+  l.index = slot; app.map.setLayer(slot, fieldImage(F, l.domain[1]), { domain: [0, 1], stops: l.stops, noData: 255 });
+  console.info(`Minutes to base: ${Math.round(performance.now() - t0)} ms`);
+}
+const baseMinAt = (x, y) => (app.baseField && x != null ? app.baseField.at(x, y) : null);
 function setRoute(doc, announce) {
   const route = readWaypoints(doc, CONFIG);
   if (!route.waypoints.length) throw new Error('The waypoint file has no "main" waypoints.');
@@ -126,6 +142,7 @@ function setRoute(doc, announce) {
   route.key = String(++routeSerial); app.doc = doc; app.route = route;
   resetDraft(); legCache.clear();
   if (announce) log(`Route loaded: ${fmt(route.totals.timeMin)} min, ${route.stops.length} science stop${route.stops.length === 1 ? '' : 's'}.`);
+  if (announce && app.map) { buildBaseField(); renderLayers(); }
   app.focusStop = null; rebuildWalks(); syncAstro(true);
 }
 // A plan made by the relay replaced the route (state.plan.routeId, shared/state.md): fetch the route and the files
@@ -467,7 +484,7 @@ function renderRight() {
   const tk = (v, yes, no) => (v == null ? '' : `<span class="tk ${v ? 'yes' : 'nope'}">${v ? ICON.ok : ICON.no}${v ? yes : no}</span>`);
   const num = (label, val, unit, cls = '') => `<div class="num ${cls}"><span class="lbl">${label}</span><span class="val mono">${val}<small>${unit}</small></span></div>`;
   $('astroPanel').innerHTML = `<div class="who"><span class="name">${esc(name())}</span><span class="suit">${esc(suit())}</span><span class="doing">${esc(doing())}</span></div>
-    <div class="nums">${num('To shelter', fmt1(L.shelterMin), 'min', em ? 'hot' : '')}${num('Oxygen left', pct(L.oxygen), '%')}${L.doseUgy != null ? num('Dose so far', ugy(L.doseUgy), 'µGy') : num('Dose so far', pct(L.dose), '% of budget')}${L.doseRate != null ? num('Dose rate', fmt1(L.doseRate), 'µGy/h', L.doseRate > CONFIG.VITALS.doseRateHigh ? 'hot' : '') : num('Open sky', pct(L.openSky), '%')}</div>
+    <div class="nums">${num('To shelter', fmt1(L.shelterMin), 'min', em ? 'hot' : '')}${num('To base', L.baseMin == null ? '--' : fmt1(L.baseMin), 'min')}${num('Oxygen left', pct(L.oxygen), '%')}${L.doseUgy != null ? num('Dose so far', ugy(L.doseUgy), 'µGy') : num('Dose so far', pct(L.dose), '% of budget')}${L.doseRate != null ? num('Dose rate', fmt1(L.doseRate), 'µGy/h', L.doseRate > CONFIG.VITALS.doseRateHigh ? 'hot' : '') : num('Open sky', pct(L.openSky), '%')}</div>
     <div class="ticks">${tk(L.baseLink, 'Base link', 'No base link')}${tk(L.earthLink, 'Earth link', 'No Earth link')}${tk(L.sunlit, 'Sunlit', 'In shadow')}${s.earthDelayMin != null ? `<span class="tk mutedtxt">Earth delay ${fmt(s.earthDelayMin)} min</span>` : ''}</div>
     <div id="vitals" class="vsum" data-act="vitals" role="button" tabindex="0" title="Astronaut status (V)"></div>`;
   renderVitals();
@@ -511,7 +528,7 @@ function vitalsProblem(r = app.vit) {
   if (!best) return null;
   const it = best.it, x = r.v[it.key];
   return { ...best, title: it.key === 'linkAge' ? 'Wristband not updating' : `${it.label} ${it.supply || it.key === 'battery' || it.key === 'spo2' ? 'low' : 'high'}`,
-    text: `${vval(it, x)} ${it.unit}. ${it.limit(VC)}.` };
+    text: `${vval(it, x)} ${it.unit}. ${it.limit(VC)}.${it.group === 'body' && live().baseMin != null ? ` Base (medical) is ${fmt1(live().baseMin)} min walk away.` : ''}` };
 }
 function tickVitals() {
   const L = live(), s = app.state, walking = onWalk() && !L.atShelter && !stopInfo().last;
@@ -836,7 +853,7 @@ async function boot() {
   if (terrain.imageUrl) loadImage(terrain.imageUrl).then((im) => app.map.setOrtho(im)).catch(() => {});
   if (meta) {
     if (meta.version !== 1) note += ` Layer metadata is version ${meta.version}; the hub was written for version 1.`;
-    const wanted = CONFIG.LAYERS.filter((l) => meta.layers && meta.layers[l.id]).slice(0, 6);
+    const wanted = CONFIG.LAYERS.filter((l) => !l.hub && meta.layers && meta.layers[l.id]).slice(0, 6);
     const loaded = await Promise.all(wanted.map((l) => loadImage(layersUrl + meta.layers[l.id].file).then((im) => ({ l, im })).catch(() => null)));
     app.layerMeta = { meta, url: layersUrl };
     loaded.filter(Boolean).forEach(({ l, im }, i) => {
@@ -849,10 +866,10 @@ async function boot() {
   }
   // Crew: who is assigned (kept between visits), walks recorded earlier on this laptop, and the rover's real track.
   app.crewId = (member(loadChoice('crew')) || CREW.find((m) => m.condition === 'fit') || CREW[0] || {}).id || null; app.crewSel = app.crewId;
-  app.recorded = loadRecorded(); app.rover = readSite(app.siteDoc);
+  app.recorded = loadRecorded(); app.rover = readSite(app.siteDoc); app.planner = (app.siteDoc && app.siteDoc.planner) || {};
   if (!wp.fake) await loadRouteExtras(app.routeId != null);
   setUnit(); window.addEventListener('resize', setUnit);
-  setRoute(doc, false); renderLayers(); renderAll();
+  setRoute(doc, false); buildBaseField(); renderLayers(); renderAll();
   app.map.onDraw = (g, now) => {
     const moving = tickAstro(now); if (moving) { renderMirror(); renderProfile(); }
     const L = live(); mapFurniture();

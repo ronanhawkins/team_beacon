@@ -1,4 +1,4 @@
-// Terrain map and layer display. WebGL2 draws the terrain, draped image and up to six layers;
+// Terrain map and layer display. WebGL2 draws the terrain, draped image and up to seven layers;
 // a 2D canvas on top carries routes and markers. No libraries.
 // World space is the shared local frame: X east (m), Y north (m), Z up = (z - lowest z) * exaggeration.
 const V = {
@@ -45,13 +45,15 @@ void main() {
 const FS = `#version 300 es
 precision highp float;
 in vec2 vUV; in vec2 vSlope; in float vH;
-uniform sampler2D uOrtho, uL0, uL1, uL2, uL3, uL4, uL5;
-uniform vec4 uUVl; // scale.xy, offset.xy from crop coordinates to layer coordinates (layers may cover a different extent)
-uniform vec2 uFeather; // layer edge fade, in layer UV
+uniform sampler2D uOrtho, uL0, uL1, uL2, uL3, uL4, uL5, uL6;
+// Per layer (layers may cover different extents):
+//   uUVl: scale.xy, offset.xy from crop coordinates to layer coordinates
+//   uValid: rectangle u0, v0, u1, v1 in layer coordinates (v = 0 at the north edge) that holds real values
+//   uFeather: how far in from that rectangle's edge the layer fades in, in layer coordinates
+//   uND: pixel values (0..1) at or above this are missing (no walkable path, outside the planner); > 1 = none
+uniform vec4 uUVl[7]; uniform vec4 uValid[7]; uniform vec2 uFeather[7]; uniform float uND[7];
 uniform float uHasOrtho, uExag, uGain; uniform vec3 uSun;
-uniform float uOp[6]; uniform int uMode[6]; uniform vec2 uDom[6]; uniform vec4 uC0[6]; uniform vec4 uC1[6]; uniform vec4 uC2[6];
-uniform float uND[6];   // pixel values (0..1) at or above this are missing (no walkable path, outside the planner); > 1 = none
-uniform vec4 uValid[6]; // part of the layer that holds real values: u0, v0, u1, v1 in layer UV (v = 0 at the north edge)
+uniform float uOp[7]; uniform int uMode[7]; uniform vec2 uDom[7]; uniform vec4 uC0[7]; uniform vec4 uC1[7]; uniform vec4 uC2[7];
 out vec4 o;
 // Bilinear blend of the four nearest pixels that hold values. Missing pixels are left out of the blend, and how much
 // of the blend they took becomes the coverage, so the edge of a missing area is a smooth curve and never a 4 m stair.
@@ -68,10 +70,11 @@ vec2 sampleL(sampler2D s, vec2 uv, float nd) {
   }
   return vec2(wsum > 0.0 ? acc / wsum : 0.0, wsum);
 }
-vec3 layer(vec3 base, vec2 ul, sampler2D s, int i) {
+vec3 layer(vec3 base, sampler2D s, int i) {
   if (uOp[i] <= 0.0) return base;
+  vec2 ul = vUV * uUVl[i].xy + uUVl[i].zw;
   vec4 r = uValid[i];
-  vec2 e = min(ul - r.xy, r.zw - ul) / uFeather;      // distance inside the valid area, in feather widths
+  vec2 e = min(ul - r.xy, r.zw - ul) / uFeather[i];   // distance inside the valid area, in feather widths
   float edge = smoothstep(0.0, 1.0, min(e.x, e.y));
   if (edge <= 0.0) return base;
   vec2 t = sampleL(s, ul, uND[i]);
@@ -82,16 +85,11 @@ vec3 layer(vec3 base, vec2 ul, sampler2D s, int i) {
   return mix(base, c.rgb, c.a * uOp[i] * cover);
 }
 void main() {
-  vec2 ul = vUV * uUVl.xy + uUVl.zw;
   vec3 base = uHasOrtho > 0.5 ? texture(uOrtho, vUV).rgb * uGain : mix(vec3(0.60, 0.38, 0.25), vec3(0.74, 0.52, 0.38), vH);
   vec3 n = normalize(vec3(vSlope * uExag, 1.0));
   base *= 0.42 + 0.72 * max(dot(n, uSun), 0.0);
-  base = layer(base, ul, uL0, 0);
-  base = layer(base, ul, uL1, 1);
-  base = layer(base, ul, uL2, 2);
-  base = layer(base, ul, uL3, 3);
-  base = layer(base, ul, uL4, 4);
-  base = layer(base, ul, uL5, 5);
+  base = layer(base, uL0, 0); base = layer(base, uL1, 1); base = layer(base, uL2, 2); base = layer(base, uL3, 3);
+  base = layer(base, uL4, 4); base = layer(base, uL5, 5); base = layer(base, uL6, 6);
   o = vec4(base, 1.0);
 }`;
 
@@ -124,10 +122,9 @@ export function createMap(glCanvas, ovCanvas, { terrain: T, sun, exaggeration = 
   gl.enableVertexAttribArray(aSlope); gl.vertexAttribPointer(aSlope, 2, gl.FLOAT, false, 20, 12);
   gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, gl.createBuffer()); gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, idx, gl.STATIC_DRAW);
 
-  // --- textures: unit 0 = draped image, units 1..6 = layers ---
+  // --- textures: unit 0 = draped image, units 1..7 = layers ---
   const blank = () => { const t = gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t); gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, 1, 1, 0, gl.RGBA, gl.UNSIGNED_BYTE, new Uint8Array(4)); return t; };
-  const tex = [blank(), blank(), blank(), blank(), blank(), blank(), blank()];
-  let uvLayer = [1, 1, 0, 0];
+  const tex = [blank(), blank(), blank(), blank(), blank(), blank(), blank(), blank()];
   function upload(unit, image, mip) {
     gl.activeTexture(gl.TEXTURE0 + unit); gl.bindTexture(gl.TEXTURE_2D, tex[unit]);
     gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false); gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
@@ -139,9 +136,8 @@ export function createMap(glCanvas, ovCanvas, { terrain: T, sun, exaggeration = 
     if (mip) { gl.generateMipmap(gl.TEXTURE_2D); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR); }
     else gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
   }
-  ['uOrtho', 'uL0', 'uL1', 'uL2', 'uL3', 'uL4', 'uL5'].forEach((n, i) => gl.uniform1i(U(n), i));
-  const layers = [0, 1, 2, 3, 4, 5].map(() => ({ op: 0, target: 0, mode: 0, dom: [0, 1], nd: 2, valid: [0, 0, 1, 1], c: [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]] }));
-  let feather = [0.02, 0.02];
+  ['uOrtho', 'uL0', 'uL1', 'uL2', 'uL3', 'uL4', 'uL5', 'uL6'].forEach((n, i) => gl.uniform1i(U(n), i));
+  const layers = [0, 1, 2, 3, 4, 5, 6].map(() => ({ op: 0, target: 0, mode: 0, dom: [0, 1], nd: 2, uv: [1, 1, 0, 0], valid: [0, 0, 1, 1], feather: [0.02, 0.02], c: [[0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]] }));
   let hasOrtho = 0;
 
   // --- camera ---
@@ -170,13 +166,14 @@ export function createMap(glCanvas, ovCanvas, { terrain: T, sun, exaggeration = 
     // domain = [lo, hi] as fractions of the 0..255 pixel range that the colour ramp spans.
     // widthM, heightM = ground the layer images cover; originX, originY = local metres of their south-west
     // corner (meta.json, shared/layers.md; 0 when absent). vUV runs 0..1 east and 0..1 from the north edge.
-    // noData = pixel value (0..255) from which a pixel counts as missing; validBounds = { xMin, xMax, yMin, yMax }
-    // in local metres, outside which the layer is not drawn (shared/layers.md). Edges fade over featherM metres.
-    setLayer(i, image, { domain, stops, widthM = T.W, heightM = T.H, originX = 0, originY = 0, noData = null, validBounds = null, featherM = 40 }) {
-      upload(i + 1, image, false); uvLayer = [T.W / widthM, T.H / heightM, -originX / widthM, 1 + (originY - T.H) / heightM];
-      feather = [featherM / widthM, featherM / heightM];
-      const b = validBounds, valid = b ? [(b.xMin - originX) / widthM, 1 - (b.yMax - originY) / heightM, (b.xMax - originX) / widthM, 1 - (b.yMin - originY) / heightM] : [0, 0, 1, 1];
-      Object.assign(layers[i], { mode: 1, dom: domain || [0, 1], c: stops || layers[i].c, nd: noData == null ? 2 : (noData - 0.5) / 255, valid });
+    // noData = pixel value (0..255) from which a pixel counts as missing. validBounds (or bounds) = { xMin, xMax, yMin, yMax }
+    // in local metres where the layer holds real values (meta.json, shared/layers.md); outside it the layer is left
+    // clear instead of drawing placeholder values. Default: the whole image. Edges fade in over featherM metres.
+    setLayer(i, image, { domain, stops, widthM = T.W, heightM = T.H, originX = 0, originY = 0, noData = null, validBounds = null, bounds = null, featherM = 40 }) {
+      upload(i + 1, image, false);
+      const uv = [T.W / widthM, T.H / heightM, -originX / widthM, 1 + (originY - T.H) / heightM], b = validBounds || bounds;
+      const valid = b ? [(b.xMin - originX) / widthM, 1 - (b.yMax - originY) / heightM, (b.xMax - originX) / widthM, 1 - (b.yMin - originY) / heightM] : [0, 0, 1, 1];
+      Object.assign(layers[i], { mode: 1, dom: domain || [0, 1], c: stops || layers[i].c, nd: noData == null ? 2 : (noData - 0.5) / 255, uv, valid, feather: [featherM / widthM, featherM / heightM] });
     },
     setLayerOn(i, on) { layers[i].target = on ? 1 : 0; },
     // world (x, y, metres above ground) -> CSS pixel position on the map
@@ -251,11 +248,12 @@ export function createMap(glCanvas, ovCanvas, { terrain: T, sun, exaggeration = 
     gl.clearColor(0.043, 0.055, 0.075, 1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT); gl.enable(gl.DEPTH_TEST);
     gl.uniformMatrix4fv(U('uMVP'), false, new Float32Array(mvp));
     gl.uniform1f(U('uExag'), ex); gl.uniform2f(U('uSize'), T.W, T.H); gl.uniform1f(U('uRelief'), T.maxZ - T.minZ);
-    gl.uniform1f(U('uHasOrtho'), hasOrtho); gl.uniform1f(U('uGain'), imageGain); gl.uniform3fv(U('uSun'), sunVec); gl.uniform4fv(U('uUVl'), uvLayer);
+    gl.uniform1f(U('uHasOrtho'), hasOrtho); gl.uniform1f(U('uGain'), imageGain); gl.uniform3fv(U('uSun'), sunVec);
+    gl.uniform4fv(U('uUVl'), layers.flatMap((l) => l.uv));
     gl.uniform1fv(U('uOp'), layers.map((l) => (l.op < 0.01 ? 0 : l.op)));
     gl.uniform1iv(U('uMode'), layers.map((l) => l.mode));
     gl.uniform2fv(U('uDom'), layers.flatMap((l) => l.dom));
-    gl.uniform1fv(U('uND'), layers.map((l) => l.nd)); gl.uniform4fv(U('uValid'), layers.flatMap((l) => l.valid)); gl.uniform2fv(U('uFeather'), feather);
+    gl.uniform1fv(U('uND'), layers.map((l) => l.nd)); gl.uniform4fv(U('uValid'), layers.flatMap((l) => l.valid)); gl.uniform2fv(U('uFeather'), layers.flatMap((l) => l.feather));
     [0, 1, 2].forEach((k) => gl.uniform4fv(U('uC' + k), layers.flatMap((l) => l.c[k])));
     gl.bindVertexArray(vao); gl.drawElements(gl.TRIANGLES, idx.length, gl.UNSIGNED_INT, 0);
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.clearRect(0, 0, cssW, cssH);

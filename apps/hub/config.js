@@ -52,7 +52,13 @@ export const CONFIG = {
       lo: 'Flat', hi: 'Too steep', source: 'Orbiter elevation model' },
     { id: 'minutesToShelter', label: 'Minutes to shelter', domain: [0, 10], noData: 255,
       stops: [[0.10, 0.78, 0.50, 0.30], [0.98, 0.86, 0.35, 0.55], [0.95, 0.50, 0.12, 0.80]],
-      lo: 'At shelter', hi: '10+ min', blank: 'Clear: no walkable path, or outside the planned area', source: 'Walking time to the nearest shelter' },
+      lo: 'At shelter', hi: '10+ min', blank: 'Clear: no walkable path, or outside the planned area',
+      source: 'Walking time to the nearest radiation shelter (engine). Shown only where the engine planned' },
+    // Computed in the hub (walkfield.js), not exported by the engine: covers the whole terrain.
+    { id: 'minutesToBase', label: 'Minutes to base', hub: true, domain: [0, 60], noData: 255,
+      stops: [[0.20, 0.78, 0.55, 0.30], [0.98, 0.80, 0.30, 0.45], [0.90, 0.25, 0.30, 0.75]],
+      lo: 'At base', hi: '60+ min', blank: 'Clear: no walkable path to base',
+      source: 'Walking time to the base, where medical help is. Hub estimate on the 4 m terrain, engine walking rules' },
   ],
   LAYERS_ON: ['exposure'],
 
