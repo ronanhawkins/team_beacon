@@ -2,14 +2,26 @@
 
 **Owner:** Ronn
 
-Hub page: the control-centre screen. Shows the 3D map of Murray Buttes on the real terrain and
-image from `data/out/terrain/`, the engine's layers, the planned route, the briefing, the
-astronaut's live status, mirrors of the helmet ring and the wristband, the storm and panic state,
-and the presenter controls. It also shows which devices are connected, from the relay's `/clients`.
+Hub page: the control-centre screen. Shows the 3D map of the site on the real terrain and image
+from `data/out/terrain/`, the engine's layers, the planned route, the briefing, the astronaut's live
+status, the helmet ring, the storm and panic state, and the presenter controls. It also shows which
+devices are connected, from the relay's `/clients`.
 
-Three screens, switched in the header: **Plan** (place stops, send to the planner), **Live** (the walk,
-with heart rate and wristband battery) and **Crew** (who is fit for the planned walk, each astronaut's
-profile, and the route history drawn on the map).
+Three screens, switched in the top bar. The map, timeline, event log and presenter controls stay on all three.
+
+| Screen | Left | Right |
+|---|---|---|
+| **Plan** | the planner, the draft's profile, map layers | the current route's briefing, who can walk it, the science stops with photos |
+| **Live** | the route's totals and stops, its profile, map layers | the astronaut's numbers and vitals, the next science stop, the helmet ring |
+| **Crew** | who is fit for the planned walk, map layers | the profile and the route history, drawn on the map |
+
+The **route profile** (`profile.js`) shows ground height along the walk (amber where steeper than
+`MAX_SLOPE_DEG`), minutes to shelter (dashed green), science stops, shelters and the astronaut. While a
+draft is being placed it shows the draft instead. Hover over it to read the values; the map marks the spot.
+
+The top bar has a one-line status for the screen (Nominal, Warning, Reroute, Planning). A banner below it
+appears only for cautions and emergencies. The map has a compass (click for north up) and a scale bar. Map labels that would
+overlap are left out, least important first.
 
 Plain ES modules, no build step and no libraries, so it runs offline on the hotspot.
 
@@ -45,9 +57,8 @@ uses for waypoints. The header says which is which.
 | Rover track in the route history | `data/site.json` `routeNearButtes` (Curiosity, sols 1446 to 1471) | not shown |
 | Crew and their past walks | none: sample people in `crew-data.js` | each past walk's path, distance, time and dose are worked out from the route above |
 
-So today the hub shows the real 3 km Murray Buttes crop with the **fake route**, whose coordinates
-mean nothing on Mars. The view opens on the terrain's parking spot and moves to the route when the
-walk starts. The fake layers describe the fake butte, so they are not laid over the real terrain.
+With only the fake route, whose coordinates mean nothing on Mars, the view opens on the terrain's
+parking spot and moves to the route when the walk starts. The fake layers describe the fake butte, so they are not laid over the real terrain.
 Add `?fake=1` to the address to see the whole fake scene, layers included.
 
 When the engine writes `data/out/waypoints.json` and `data/out/layers/`, the hub picks them up
@@ -58,6 +69,7 @@ with no code change.
 - `index.html`: page entry
 - `main.js`: relay connection, app setup and the panels
 - `map.js`: terrain map and layer display (WebGL)
+- `profile.js`: the route profile chart
 - `route.js`: reads the waypoint file and the relay state into the route the hub draws
 - `relay.js`: uses `shared/client.js`; lists the events the hub sends
 - `local.js`: stand-in for the relay when it is not there (copies the state logic of `relay/server.js`)
@@ -85,6 +97,17 @@ with no code change.
 | L | Simulated cooling leak on or off | | |
 
 Map: drag to rotate, Shift-drag or right-drag to move, scroll to zoom.
+
+## Planning a walk
+
+1. In **Plan**, press Start, + Stops or End and click the map. Points must be inside the planned area (the dashed
+   outline, `plannerBounds` in the site file) and no steeper than `MAX_SLOPE_DEG`. ↑ moves a stop earlier, ✕ removes it.
+2. The dashed white line is the hub's own path around the terrain (`pathfind.js`), with its distance, walking time
+   and steepest slope. It is an estimate for placing points.
+3. "Plan this route" sends the points to the relay, which runs the engine. The panel shows "Planning…", then the
+   new route's time and stops, or the engine's reason for failing (the old route stays).
+4. The new route replaces the old one everywhere: route, stops, timeline, briefing, shelters, reroutes and the
+   minutes-to-shelter layer, and the browser headset follows. Sent mid-walk, it starts where the astronaut is.
 
 ## Alarm, vitals, crew and history
 
@@ -114,11 +137,14 @@ Map: drag to rotate, Shift-drag or right-drag to move, scroll to zoom.
 ## How it follows `shared/` and `data/out/terrain/`
 
 - **State** (`state.md`): `mode` drives the banner (`storm` red, `warning` amber, `nominal` plain).
-  The wrist mirror's arrow is drawn at `shelterBearingDeg - headingDeg`.
-- **Events** (`events.md`): sends `next`, `back`, `goto`, `storm`, `reset` through `shared/client.js`.
+  `plan` (an addition) reports the planner's progress; when `plan.routeId` changes the hub fetches the new route,
+  briefing, stops and minutes-to-shelter layer from the relay's `/mission/`.
+- **Events** (`events.md`): sends `next`, `back`, `goto`, `storm`, `panic`, `reset` and `plan` through `shared/client.js`.
 - **Waypoints** (`waypoints.md`): `main` is the route, `reroutes["N"]` is drawn when `route` is
   `"reroute"`. Science stops and shelters come from `isScienceStop` and `isShelter`.
 - **Layers** (`layers.md`): reads `meta.json`, maps pixels through each layer's `min` and `max`, and places the images at `originX`, `originY`.
+  Layers with `noData` in `config.js` (minutes to shelter: 255 = no walkable path) leave those pixels clear, with smooth
+  edges rather than 4 m squares, and nothing is drawn outside a layer's `validBounds`. Edges fade over 40 m.
 - **Grid cells** (`conventions.md`): values belong to cell centres, for layers and heights alike.
 - **Terrain**: reads `terrain.json` (`heightGrid`, `textures.hub`, `parking`) and `height_750.bin`
   as described in `data/out/terrain/README.md`. It does not use `shared/terrain.js`, which needs
@@ -128,10 +154,8 @@ Map: drag to rotate, Shift-drag or right-drag to move, scroll to zoom.
 
 1. **Which reroute — resolved.** The state now carries `rerouteFrom`. The hub uses this explicit identifier before its compatibility fallback for old relays, including after a reconnect.
 2. **Panic from the hub — resolved.** The current `events.md` includes hub as a panic sender.
-3. **Planner link.** No event carries the start, stops and end to the planner. The hub sends a
-   proposed `{ "type": "plan", "points": [{ "x", "y", "kind": "start" | "stop" | "end" }] }`
-   (ignored as an unknown event), offers the same as copyable JSON, and has "Reload route" to
-   re-read the waypoint file after the engine exports.
+3. **Planner link — resolved.** The hub sends `plan` (`events.md`); the relay runs the engine and every client
+   gets the new route. Planning needs the relay: in local mode the hub only draws its own estimate of the path.
 4. **Site file — available.** The relay now serves `/data/site.json` explicitly. The hub still works out the base position from the waypoints' `base.az` and `base.distance`, and takes the astronaut's name and start time from `config.js`.
 5. **Science tasks and arrival photos** per stop live in the hub's `config.js` for now.
 6. **Wrist readings.** Not in `state.md` yet. The hub reads four proposed state fields and simulates

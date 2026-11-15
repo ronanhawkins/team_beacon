@@ -12,6 +12,7 @@ import { CREW } from './crew-data.js';
 import { buildWalks, weekStats, readiness, doseUnits, loadRecorded, saveRecorded, loadChoice, saveChoice } from './crew.js';
 import { createVitals, ITEMS, GROUPS, worse } from './vitals.js';
 import { makeWalkGrid, findPath } from './pathfind.js';
+import { drawProfile, profileFromPoints, sampleLine } from './profile.js';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -27,6 +28,8 @@ const ICON = {
   no: '<svg aria-hidden="true" viewBox="0 0 24 24" class="ic no"><path d="M6 6l12 12M18 6L6 18"/></svg>',
   warn: '<svg aria-hidden="true" viewBox="0 0 24 24" class="ic"><path d="M12 3L2 20h20L12 3z"/><path d="M12 10v5M12 18v.5"/></svg>',
   info: '<svg aria-hidden="true" viewBox="0 0 24 24" class="ic"><circle cx="12" cy="12" r="9"/><path d="M12 11v6M12 7.5v.5"/></svg>',
+  sound: '<svg aria-hidden="true" viewBox="0 0 24 24" class="ic"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16.5 8.5a5 5 0 0 1 0 7M19 6a8.5 8.5 0 0 1 0 12"/></svg>',
+  mute: '<svg aria-hidden="true" viewBox="0 0 24 24" class="ic"><path d="M4 9v6h4l5 4V5L8 9z"/><path d="M17 9l5 5M22 9l-5 5"/></svg>',
   heart: '<svg aria-hidden="true" viewBox="0 0 24 24" class="ic"><path d="M12 20s-7-4.6-7-10a4 4 0 0 1 7-2.4A4 4 0 0 1 19 10c0 5.4-7 10-7 10z"/></svg>',
 };
 
@@ -34,7 +37,7 @@ const app = {
   doc: null, route: null, terrain: null, map: null, state: emptyState(), gotState: false,
   link: null, relayStatus: 'connecting', relayUrl: '', clients: null, fake: { waypoints: false, layers: false, terrain: false },
   mode: 'plan', layers: [], layersOn: new Set(CONFIG.LAYERS_ON), slope: null,
-  draft: [], draftDirty: false, placing: null, planPending: 0, planNote: '',
+  draft: [], draftDirty: false, placing: null, planNote: '', plan: null, routeId: null, pendingState: null, bounds: null, siteDoc: null,
   focusStop: null, follow: false, log: [], sound: true, emergencyAt: 0, resetArmed: 0, warned: {},
   astro: { x: 0, y: 0, seg: 0, anim: null, wA: null, wB: null, f: 0 }, listKey: '', listIdx: 0,
   crewId: null, crewSel: null, walks: [], recorded: [], rover: null, histSel: null, histAll: false, walk: null,
@@ -104,9 +107,12 @@ function beep(kind) {
   } catch { /* sound is optional */ }
 }
 // The alarm repeats the burst for CONFIG.ALARM.seconds, or until the emergency ends or someone silences it.
+// A storm alarm also stops once the astronaut is in shelter: there is nothing left to act on.
+const stormSheltered = () => app.state.storm && !app.state.panic && live().atShelter;
 function startAlarm(kind) {
+  if (kind === 'storm' && stormSheltered()) return;
   clearInterval(alarmTimer); app.alarm = kind; alarmEnd = Date.now() + CONFIG.ALARM.seconds * 1000; beep(kind);
-  alarmTimer = setInterval(() => { if (!emergency() || Date.now() >= alarmEnd) stopAlarm(); else beep(kind); }, CONFIG.ALARM.everyMs);
+  alarmTimer = setInterval(() => { if (!emergency() || Date.now() >= alarmEnd || (app.alarm === 'storm' && stormSheltered())) stopAlarm(); else beep(kind); }, CONFIG.ALARM.everyMs);
 }
 function stopAlarm() { clearInterval(alarmTimer); alarmTimer = 0; if (app.alarm) { app.alarm = null; renderBanner(); } }
 function warnOnce(key, text) { if (!app.warned[key]) { app.warned[key] = 1; log(text, 'caution'); } }
@@ -118,13 +124,28 @@ function setRoute(doc, announce) {
   if (!route.waypoints.length) throw new Error('The waypoint file has no "main" waypoints.');
   if (doc.version !== 1) warnOnce('wpv', `Waypoint file is version ${doc.version}; the hub was written for version 1.`);
   route.key = String(++routeSerial); app.doc = doc; app.route = route;
-  resetDraft();
-  if (app.planPending) { clearTimeout(app.planPending); app.planPending = 0; app.planNote = 'Route received.'; }
+  resetDraft(); legCache.clear();
   if (announce) log(`Route loaded: ${fmt(route.totals.timeMin)} min, ${route.stops.length} science stop${route.stops.length === 1 ? '' : 's'}.`);
   app.focusStop = null; rebuildWalks(); syncAstro(true);
 }
+// A plan made by the relay replaced the route (state.plan.routeId, shared/state.md): fetch the route and the files
+// that go with it (briefing, stop photos, minutes-to-shelter layer), then apply the state that announced it.
+async function loadMission(raw) {
+  app.pendingState = raw;
+  try {
+    setRoute(await getJSON(app.waypointsUrl), true);
+    await loadRouteExtras();
+    routeView();
+  } catch (e) { toast('Could not load the new route: ' + e.message); }
+  const latest = app.pendingState; app.pendingState = null; app.gotState = false;
+  if (latest) onState(latest);
+}
 function onState(raw) {
+  const rid = raw.plan ? raw.plan.routeId ?? null : app.routeId;
+  if (app.session && rid !== app.routeId) { app.routeId = rid; notePlan(raw.plan); loadMission(raw); return; }
+  if (app.pendingState) { app.pendingState = raw; return; }
   const p = app.state, first = !app.gotState; app.gotState = true;
+  notePlan(raw.plan);
   const ns = readState(raw, app.route, first ? null : p); app.state = ns;
   if (ns.version != null && ns.version !== 1) warnOnce('stv', `Relay state is version ${ns.version}; the hub was written for version 1.`);
   const si = stopInfo(), L = live();
@@ -144,6 +165,7 @@ function onState(raw) {
   }
   const em = emergency(), newPanic = ns.panic && (first || !p.panic), newStorm = ns.storm && (first || !p.storm);
   if (em && (newPanic || newStorm)) startAlarm(newPanic ? 'panic' : 'storm');
+  if (app.alarm === 'storm' && stormSheltered()) stopAlarm(); // reached shelter: silence straight away, not at the next beep
   if (em && !app.emergencyAt) { app.emergencyAt = Date.now(); app.mode = 'live'; frameEmergency(); }
   if (!em) { app.emergencyAt = 0; stopAlarm(); }
   trackWalk(ns);
@@ -151,8 +173,15 @@ function onState(raw) {
   if (!first && p.wp === 0 && !p.reroute && (ns.wp > 0 || ns.reroute) && app.fake.waypoints && !app.fake.terrain && !app.terrain.flat && !em) routeView(); // the walk has started: show it
   syncAstro(first); renderAll();
 }
-// Opening view. Normally framed on the walk. While the route is still the fake one but the terrain is real,
-// the fake coordinates mean nothing on Mars, so the view opens on the terrain's parking spot instead.
+// Logs each change of the relay's plan status once (running, done, error).
+function notePlan(pl) {
+  const was = app.plan; app.plan = pl || null;
+  if (!pl || (was && was.id === pl.id && was.status === pl.status)) return;
+  if (!was && pl.status !== 'running') return; // a status from before this page opened
+  if (pl.status === 'running') log(pl.message || 'Planning…', 'sent');
+  else if (pl.status === 'done') { log(pl.message || 'New route ready.'); app.planNote = ''; }
+  else { log(pl.message || 'The planner failed.', 'caution'); toast(pl.message || 'The planner failed.'); }
+}
 function routeView() {
   const r = app.route, T = app.terrain, R = CONFIG.HOME_RADIUS_M;
   app.map.flyTo({ az: 24, pitch: 54 }, 0);
@@ -229,10 +258,12 @@ function command(cmd) {
 // ---------- planning ----------
 function resetDraft() {
   const w = app.route.waypoints, a = w[0], b = w[w.length - 1];
-  app.draft = [{ x: a.x, y: a.y, kind: 'start' }, ...app.route.stops.map((s) => ({ x: s.x, y: s.y, kind: 'stop', name: s.name })), { x: b.x, y: b.y, kind: 'end' }];
+  app.draft = [{ x: a.x, y: a.y, kind: 'start' }, ...app.route.stops.map((s) => ({ x: s.x, y: s.y, kind: 'stop', name: s.name, auto: /^Stop \d+$/.test(s.name) })), { x: b.x, y: b.y, kind: 'end' }];
   app.draftDirty = false; app.placing = null;
 }
-function renumber() { let n = 0; for (const p of app.draft) if (p.kind === 'stop') p.name = `Stop ${++n}`; }
+function renumber() { let n = 0; for (const p of app.draft) if (p.kind === 'stop') { n++; if (p.auto || !p.name) { p.name = `Stop ${n}`; p.auto = true; } } }
+const inBounds = (p, b = app.bounds) => !b || (p.x >= b.xMin && p.x <= b.xMax && p.y >= b.yMin && p.y <= b.yMax);
+const canPlan = () => !!app.link && app.link.kind === 'relay' && app.relayStatus === 'open';
 function slopeAt(x, y) { // degrees: from the terrain when there is one, else from the slope layer
   if (app.terrain && !app.terrain.flat) return app.terrain.slopeAt(x, y);
   const s = app.slope; if (!s) return null;
@@ -241,30 +272,33 @@ function slopeAt(x, y) { // degrees: from the terrain when there is one, else fr
   return s.min + s.data[(r * s.w + c) * 4] / 255 * (s.max - s.min);
 }
 function placeAt(w) {
+  if (!inBounds(w)) return toast('Outside the planned area (dashed outline). The planner only has shelters and terrain inside it.');
   const sl = slopeAt(w.x, w.y);
   if (sl != null && sl > CONFIG.MAX_SLOPE_DEG) return toast(`Too steep for a suited astronaut: ${sl.toFixed(0)}° here, limit ${CONFIG.MAX_SLOPE_DEG}°.`);
   const p = { x: +w.x.toFixed(1), y: +w.y.toFixed(1) };
   if (app.placing === 'start') { app.draft[0] = { ...p, kind: 'start' }; app.placing = null; }
   else if (app.placing === 'end') { app.draft[app.draft.length - 1] = { ...p, kind: 'end' }; app.placing = null; }
-  else { app.draft.splice(app.draft.length - 1, 0, { ...p, kind: 'stop' }); renumber(); }
+  else { app.draft.splice(app.draft.length - 1, 0, { ...p, kind: 'stop', auto: true }); renumber(); }
   app.draftDirty = true; app.planNote = ''; renderAll();
 }
-const planPoints = () => app.draft.map(({ x, y, kind }) => ({ x, y, kind }));
+function moveStop(i, d) {
+  const j = i + d; if (app.draft[i].kind !== 'stop' || !app.draft[j] || app.draft[j].kind !== 'stop') return;
+  [app.draft[i], app.draft[j]] = [app.draft[j], app.draft[i]]; renumber(); app.draftDirty = true; renderAll();
+}
 function sendPlan() {
-  if (!send(events.plan(planPoints()), `Plan sent (${app.draft.filter((p) => p.kind === 'stop').length} science stops).`)) return;
-  app.placing = null; app.planNote = 'Waiting for a new route…';
-  clearTimeout(app.planPending);
-  app.planPending = setTimeout(() => { app.planPending = 0; app.planNote = 'No new route arrived. Reload the route file once the engine has exported it.'; renderLeft(); }, CONFIG.PLAN_TIMEOUT_MS);
-  renderLeft();
-}
-async function copyPlan() {
-  const text = JSON.stringify({ version: 1, points: planPoints() }, null, 2);
-  try { await navigator.clipboard.writeText(text); app.planNote = 'Start, stops and end copied as JSON.'; } catch { console.log(text); app.planNote = 'Copy was blocked. The JSON is in the browser console.'; }
-  renderLeft();
-}
-async function reloadRoute() {
-  try { setRoute(await getJSON(app.waypointsUrl), true); app.planNote = 'Route file reloaded.'; renderAll(); }
-  catch (e) { toast('Could not reload the route file: ' + e.message); }
+  if (!canPlan()) return toast('Planning needs the relay. Start it with npm run demo.');
+  if (app.plan && app.plan.status === 'running') return toast('The planner is still working on the last plan.');
+  if (onWalk() && !confirm('A walk is in progress. The new route will start where the astronaut is now. Send it?')) return;
+  const pts = app.draft.map(({ x, y, kind, name: n }) => ({ x, y, kind, ...(kind === 'stop' && n ? { name: n } : {}) }));
+  const before = app.plan ? app.plan.id : null;
+  if (!send(events.plan(pts), `Plan sent: ${pts.length - 2} science stop${pts.length === 3 ? '' : 's'}.`)) return;
+  app.placing = null; app.planNote = ''; renderAll();
+  // A relay older than the plan event ignores it and never answers in state.plan.
+  setTimeout(() => {
+    if ((app.plan ? app.plan.id : null) !== before) return;
+    app.planNote = 'The relay did not answer. It may be an older version without planning: restart it (npm run demo).';
+    log(app.planNote, 'caution'); renderAll();
+  }, CONFIG.PLAN_TIMEOUT_MS);
 }
 
 // ---------- rendering ----------
@@ -283,25 +317,40 @@ function routeDraft() {
   }
   app.draftPath = pts; app.draftStats = st;
 }
-function renderAll() { routeDraft(); renderHeader(); renderBanner(); renderLeft(); renderRight(); renderCrew(); renderTimeline(); renderMirror(); }
+function renderAll() { routeDraft(); app.profile = null; renderHeader(); renderBanner(); renderLeft(); renderRight(); renderCrew(); renderTimeline(); renderMirror(); renderReady(); renderProfile(); }
 function renderHeader() {
   const L = live(), local = app.link && app.link.kind === 'local', up = app.relayStatus === 'open';
   document.body.classList.toggle('emergency', emergency());
   document.body.classList.toggle('placing', !!app.placing);
   document.body.classList.toggle('stale', !!app.link && !local && !up);
+  for (const m of ['plan', 'live', 'crew']) document.body.classList.toggle(m, app.mode === m);
   $('clock').textContent = hm(L.elapsedMin);
   const mt = marsTime(L.elapsedMin); $('marsClock').hidden = !mt; $('marsTime').textContent = mt;
   $('modePlan').setAttribute('aria-pressed', app.mode === 'plan'); $('modeLive').setAttribute('aria-pressed', app.mode === 'live'); $('modeCrew').setAttribute('aria-pressed', app.mode === 'crew');
-  document.body.classList.toggle('crew', app.mode === 'crew');
+  const st = statusModel(); $('status').className = 'status ' + st.level; $('status').innerHTML = `${st.icon}<b>${esc(st.title)}</b>${st.text ? `<span>${esc(st.text)}</span>` : ''}`;
   const chip = (on, label) => `<span class="dev ${on ? 'on' : 'off'}">${on ? ICON.ok : ICON.no}${label}</span>`;
   const n = (role) => (app.clients || []).filter((c) => c.role === role).length;
-  $('devices').innerHTML = local ? `<span class="dev local">${ICON.info}Local mode, no relay</span>`
-    : `<span title="${esc(app.relayUrl)}">${chip(up, up ? 'Relay' : 'Relay offline')}</span>` + (up && app.clients ? chip(n('headset') > 0, 'Headset') + chip(n('wrist') > 0, 'Wrist') + chip(n('esp') > 0, 'Panic button') : '');
-  $('soundBtn').textContent = app.sound ? 'Sound on' : 'Sound off';
+  $('devices').innerHTML = local ? `<span class="dev local" title="Other devices will not follow. Planning needs the relay.">${ICON.info}Local mode</span>`
+    : `<span title="${esc(app.relayUrl)}">${chip(up, up ? 'Relay' : 'Relay offline')}</span>` + (up && app.clients ? chip(n('headset') > 0, 'Headset') + chip(n('wrist') > 0, 'Wrist') + chip(n('esp') > 0, 'Button') : '');
+  $('soundBtn').innerHTML = app.sound ? ICON.sound : ICON.mute; $('soundBtn').setAttribute('aria-pressed', app.sound); $('soundBtn').setAttribute('aria-label', app.sound ? 'Sound on' : 'Sound off');
   $('viewFollow').setAttribute('aria-pressed', app.follow);
-  $('stormBtn').firstChild.textContent = app.state.storm ? 'End storm ' : 'Storm ';
+  $('stormBtn').textContent = app.state.storm ? 'End storm' : 'Storm';
   const hint = $('mapHint'); hint.hidden = !app.placing;
-  if (app.placing) hint.textContent = app.placing === 'stop' ? 'Click the map to add science stops. Esc when done.' : `Click the map to set the ${app.placing}.`;
+  if (app.placing) hint.textContent = app.placing === 'stop' ? 'Click the map to add science stops · Esc when done' : `Click the map to set the ${app.placing}`;
+}
+// One line in the top bar for the normal state of each mode. Cautions and emergencies use the banner as well.
+function statusModel() {
+  const s = app.state, L = live();
+  if (emergency()) return { level: 'caution', icon: ICON.warn, title: s.storm ? 'Solar storm' : 'Panic button', text: L.atShelter ? 'In shelter' : 'Going to shelter' };
+  if (app.mode === 'plan') {
+    if (app.plan && app.plan.status === 'running') return { level: 'info', icon: ICON.info, title: 'Planning', text: 'The engine is working out the route…' };
+    return { level: 'info', icon: ICON.info, title: 'Plan', text: app.draftDirty ? 'Draft not sent yet' : `${app.route.stops.length} science stop${app.route.stops.length === 1 ? '' : 's'} · ${fmt(app.route.totals.timeMin)} min` };
+  }
+  if (app.mode === 'crew') return { level: 'info', icon: ICON.info, title: 'Crew', text: 'Readiness for the planned walk' };
+  if (s.reroute) return { level: 'caution', icon: ICON.warn, title: 'Reroute', text: L.atShelter ? 'In shelter' : `${fmt1(L.shelterMin)} min to shelter` };
+  if (s.mode === 'warning') return { level: 'caution', icon: ICON.warn, title: 'Warning', text: L.baseLink === false ? 'No line of sight to base' : `${fmt1(L.shelterMin)} min from shelter` };
+  const si = stopInfo(), nx = si.next >= 0 ? app.route.stops[si.next] : null;
+  return { level: 'ok', icon: ICON.ok, title: 'Nominal', text: `${doing()}${nx && si.at < 0 && nx.etaMin != null && onWalk() ? ` · ${fmt(Math.max(0, nx.etaMin - L.elapsedMin))} min` : ''}` };
 }
 function bannerModel() {
   const s = app.state, L = live(), local = app.link && app.link.kind === 'local';
@@ -313,31 +362,30 @@ function bannerModel() {
   if (app.link && !local && app.relayStatus !== 'open') return { level: 'caution', icon: ICON.warn, html: `<b>Relay offline</b><span class="sub">Reconnecting to ${esc(app.relayUrl)}. Values on screen may be out of date.</span>`, actions: [['local', 'Run locally without the relay']] };
   if (app.vit.marginLevel && app.vit.marginLevel !== 'ok' && onWalk()) { const vp = vitalsProblem(); return { level: 'caution', icon: ICON.warn, html: `<b>${esc(vp.title.toUpperCase())}</b><span class="sub">${esc(name())}: ${esc(vp.text)}</span>`, actions: [['vitals', 'Astronaut status']] }; }
   if (s.rerouteRequested) return { level: 'caution', icon: ICON.warn, html: `<b>${esc(name())} requested a reroute</b><span class="sub">${L.atShelter ? 'Now in shelter.' : `Heading to shelter · ${fmt1(L.shelterMin)} min away.`} Reset returns to the main route.</span>`, actions: [] };
-  if (s.reroute) return { level: 'caution', icon: ICON.info, html: `<b>On the reroute</b><span class="sub">${L.atShelter ? 'In shelter.' : `${fmt1(L.shelterMin)} min to shelter.`} Reset returns to the main route.</span>`, actions: [] };
-  if (s.mode === 'warning') return { level: 'caution', icon: ICON.warn, html: `<b>Warning</b><span class="sub">${L.baseLink === false ? 'No line of sight to base. ' : ''}${fmt1(L.shelterMin)} min from shelter.</span>`, actions: [] };
   const vp = vitalsProblem();
-  if (vp) return { level: 'caution', icon: ICON.warn, html: `<b>${vp.level === 'alarm' ? esc(vp.title.toUpperCase()) : esc(vp.title)}</b><span class="sub">${esc(name())}: ${esc(vp.text)}</span>`, actions: [['vitals', 'Astronaut status']] };
-  if (app.mode === 'crew') { const m = member(), v = m ? verdictFor(m) : null; return { level: 'ok', icon: ICON.info, html: `<b>Crew</b><span class="sub">${m ? `${esc(m.name)} is assigned to the planned walk: ${WORD[v.level].toLowerCase()}.` : 'No crew listed.'} Pick a name to see the profile and past walks.</span>`, actions: [] }; }
-  if (app.mode === 'plan') return { level: 'ok', icon: ICON.info, html: `<b>Planning</b><span class="sub">Set the start, science stops and end on the map, then send them to the planner.</span>`, actions: [] };
-  const si = stopInfo(), nx = si.next >= 0 ? app.route.stops[si.next] : null;
-  return { level: 'ok', icon: ICON.ok, html: `<b>Nominal</b><span class="sub">${esc(doing())}${nx && si.at < 0 && nx.etaMin != null ? ` · arriving in ${fmt(Math.max(0, nx.etaMin - L.elapsedMin))} min` : ''}</span>`, actions: [] };
+  if (vp && onWalk()) return { level: 'caution', icon: ICON.warn, html: `<b>${vp.level === 'alarm' ? esc(vp.title.toUpperCase()) : esc(vp.title)}</b><span class="sub">${esc(name())}: ${esc(vp.text)}</span>`, actions: [['vitals', 'Astronaut status']] };
+  return null; // nothing to warn about: the status line in the top bar says how things are
 }
 function renderBanner() {
-  const m = bannerModel();
-  $('banner').className = 'banner ' + m.level; $('bannerIcon').innerHTML = m.icon; $('bannerText').innerHTML = m.html;
-  $('bannerActions').innerHTML = m.actions.map(([act, label, cls]) => `<button type="button" data-act="${act}" class="${cls || ''}">${esc(label)}</button>`).join('');
+  const m = bannerModel(), b = $('banner');
+  b.hidden = !m;
+  if (m) {
+    b.className = 'banner ' + m.level; $('bannerIcon').innerHTML = m.icon; $('bannerText').innerHTML = m.html;
+    $('bannerActions').innerHTML = m.actions.map(([act, label, cls]) => `<button type="button" data-act="${act}" class="${cls || ''}">${esc(label)}</button>`).join('');
+  }
   tick();
 }
 function tick() {
   const el = $('emTimer'); if (el && app.emergencyAt) { const s = Math.floor((Date.now() - app.emergencyAt) / 1000); el.textContent = `T+${Math.floor(s / 60)}:${String(s % 60).padStart(2, '0')}`; }
 }
 function renderLayers() {
-  $('layersPanel').innerHTML = '<h2>Map layers</h2>' + (app.layers.length ? '' : '<p class="note">No layers yet. They appear when the engine exports data/out/layers/.</p>') + app.layers.map((l, i) => {
+  const card = $('layersPanel');
+  card.innerHTML = `<h2>Map layers <span class="hint">keys 1 to ${app.layers.length || 6}</span></h2><div class="layerGrid">`
+    + (app.layers.length ? '' : '<p class="note">No layers yet. They appear when the engine exports data/out/layers/.</p>') + app.layers.map((l, i) => {
     const grad = l.stops.map((c, k) => `rgba(${c.slice(0, 3).map((v) => Math.round(v * 255)).join(',')},${c[3]}) ${k * 50}%`).join(', ');
-    return `<div class="layer" data-id="${l.id}"><label><input type="checkbox" data-layer="${i}"><span>${esc(l.label)}</span><kbd>${i + 1}</kbd></label>
-      <div class="legend"><span>${esc(l.lo)}</span><i style="background: linear-gradient(to right, ${grad}), #a56b45"></i><span>${esc(l.hi)}</span></div>
-      <div class="lsrc">${esc(l.source)}</div></div>`;
-  }).join('');
+    return `<div class="layer" data-id="${l.id}" title="${esc(l.source)}${l.blank ? `. ${esc(l.blank)}.` : ''}"><label><input type="checkbox" data-layer="${i}"><span>${esc(l.label)}</span><kbd>${i + 1}</kbd></label>
+      <div class="legend"><span>${esc(l.lo)}</span><i style="background: linear-gradient(to right, ${grad}), #a56b45"></i><span>${esc(l.hi)}</span></div></div>`;
+  }).join('') + '</div>';
   syncLayers();
 }
 function syncLayers() {
@@ -348,36 +396,53 @@ function syncLayers() {
   });
 }
 function renderLeft() {
+  renderPlan(); renderRoute(); renderBrief();
+}
+function renderPlan() {
+  const st = app.draftStats, running = app.plan && app.plan.status === 'running', relay = canPlan();
+  const label = (p) => (p.kind === 'stop' ? esc(p.name) : p.kind === 'start' ? 'Start' : 'End');
+  let n = 0;
+  const rows = app.draft.map((p, i) => {
+    const num = p.kind === 'stop' ? ++n : p.kind === 'start' ? 'S' : 'E', out = !inBounds(p);
+    const ctl = p.kind === 'stop' ? `<span class="stopNav"><button type="button" class="x" data-act="up" data-i="${i}" aria-label="Move ${esc(p.name)} earlier" ${app.draft[i - 1].kind !== 'stop' ? 'disabled' : ''}>↑</button><button type="button" class="x" data-act="del" data-i="${i}" aria-label="Remove ${esc(p.name)}">✕</button></span>` : '<span></span>';
+    return `<li class="${p.kind}"><span class="dot">${num}</span><span class="nm">${label(p)}<small class="mono">${fmt(p.x)}, ${fmt(p.y)}${out ? ' · outside the planned area' : ''}</small></span>${ctl}</li>`;
+  }).join('');
+  const state = running ? `<div class="planState running"><span class="spin" aria-hidden="true"></span><span>${esc(app.plan.message || 'Planning…')} The engine finds shelters and a path around the terrain.</span></div>`
+    : app.plan && app.plan.status === 'error' && !app.draftDirty ? `<div class="planState error">${ICON.warn}<span>${esc(app.plan.message)}</span></div>`
+    : app.plan && app.plan.status === 'done' && !app.draftDirty ? `<div class="planState done">${ICON.ok}<span>${esc(app.plan.message)}</span></div>` : '';
+  const why = !relay ? (app.link && app.link.kind === 'local' ? 'Planning needs the relay (npm run demo). The dashed line is only the hub’s estimate.' : 'Waiting for the relay…') : !app.draftDirty ? 'Change the stops to plan a new route.' : '';
+  $('planPanel').innerHTML = `<h2>Plan the walk <span class="hint">${app.draft.length - 2} stop${app.draft.length === 3 ? '' : 's'}</span></h2>
+    <div class="tools"><button type="button" data-act="place-start" aria-pressed="${app.placing === 'start'}">Start</button><button type="button" data-act="place-stop" aria-pressed="${app.placing === 'stop'}">+ Stops</button><button type="button" data-act="place-end" aria-pressed="${app.placing === 'end'}">End</button></div>
+    <ol class="pts">${rows}</ol>
+    ${app.draftDirty && st ? `<div class="pstat"><div><span class="lbl">Distance</span><b>${km(st.distanceM)}</b></div><div><span class="lbl">Walking</span><b>${fmt(st.minutes)} min</b></div><div><span class="lbl">Steepest</span><b class="${st.maxSlopeDeg > CONFIG.MAX_SLOPE_DEG ? 'over' : ''}">${fmt(st.maxSlopeDeg)}°</b></div></div>
+      ${st.failed ? `<p class="note">${ICON.warn} ${st.failed} leg${st.failed === 1 ? ' has' : 's have'} no walkable path and ${st.failed === 1 ? 'is' : 'are'} drawn straight.</p>` : ''}` : ''}
+    <div class="tools"><button type="button" class="primary" data-act="send-plan" ${!relay || running || !app.draftDirty ? 'disabled' : ''}>${running ? 'Planning…' : 'Plan this route'}</button><button type="button" data-act="undo-plan" ${app.draftDirty ? '' : 'disabled'}>Discard</button></div>
+    ${state}${why || app.planNote ? `<p class="note">${esc(app.planNote || why)}</p>` : ''}`;
+}
+function renderRoute() {
   const r = app.route, s = app.state, si = stopInfo(), t = r.totals, w = r.waypoints, first = w[0], last = w[w.length - 1];
-  if (app.mode === 'plan') {
-    const rows = app.draft.map((p, i) => `<li><span class="tag ${p.kind}">${p.kind === 'stop' ? esc(p.name) : p.kind === 'start' ? 'Start' : 'End'}</span><span class="xy mono">${fmt(p.x)}, ${fmt(p.y)}</span>${p.kind === 'stop' ? `<button type="button" class="x" data-act="del" data-i="${i}" aria-label="Remove ${esc(p.name)}">Remove</button>` : ''}</li>`).join('');
-    $('routePanel').innerHTML = `<h2>Plan the walk</h2>
-      <div class="tools"><button type="button" data-act="place-start" aria-pressed="${app.placing === 'start'}">Start</button><button type="button" data-act="place-stop" aria-pressed="${app.placing === 'stop'}">Add stops</button><button type="button" data-act="place-end" aria-pressed="${app.placing === 'end'}">End</button></div>
-      <ol class="pts">${rows}</ol>
-      <div class="tools"><button type="button" class="primary" data-act="send-plan">Send to planner</button><button type="button" data-act="undo-plan" ${app.draftDirty ? '' : 'disabled'}>Undo</button></div>
-      <div class="tools small"><button type="button" data-act="copy-plan">Copy as JSON</button><button type="button" data-act="reload-route">Reload route</button></div>
-      ${app.draftStats ? `<p class="note">Path around the terrain: ${km(app.draftStats.distanceM)} · about ${fmt(app.draftStats.minutes)} min walking · steepest ${fmt(app.draftStats.maxSlopeDeg)}°${app.draftStats.failed ? ` · ${ICON.warn} ${app.draftStats.failed} leg${app.draftStats.failed === 1 ? '' : 's'} with no walkable path` : ''}</p>` : ''}
-      <p class="note">${esc(app.planNote || (app.draftDirty ? 'Not sent yet. Map shows the last route.' : 'Showing the route from the waypoint file.'))}</p>`;
-  } else {
-    const row = (cls, n, label, eta, status, i) => `<li class="${cls}" ${i != null ? `data-act="focus" data-i="${i}" tabindex="0"` : ''}><span class="n">${n}</span><span class="nm">${esc(label)}</span><span class="eta mono">${eta}</span><span class="st">${status}</span></li>`;
-    const stops = r.stops.map((st, i) => {
-      const done = s.wp > st.wp || (si.rr && s.wp === st.wp), at = si.at === i, next = si.next === i && si.at < 0 && !si.rr;
-      return row(`${done ? 'done' : ''} ${at ? 'now' : ''} ${next ? 'next' : ''} ${app.focusStop === i ? 'focus' : ''}`, st.num, st.name, clockAt(st.etaMin), done ? 'Done' : at ? 'Here' : next ? 'Next' : si.rr ? 'On hold' : '', i);
-    }).join('');
-    const atEnd = si.last && s.wp > 0 && !si.rr;
-    $('routePanel').innerHTML = `<h2>Route</h2><ol class="stops">${row(s.wp > 0 || si.rr ? 'done' : 'now', 'S', first.label || 'Start', clockAt(first.t), s.wp > 0 || si.rr ? 'Done' : 'Here')}${stops}${last.isScienceStop ? '' : row(atEnd ? 'now' : '', 'E', last.label || 'End', clockAt(last.t), atEnd ? 'Here' : si.rr ? 'On hold' : '')}</ol>`;
-  }
-  const over = t.maxSlopeDeg > CONFIG.MAX_SLOPE_DEG;
-  $('briefPanel').innerHTML = `<h2>Briefing</h2><dl>
+  const row = (cls, n, label, eta, status, i) => `<li class="${cls}" ${i != null ? `data-act="focus" data-i="${i}" tabindex="0"` : ''}><span class="n">${n}</span><span class="nm">${esc(label)}</span><span class="eta mono">${eta}</span><span class="st">${status}</span></li>`;
+  const stops = r.stops.map((st, i) => {
+    const done = s.wp > st.wp || (si.rr && s.wp === st.wp), at = si.at === i, next = si.next === i && si.at < 0 && !si.rr;
+    return row(`${done ? 'done' : ''} ${at ? 'now' : ''} ${next ? 'next' : ''} ${app.focusStop === i ? 'focus' : ''}`, st.num, st.name, clockAt(st.etaMin), done ? 'Done' : at ? 'Here' : next ? 'Next' : si.rr ? 'On hold' : '', i);
+  }).join('');
+  const atEnd = si.last && s.wp > 0 && !si.rr;
+  $('routePanel').innerHTML = `<h2>Route</h2>
+    <div class="totals"><div><span class="lbl">Walk</span><b>${fmt(t.timeMin)} min</b></div><div><span class="lbl">Distance</span><b>${km(t.distanceM)}</b></div><div><span class="lbl">Dose</span><b>${t.doseUgy != null ? ugy(t.doseUgy) + ' µGy' : pct(t.dose) + '%'}</b></div></div>
+    <ol class="stops">${row(s.wp > 0 || si.rr ? 'done' : 'now', 'S', first.label || 'Start', clockAt(first.t), s.wp > 0 || si.rr ? 'Done' : 'Here')}${stops}${last.isScienceStop ? '' : row(atEnd ? 'now' : '', 'E', last.label || 'End', clockAt(last.t), atEnd ? 'Here' : si.rr ? 'On hold' : '')}</ol>`;
+}
+function renderBrief() {
+  const t = app.route.totals, over = t.maxSlopeDeg > CONFIG.MAX_SLOPE_DEG;
+  $('briefPanel').innerHTML = `<h2>Current route <span class="hint">${app.draftDirty ? 'draft not sent' : ''}</span></h2><dl>
     <div><dt>Walk time</dt><dd>${fmt(t.timeMin)} min</dd></div>
-    <div><dt>Distance</dt><dd>${t.distanceM >= 1000 ? (t.distanceM / 1000).toFixed(2) + ' km' : fmt(t.distanceM) + ' m'}</dd></div>
+    <div><dt>Distance</dt><dd>${km(t.distanceM)}</dd></div>
     <div><dt>Oxygen used</dt><dd>${pct(t.oxygenUsed)}% of supply</dd></div>
-    <div><dt>Radiation dose</dt><dd>${t.doseUgy != null ? `${ugy(t.doseUgy)} µGy · ` : ''}${pct(t.dose)}% of budget</dd></div>
+    <div><dt>Radiation dose</dt><dd>${t.doseUgy != null ? `${ugy(t.doseUgy)} µGy` : `${pct(t.dose)}% of budget`}</dd></div>
     ${t.stormDoseUgy != null ? `<div><dt>If a solar storm hits</dt><dd>up to ${ugy(t.stormDoseUgy)} µGy</dd></div>` : ''}
     <div><dt>Worst case to shelter</dt><dd>${fmt1(t.worstShelterMin)} min</dd></div>
-    <div><dt>Steepest leg</dt><dd class="${over ? 'over' : ''}">${over ? ICON.warn + ' ' : ''}${fmt(t.maxSlopeDeg)}° / ${CONFIG.MAX_SLOPE_DEG}° max</dd></div>${briefExtra()}</dl>${briefCrew()}`;
+    <div><dt>Steepest leg</dt><dd class="${over ? 'over' : ''}">${over ? ICON.warn + ' ' : ''}${fmt(t.maxSlopeDeg)}° / ${CONFIG.MAX_SLOPE_DEG}°</dd></div>
+    <div><dt>Shelters</dt><dd>${app.route.shelters.length}</dd></div>${briefExtra()}</dl>`;
 }
-// Space weather and the latest Curiosity weather report, from the engine's briefing.json when it is there.
 function briefExtra() {
   const b = app.briefing; if (!b) return '';
   const sw = b.spaceWeather, wr = b.latestWeatherReport || b.conditions, out = [];
@@ -387,7 +452,7 @@ function briefExtra() {
   }
   if (wr) {
     const age = wr.ageDays ?? wr.daysBeforeSkyTime;
-    out.push(`<div><dt>Weather at Gale</dt><dd title="Curiosity REMS, sol ${esc(wr.sol)}, ${fmt(wr.pressurePa)} Pa, ${esc(wr.opacity || '')}${age != null ? `, ${fmt(age)} days old` : ''}. ${esc(wr.disclaimer || '')}">${fmt(wr.minAirTempC)} to ${fmt(wr.maxAirTempC)} °C</dd></div>`);
+    out.push(`<div><dt>Weather</dt><dd title="Curiosity REMS, sol ${esc(wr.sol)}, ${fmt(wr.pressurePa)} Pa, ${esc(wr.opacity || '')}${age != null ? `, ${fmt(age)} days old` : ''}. ${esc(wr.disclaimer || '')}">${fmt(wr.minAirTempC)} to ${fmt(wr.maxAirTempC)} °C</dd></div>`);
   }
   return out.join('');
 }
@@ -402,26 +467,26 @@ function renderRight() {
   const tk = (v, yes, no) => (v == null ? '' : `<span class="tk ${v ? 'yes' : 'nope'}">${v ? ICON.ok : ICON.no}${v ? yes : no}</span>`);
   const num = (label, val, unit, cls = '') => `<div class="num ${cls}"><span class="lbl">${label}</span><span class="val mono">${val}<small>${unit}</small></span></div>`;
   $('astroPanel').innerHTML = `<div class="who"><span class="name">${esc(name())}</span><span class="suit">${esc(suit())}</span><span class="doing">${esc(doing())}</span></div>
-    <div class="nums">${num('Oxygen left', pct(L.oxygen), '%')}${num('To shelter', fmt1(L.shelterMin), 'min', em ? 'hot' : '')}${L.doseUgy != null ? num('Dose so far', ugy(L.doseUgy), 'µGy') : num('Dose so far', pct(L.dose), '% of budget')}${L.doseRate != null ? num('Dose rate', fmt1(L.doseRate), 'µGy/h', L.doseRate > CONFIG.VITALS.doseRateHigh ? 'hot' : '') : num('Open sky', pct(L.openSky), '%')}</div>
-    <div class="ticks">${tk(L.baseLink, 'Base link', 'No base link')}${tk(L.earthLink, 'Earth link', 'No Earth link')}${tk(L.sunlit, 'In sunlight', 'In shadow')}${s.earthDelayMin != null ? `<span class="tk">Earth delay ${fmt(s.earthDelayMin)} min</span>` : ''}</div>
+    <div class="nums">${num('To shelter', fmt1(L.shelterMin), 'min', em ? 'hot' : '')}${num('Oxygen left', pct(L.oxygen), '%')}${L.doseUgy != null ? num('Dose so far', ugy(L.doseUgy), 'µGy') : num('Dose so far', pct(L.dose), '% of budget')}${L.doseRate != null ? num('Dose rate', fmt1(L.doseRate), 'µGy/h', L.doseRate > CONFIG.VITALS.doseRateHigh ? 'hot' : '') : num('Open sky', pct(L.openSky), '%')}</div>
+    <div class="ticks">${tk(L.baseLink, 'Base link', 'No base link')}${tk(L.earthLink, 'Earth link', 'No Earth link')}${tk(L.sunlit, 'Sunlit', 'In shadow')}${s.earthDelayMin != null ? `<span class="tk mutedtxt">Earth delay ${fmt(s.earthDelayMin)} min</span>` : ''}</div>
     <div id="vitals" class="vsum" data-act="vitals" role="button" tabindex="0" title="Astronaut status (V)"></div>`;
   renderVitals();
-  const i = app.focusStop != null ? app.focusStop : si.at >= 0 ? si.at : si.next, st = i >= 0 ? app.route.stops[i] : null;
-  if (!st) $('stopPanel').innerHTML = `<h2>Science stop</h2><p class="note">${app.route.stops.length ? 'All science stops visited.' : 'No science stops on this route. Add them in Plan mode.'}</p>`;
+  const stops = app.route.stops, i = app.focusStop != null ? app.focusStop : app.mode === 'plan' ? 0 : si.at >= 0 ? si.at : si.next, st = i >= 0 ? stops[i] : null;
+  if (!st) $('stopPanel').innerHTML = `<h2>Science stop</h2><p class="note">${stops.length ? 'All science stops visited.' : 'No science stops on this route. Add them in Plan.'}</p>`;
   else {
     const done = s.wp > st.wp || (si.rr && s.wp === st.wp), at = si.at === i, eta = st.etaMin != null ? Math.max(0, st.etaMin - L.elapsedMin) : null, note = CONFIG.STOP_NOTES[st.id] || app.stopNotes[st.id] || {};
-    $('stopPanel').innerHTML = `<h2>${at ? 'Science stop · here now' : done ? 'Science stop · done' : si.rr ? 'Science stop · on hold' : `Science stop · in ${fmt(eta)} min`}</h2>
-      <div class="stop">${note.photo ? `<img src="${esc(note.photo)}" alt="View on arrival at ${esc(st.name)}">` : '<div class="nophoto">No arrival photo yet</div>'}
+    const head = app.mode === 'plan' ? `Science stop ${st.num} of ${stops.length} · ${fmt(st.etaMin)} min in` : at ? 'Science stop · here now' : done ? 'Science stop · done' : si.rr ? 'Science stop · on hold' : `Science stop · in ${fmt(eta)} min`;
+    const nav = stops.length > 1 ? `<span class="stopNav"><button type="button" data-act="stop-prev" aria-label="Previous stop">‹</button><button type="button" data-act="stop-next" aria-label="Next stop">›</button></span>` : '';
+    $('stopPanel').innerHTML = `<h2><span>${head}</span>${nav}</h2>
+      <div class="stop">${note.photo ? `<img src="${esc(note.photo)}" alt="View on arrival at ${esc(st.name)}">` : '<div class="nophoto">No arrival photo</div>'}
       <div><div class="sname">${esc(st.name)}</div><p>${esc(note.task || 'No science task written for this stop yet.')}</p>${note.credit ? `<p class="credit">${esc(note.credit)}</p>` : ''}</div></div>`;
   }
   $('mirrorTitle').textContent = `What ${name()} sees`;
-  $('hudLine').textContent = `Shelter ${fmt1(L.shelterMin)} min · ${L.baseLink === false ? 'no base link' : 'base link'} · O2 ${pct(L.oxygen)}% · dose ${L.doseUgy != null ? ugy(L.doseUgy) + ' µGy' : pct(L.dose) + '%'}`;
-  // shared/state.md: the arrow is drawn at shelterBearingDeg - headingDeg, so 0 is straight ahead
-  const arrow = L.shelterBearingDeg != null && L.headingDeg != null ? L.shelterBearingDeg - L.headingDeg : 0;
-  $('wrist').className = 'wrist' + (em ? ' em' : '');
-  $('wrist').innerHTML = `<svg aria-hidden="true" viewBox="0 0 24 24" class="arrow" style="transform: rotate(${arrow}deg)"><path d="M12 20V5M6 11l6-6 6 6"/></svg>
-    <div class="big mono">${fmt1(L.shelterMin)}</div><div class="cap">min to shelter</div>
-    <div class="bar" title="Oxygen"><i style="width:${Math.max(0, Math.min(1, L.oxygen || 0)) * 100}%"></i></div><div class="bar dose" title="Dose"><i style="width:${Math.max(0, Math.min(1, L.dose || 0)) * 100}%"></i></div>`;
+}
+function stepStop(d) {
+  const n = app.route.stops.length; if (!n) return;
+  const si = stopInfo(), cur = app.focusStop != null ? app.focusStop : app.mode === 'plan' ? 0 : Math.max(0, si.at >= 0 ? si.at : si.next);
+  focusStop((cur + d + n) % n, true);
 }
 // ---------- astronaut status: body, life support, exposure, wristband ----------
 function effort() { // 0 to 1 from the slope of the leg being walked
@@ -625,16 +690,17 @@ function renderLog() {
 }
 
 // ---------- input ----------
-function setMode(m) { app.mode = m; if (m !== 'plan') app.placing = null; if (m === 'crew' && !app.crewSel) app.crewSel = app.crewId; renderAll(); }
+function setMode(m) { app.mode = m; if (m !== 'plan') app.placing = null; if (m === 'crew' && !app.crewSel) app.crewSel = app.crewId; toggleVitalsDrawer(false); renderAll(); }
 function toggleLayer(i) { const l = app.layers[i]; if (!l) return; app.layersOn.has(l.id) ? app.layersOn.delete(l.id) : app.layersOn.add(l.id); syncLayers(); }
-function focusStop(i) { app.focusStop = app.focusStop === i ? null : i; const st = app.route.stops[i]; if (app.focusStop != null && st) app.map.flyTo({ x: st.x, y: st.y, dist: Math.min(app.map.cam.dist, 420) }); renderAll(); }
+function focusStop(i, keep) { app.focusStop = app.focusStop === i && !keep ? null : i; const st = app.route.stops[i]; if (app.focusStop != null && st) app.map.flyTo({ x: st.x, y: st.y, dist: Math.min(app.map.cam.dist, 420) }); renderAll(); }
 function act(a, el) {
   switch (a) {
     case 'place-start': case 'place-stop': case 'place-end': { const k = a.slice(6); app.placing = app.placing === k ? null : k; renderAll(); break; }
     case 'del': app.draft.splice(+el.dataset.i, 1); renumber(); app.draftDirty = true; app.planNote = ''; renderAll(); break;
     case 'send-plan': sendPlan(); break;
-    case 'copy-plan': copyPlan(); break;
-    case 'reload-route': reloadRoute(); break;
+    case 'up': moveStop(+el.dataset.i, -1); break;
+    case 'stop-prev': stepStop(-1); break;
+    case 'stop-next': stepStop(1); break;
     case 'undo-plan': resetDraft(); app.planNote = ''; renderAll(); break;
     case 'focus': focusStop(+el.dataset.i); break;
     case 'endstorm': if (app.state.storm) command('storm'); break;
@@ -644,6 +710,7 @@ function act(a, el) {
     case 'leak': toggleLeak(); break;
     case 'open-crew': setMode('crew'); break;
     case 'crew': pickCrew(el.dataset.id); break;
+    case 'crew-open': app.crewSel = el.dataset.id; setMode('crew'); break;
     case 'assign': assignCrew(); break;
     case 'walk': pickWalk(el.dataset.id); break;
     case 'walk-plan': planFromWalk(); break;
@@ -660,7 +727,7 @@ function wireInput() {
   });
   document.addEventListener('change', (e) => { if (e.target.dataset.layer != null) toggleLayer(+e.target.dataset.layer); });
   $('modePlan').onclick = () => setMode('plan'); $('modeLive').onclick = () => setMode('live'); $('modeCrew').onclick = () => setMode('crew');
-  $('viewFit').onclick = routeView; $('viewTop').onclick = () => app.map.view('top');
+  $('viewFit').onclick = routeView; $('viewTop').onclick = () => app.map.view('top'); $('compass').onclick = () => app.map.flyTo({ az: 0 }, 500);
   $('viewFollow').onclick = () => { app.follow = !app.follow; if (app.follow) app.map.flyTo({ x: app.astro.x, y: app.astro.y }); renderHeader(); };
   $('soundBtn').onclick = () => { app.sound = !app.sound; if (!app.sound) stopAlarm(); renderHeader(); renderBanner(); };
   document.addEventListener('keydown', (e) => {
@@ -676,6 +743,10 @@ function wireInput() {
     if (/^[1-9]$/.test(k)) { toggleLayer(+k - 1); return e.preventDefault(); }
     if (keys[k]) { keys[k](); e.preventDefault(); }
   });
+  const elev = $('elev');
+  elev.addEventListener('pointermove', (e) => { app.elevHover = e.clientX - elev.getBoundingClientRect().left; renderProfile(); });
+  elev.addEventListener('pointerleave', () => { app.elevHover = null; renderProfile(); });
+  new ResizeObserver(() => renderProfile()).observe(elev);
   app.map.onClick = ({ sx, sy, world }) => {
     if (app.placing) return world ? placeAt(world) : toast('Click on the terrain.');
     if (app.mode === 'crew') { // a click near a past walk picks it
@@ -749,10 +820,17 @@ async function boot() {
     terrain = flatTerrain(W, H, meta ? meta.metresPerPixel : 4); note = 'No terrain file found, so the map is flat.';
   }
   app.terrain = terrain; if (!terrain.flat) app.walkGrid = makeWalkGrid(terrain);
-  $('siteName').textContent = CONFIG.SITE_NAME;
+  // The site file names the site and the area the planner covers (plannerBounds).
+  app.siteDoc = forceFake ? null : await getJSON(CONFIG.SITE).catch(() => null);
+  const siteName = app.siteDoc && typeof app.siteDoc.site === 'string' ? app.siteDoc.site.split('. ')[0] : CONFIG.SITE_NAME;
+  $('siteName').textContent = siteName; $('siteName').title = (app.siteDoc && app.siteDoc.site) || siteName;
+  if (terrain.credit) $('siteName').title += '\nTerrain and image: ' + terrain.credit;
+  document.title = `Beacon Hub · ${siteName}`;
+  const b = (app.session && app.session.plannerBounds) || (app.siteDoc && app.siteDoc.plannerBounds);
+  app.bounds = b && ['xMin', 'xMax', 'yMin', 'yMax'].every((k) => typeof b[k] === 'number') && !wp.fake ? b : null;
+  app.routeId = app.session ? app.session.planId ?? null : null;
   const fakes = [app.fake.waypoints && 'route', app.fake.layers && 'layers', app.fake.terrain && 'terrain'].filter(Boolean);
-  $('synthChip').hidden = !fakes.length; $('synthChip').textContent = fakes.length === 3 ? 'Fake data' : `Fake ${fakes.join(' and ')}`;
-  $('realChip').hidden = terrain.flat || app.fake.terrain; if (terrain.credit) $('realChip').title = 'Terrain and image: ' + terrain.credit;
+  $('dataChip').hidden = !fakes.length; $('dataChip').textContent = fakes.length === 3 ? 'Fake data' : `Fake ${fakes.join(' and ')}`;
   const sun = (doc.main && doc.main[0] && doc.main[0].sun) || null;
   app.map = createMap($('gl'), $('ov'), { terrain, sun, exaggeration: CONFIG.EXAGGERATION, imageGain: CONFIG.IMAGE_GAIN });
   if (terrain.imageUrl) loadImage(terrain.imageUrl).then((im) => app.map.setOrtho(im)).catch(() => {});
@@ -760,31 +838,25 @@ async function boot() {
     if (meta.version !== 1) note += ` Layer metadata is version ${meta.version}; the hub was written for version 1.`;
     const wanted = CONFIG.LAYERS.filter((l) => meta.layers && meta.layers[l.id]).slice(0, 6);
     const loaded = await Promise.all(wanted.map((l) => loadImage(layersUrl + meta.layers[l.id].file).then((im) => ({ l, im })).catch(() => null)));
+    app.layerMeta = { meta, url: layersUrl };
     loaded.filter(Boolean).forEach(({ l, im }, i) => {
-      const { min, max } = meta.layers[l.id], span = (max - min) || 1; // pixel 0 = min, 255 = max (shared/layers.md)
-      app.map.setLayer(i, im, { domain: [(l.domain[0] - min) / span, (l.domain[1] - min) / span], stops: l.stops, widthM: meta.width * meta.metresPerPixel, heightM: meta.height * meta.metresPerPixel, originX: meta.originX || 0, originY: meta.originY || 0 });
+      const { min, max } = meta.layers[l.id];
+      l.index = i;
+      app.map.setLayer(i, im, layerOptions(l, meta));
       app.layers.push(l);
       if (l.id === 'slope') { const c = document.createElement('canvas'); c.width = im.width; c.height = im.height; const g = c.getContext('2d', { willReadFrequently: true }); g.drawImage(im, 0, 0); app.slope = { data: g.getImageData(0, 0, im.width, im.height).data, w: im.width, h: im.height, min, max, mpp: meta.metresPerPixel }; }
     });
   }
   // Crew: who is assigned (kept between visits), walks recorded earlier on this laptop, and the rover's real track.
   app.crewId = (member(loadChoice('crew')) || CREW.find((m) => m.condition === 'fit') || CREW[0] || {}).id || null; app.crewSel = app.crewId;
-  app.recorded = loadRecorded(); app.rover = forceFake ? null : readSite(await getJSON(CONFIG.SITE).catch(() => null));
-  // Engine extras (shared/outputs.md): the briefing's space weather and weather report, and Curiosity photos per stop.
-  if (!wp.fake) {
-    app.briefing = await getJSON(R.briefing).catch(() => null);
-    const stops = await getJSON(R.stops).catch(() => null);
-    for (const s of (stops && stops.stops) || []) {
-      const im = (s.images || [])[0];
-      if (im && s.waypoint) app.stopNotes[s.waypoint] = { photo: R.media + im.file, credit: im.credit, task: `Curiosity's view: ${im.title} (${im.date}).` };
-    }
-  }
+  app.recorded = loadRecorded(); app.rover = readSite(app.siteDoc);
+  if (!wp.fake) await loadRouteExtras(app.routeId != null);
   setUnit(); window.addEventListener('resize', setUnit);
   setRoute(doc, false); renderLayers(); renderAll();
   app.map.onDraw = (g, now) => {
-    const moving = tickAstro(now); if (moving) renderMirror();
-    const L = live();
-    drawOverlay(g, app.map, { u: app.u, parking: app.terrain.parking, route: app.route, state: app.state, base: app.route.base, shelters: app.route.shelters, astro: app.astro, live: L, headingDeg: L.headingDeg, emergency: emergency(), mode: app.mode, draft: app.draft, draftPath: app.draftPath, draftDirty: app.draftDirty, focusStop: app.focusStop, name: name(), history: historyForMap() }, now);
+    const moving = tickAstro(now); if (moving) { renderMirror(); renderProfile(); }
+    const L = live(); mapFurniture();
+    drawOverlay(g, app.map, { u: app.u, bounds: app.mode === 'plan' ? app.bounds : null, route: app.route, state: app.state, base: app.route.base, shelters: app.route.shelters, astro: app.astro, live: L, headingDeg: L.headingDeg, emergency: emergency(), mode: app.mode, draft: app.draft, draftPath: app.draftPath, draftDirty: app.draftDirty, focusStop: app.focusStop, name: name(), history: historyForMap(), probe: app.elevPoint }, now);
   };
   wireInput(); renderLog();
   log(`Route loaded: ${fmt(app.route.totals.timeMin)} min, ${app.route.stops.length} science stop${app.route.stops.length === 1 ? '' : 's'}.`);
@@ -793,6 +865,82 @@ async function boot() {
   setInterval(tick, 500);
   tickVitals(); setInterval(tickVitals, 1000);
   routeView();
+}
+// Engine extras that belong to the route (shared/outputs.md): the briefing's space weather and weather report,
+// Curiosity photos per stop, and the minutes-to-shelter layer. After a plan they come from the relay's /mission/.
+async function loadRouteExtras(fromPlan = true) {
+  const R = CONFIG.REAL, base = app.session && fromPlan ? app.session.files || '/mission/' : null, q = `?r=${app.routeId ?? 0}`;
+  app.briefing = await getJSON((base ? base + 'briefing.json' : R.briefing) + q).catch(() => null);
+  const stops = await getJSON((base ? base + 'stops.json' : R.stops) + q).catch(() => null);
+  app.stopNotes = {};
+  for (const s of (stops && stops.stops) || []) {
+    const im = (s.images || [])[0];
+    if (im && s.waypoint) app.stopNotes[s.waypoint] = { photo: R.media + im.file, credit: im.credit, task: `Curiosity's view: ${im.title} (${im.date}).` };
+  }
+  const l = app.layers.find((x) => x.id === 'minutesToShelter'), M = app.layerMeta;
+  if (base && l && M) {
+    const im = await loadImage(base + 'layers/' + M.meta.layers[l.id].file + q).catch(() => null);
+    if (im) app.map.setLayer(l.index, im, layerOptions(l, M.meta));
+  }
+}
+function layerOptions(l, meta) {
+  const { min, max } = meta.layers[l.id], span = (max - min) || 1; // pixel 0 = min, 255 = max (shared/layers.md)
+  return { domain: [(l.domain[0] - min) / span, (l.domain[1] - min) / span], stops: l.stops, widthM: meta.width * meta.metresPerPixel, heightM: meta.height * meta.metresPerPixel,
+    originX: meta.originX || 0, originY: meta.originY || 0, noData: l.noData ?? null, validBounds: meta.layers[l.id].validBounds || null };
+}
+// ---------- route profile ----------
+// The draft while one is being placed, else the route: ground height, minutes to shelter, stops and shelters.
+function profileData() {
+  if (app.profile) return app.profile;
+  const T = app.terrain, r = app.route;
+  if (app.mode === 'plan' && app.draftDirty && app.draftPath && T && !T.flat) {
+    const pts = profileFromPoints(sampleLine(app.draftPath, (x, y) => T.heightAt(x, y)));
+    let n = 0;
+    for (const q of app.draft) { if (q.kind !== 'stop') continue; n++; let best = null, bd = Infinity; for (const p of pts) { const d = Math.hypot(p.x - q.x, p.y - q.y); if (d < bd) { bd = d; best = p; } } if (best) best.stop = n; }
+    return (app.profile = { pts, draft: true });
+  }
+  const stopNum = new Map(r.stops.map((st) => [st.wp, st.num]));
+  const pts = profileFromPoints(r.waypoints.map((w, i) => ({ x: w.x, y: w.y, z: w.z != null ? w.z : T.heightAt(w.x, w.y), shelterMin: w.shelter ? w.shelter.min : null, stop: stopNum.get(i), shelter: w.isShelter && i > 0, wp: i })));
+  return (app.profile = { pts, draft: false });
+}
+function renderProfile() {
+  const panel = $('elevPanel'); if (!panel || getComputedStyle(panel).display === 'none') return;
+  const P = profileData(), A = app.astro, s = app.state;
+  let at = null;
+  if (!P.draft && P.pts.length > 1) {
+    const i = Math.min(s.reroute ? s.wp : A.seg, P.pts.length - 1), j = Math.min(i + 1, P.pts.length - 1);
+    at = s.reroute ? P.pts[i].d : P.pts[i].d + (P.pts[j].d - P.pts[i].d) * (A.anim ? A.f : 0);
+  }
+  const hover = drawProfile($('elev'), P.pts, { at, maxSlopeDeg: CONFIG.MAX_SLOPE_DEG, hoverX: app.elevHover });
+  app.elevPoint = hover;
+  $('elevTitle').textContent = P.draft ? 'Draft profile' : 'Route profile';
+  $('elevLen').textContent = P.pts.length > 1 ? (P.draft ? 'not planned yet' : km(P.pts[P.pts.length - 1].d)) : '';
+  // hovering swaps the key for the values under the cursor; the map marks the same spot
+  $('elevRead').hidden = !hover; panel.querySelector('.elevKey').hidden = !!hover;
+  panel.querySelector('.kl.shel').parentElement.hidden = P.draft; // a draft has no shelter times until it is planned
+  if (hover) $('elevRead').textContent = `${km(hover.d)} along · ${fmt(hover.z)} m${hover.shelterMin != null ? ` · ${fmt1(hover.shelterMin)} min to shelter` : ''}`;
+}
+
+// ---------- crew readiness while planning ----------
+function renderReady() {
+  if (!CREW.length) { $('readyPanel').innerHTML = ''; return; }
+  $('readyPanel').innerHTML = `<h2>Who can walk it <span class="hint">current route</span></h2><ul class="crew compact">${CREW.map((m) => {
+    const v = verdictFor(m);
+    return `<li class="${m.id === app.crewId ? 'sel' : ''}" data-act="crew-open" data-id="${esc(m.id)}" tabindex="0" title="${esc(v.reasons.join('. '))}">
+      <div class="c1"><span class="cname">${esc(m.name)}</span><span class="suit">${esc(m.suit)}</span>${m.id === app.crewId ? '<span class="assigned">Walking</span>' : ''}<span class="verdict ${v.level}">${VICON[v.level]}${WORD[v.level]}</span></div>
+      <div class="why">${esc(v.reasons[0])}</div></li>`;
+  }).join('')}</ul>`;
+}
+
+// Compass and scale bar follow the camera.
+let lastAz = null, lastScale = '';
+function mapFurniture() {
+  const m = app.map, c = m.cam;
+  if (c.az !== lastAz) { lastAz = c.az; $('compass').firstElementChild.style.transform = `rotate(${-c.az}deg)`; }
+  const a = c.az * RAD, p0 = m.project(c.x, c.y, 0), p1 = m.project(c.x + Math.cos(a) * 100, c.y - Math.sin(a) * 100, 0);
+  const px = Math.hypot(p1.x - p0.x, p1.y - p0.y) / 100; if (!(px > 0) || !p0.ok) return;
+  const nice = [5, 10, 20, 25, 50, 100, 200, 250, 500, 1000, 2000, 5000].find((d) => d * px >= 70) || 5000, key = nice + ':' + Math.round(nice * px);
+  if (key !== lastScale) { lastScale = key; const el = $('scale'); el.firstElementChild.style.width = `${Math.round(nice * px)}px`; el.lastElementChild.textContent = nice >= 1000 ? `${nice / 1000} km` : `${nice} m`; }
 }
 function setUnit() { app.u = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16; }
 boot().catch((err) => {

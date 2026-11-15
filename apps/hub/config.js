@@ -33,6 +33,7 @@ export const CONFIG = {
   // Map layers in toggle order (keys 1 to 6). `id` is the layer name in meta.json.
   // `domain` is in the layer's own units (meta.json min..max) and is the range the colours span;
   // `stops` are three r,g,b,a colours (0..1) for the low, middle and high end of that range.
+  // `noData` (optional) = pixel value that means "no value here"; those pixels are left clear and `blank` says why.
   LAYERS: [
     { id: 'exposure', label: 'Radiation exposure', domain: [0.60, 0.97],
       stops: [[0.16, 0.30, 0.95, 0.92], [0.10, 0.78, 0.74, 0.62], [0.10, 0.78, 0.74, 0.0]],
@@ -49,9 +50,9 @@ export const CONFIG = {
     { id: 'slope', label: 'Slope', domain: [6, 32],
       stops: [[1, 1, 1, 0], [1.0, 0.93, 0.62, 0.55], [0.55, 0.20, 0.05, 0.85]],
       lo: 'Flat', hi: 'Too steep', source: 'Orbiter elevation model' },
-    { id: 'minutesToShelter', label: 'Minutes to shelter', domain: [0, 30],
-      stops: [[0.10, 0.78, 0.50, 0.0], [0.98, 0.86, 0.35, 0.45], [0.42, 0.16, 0.52, 0.80]],
-      lo: 'At shelter', hi: 'Far', source: 'Walking time to the nearest shelter' },
+    { id: 'minutesToShelter', label: 'Minutes to shelter', domain: [0, 10], noData: 255,
+      stops: [[0.10, 0.78, 0.50, 0.30], [0.98, 0.86, 0.35, 0.55], [0.95, 0.50, 0.12, 0.80]],
+      lo: 'At shelter', hi: '10+ min', blank: 'Clear: no walkable path, or outside the planned area', source: 'Walking time to the nearest shelter' },
   ],
   LAYERS_ON: ['exposure'],
 
@@ -92,5 +93,5 @@ export const CONFIG = {
   //   marginalAt: fraction of a limit at which the verdict becomes "marginal"
   CREW_LIMITS: { weeklyDoseMicroGray: 1000, habitatMicroGrayPerDay: 75.6, weeklyDose: 3.0, weeklyWalkMin: 90, minRestHours: 12, marginalAt: 0.8 },
 
-  PLAN_TIMEOUT_MS: 6000,         // how long to wait for a route after "Send to planner"
+  PLAN_TIMEOUT_MS: 4000,         // how long to wait for the relay to say it is planning after "Plan this route"
 };

@@ -7,23 +7,24 @@
 <link rel="icon" href="data:,">
 <link rel="stylesheet" href="./style.css">
 </head>
-<body>
+<body class="plan">
 <div id="app">
   <header id="bar">
-    <div class="brand"><strong>Beacon Hub</strong><span id="siteName"></span><span id="realChip" class="chip real" hidden>Real Mars terrain</span><span id="synthChip" class="chip" hidden>Fake data</span></div>
-    <div class="modes" role="group" aria-label="Mode">
-      <button id="modePlan" type="button">Plan</button>
-      <button id="modeLive" type="button">Live</button>
-      <button id="modeCrew" type="button" title="C">Crew</button>
-    </div>
+    <div class="brand"><strong>Beacon</strong><span id="siteName"></span><span id="dataChip" class="chip" hidden></span></div>
+    <nav class="modes" role="group" aria-label="Mode">
+      <button id="modePlan" type="button" title="Plan a walk">Plan</button>
+      <button id="modeLive" type="button" title="Follow the walk">Live</button>
+      <button id="modeCrew" type="button" title="Crew readiness (C)">Crew</button>
+    </nav>
+    <div id="status" class="status" role="status" aria-live="polite"></div>
     <div class="spacer"></div>
-    <div class="clock"><span class="lbl">Walk clock</span><span id="clock" class="mono">0:00</span></div>
-    <div class="clock" id="marsClock" hidden><span class="lbl">Mars local time</span><span id="marsTime" class="mono"></span></div>
+    <div class="clock" title="Walk clock"><span class="lbl">Walk</span><span id="clock" class="mono">0:00</span></div>
+    <div class="clock" id="marsClock" hidden title="Mars local time"><span class="lbl">Local</span><span id="marsTime" class="mono"></span></div>
     <div id="devices" class="devices" aria-label="Connected devices"></div>
-    <button id="soundBtn" type="button" class="ghost" title="M">Sound on</button>
+    <button id="soundBtn" type="button" class="ghost icon" title="Sound (M)" aria-pressed="true"></button>
   </header>
 
-  <div id="banner" class="banner" role="status" aria-live="polite">
+  <div id="banner" class="banner" role="alert" hidden>
     <span id="bannerIcon" aria-hidden="true"></span>
     <div id="bannerText"></div>
     <div id="bannerActions"></div>
@@ -31,55 +32,60 @@
 
   <main>
     <aside id="left">
-      <section class="panel" id="layersPanel"></section>
+      <section class="panel" id="planPanel"></section>
       <section class="panel" id="routePanel"></section>
       <section class="panel" id="crewPanel"></section>
-      <section class="panel" id="briefPanel"></section>
+      <section class="panel" id="elevPanel">
+        <h2><span id="elevTitle">Route profile</span><span id="elevLen" class="hint mono"></span></h2>
+        <canvas id="elev" aria-label="Ground height along the route, with minutes to shelter"></canvas>
+        <div class="elevFoot"><div class="elevKey"><span><i class="kl ground"></i>Ground</span><span><i class="kl shel"></i>Min to shelter</span><span><i class="kl steep"></i>Too steep</span></div><div id="elevRead" class="mono" hidden></div></div>
+      </section>
+      <section class="panel" id="layersPanel"></section>
     </aside>
 
-    <section id="mapWrap" aria-label="3D map">
+    <section id="mapWrap" aria-label="3D map" title="Drag to rotate · Shift-drag or right-drag to move · Scroll to zoom">
       <canvas id="gl"></canvas>
       <canvas id="ov"></canvas>
       <div class="mapTools">
-        <button id="viewFit" type="button" title="F">3D view</button>
-        <button id="viewTop" type="button" title="T">Top view</button>
-        <button id="viewFollow" type="button" title="G" aria-pressed="false">Follow</button>
+        <button id="compass" type="button" class="icon" title="North up"><svg viewBox="0 0 24 24" aria-hidden="true"><path class="n" d="M12 1.5l5 10.5H7z"/><path class="s" d="M12 22.5L7 12h10z"/></svg></button>
+        <button id="viewFit" type="button" title="Frame the route (F)">Route</button>
+        <button id="viewTop" type="button" title="Top view (T)">Top</button>
+        <button id="viewFollow" type="button" title="Follow the astronaut (G)" aria-pressed="false">Follow</button>
       </div>
+      <div id="scale" class="scale" aria-hidden="true"><i></i><span></span></div>
       <div id="mapHint" class="mapHint" hidden></div>
       <div id="toast" class="toast" role="alert" hidden></div>
       <aside id="vitalsDrawer" class="drawer" aria-label="Astronaut status" hidden></aside>
-      <div class="mapHelp">Drag to rotate · Shift-drag to move · Scroll to zoom</div>
     </section>
 
     <aside id="right">
+      <section class="panel" id="briefPanel"></section>
+      <section class="panel" id="readyPanel"></section>
       <section class="panel" id="astroPanel"></section>
       <section class="panel" id="stopPanel"></section>
+      <section class="panel" id="mirrorPanel">
+        <h2 id="mirrorTitle">Helmet view</h2>
+        <div class="mirror">
+          <canvas id="ring" aria-label="Helmet skyline ring"></canvas>
+          <ul class="ringKey"><li><i class="k sun"></i>Sun</li><li><i class="k earth"></i>Earth</li><li><i class="k base"></i>Base</li><li><i class="k shel"></i>Shelter</li></ul>
+        </div>
+      </section>
       <section class="panel" id="profilePanel"></section>
       <section class="panel" id="historyPanel"></section>
-      <section class="panel" id="mirrorPanel">
-        <h2 id="mirrorTitle">What the astronaut sees</h2>
-        <div class="mirrors">
-          <figure><canvas id="ring" aria-label="Helmet skyline ring"></canvas><figcaption>Helmet</figcaption>
-            <div class="ringKey"><span><i class="k sun"></i>Sun</span><span><i class="k earth"></i>Earth</span><span><i class="k base"></i>Base</span><span><i class="k shel"></i>Shelter</span></div></figure>
-          <figure><div id="wrist" class="wrist"></div><figcaption>Wrist</figcaption></figure>
-        </div>
-        <div id="hudLine" class="hudLine mono"></div>
-      </section>
     </aside>
   </main>
 
   <footer>
     <section class="panel" id="timelinePanel"></section>
     <section class="panel" id="logPanel"><h2>Event log</h2><ol id="log"></ol></section>
-    <section class="panel" id="presenter">
-      <h2>Presenter <span class="hint">H hides</span></h2>
+    <section class="panel" id="presenter" aria-label="Presenter controls">
       <div class="pbtns">
-        <button type="button" data-cmd="back">Back <kbd>&larr;</kbd></button>
-        <button type="button" data-cmd="next" class="primary">Next <kbd>&rarr;</kbd></button>
-        <button type="button" data-cmd="nextstop">Next stop <kbd>N</kbd></button>
-        <button type="button" data-cmd="storm" class="danger" id="stormBtn">Storm <kbd>S</kbd></button>
-        <button type="button" data-cmd="panic" class="danger">Panic <kbd>P</kbd></button>
-        <button type="button" data-cmd="reset">Reset <kbd>R</kbd></button>
+        <button type="button" data-cmd="back" title="Back (←)">Back</button>
+        <button type="button" data-cmd="next" class="primary" title="Next (→ or Space)">Next</button>
+        <button type="button" data-cmd="nextstop" title="Next stop (N)">Next stop</button>
+        <button type="button" data-cmd="storm" class="danger" id="stormBtn" title="Storm (S)">Storm</button>
+        <button type="button" data-cmd="panic" class="danger" title="Panic (P)">Panic</button>
+        <button type="button" data-cmd="reset" title="Reset (R, twice)">Reset</button>
       </div>
     </section>
   </footer>
