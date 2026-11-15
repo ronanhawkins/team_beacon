@@ -58,6 +58,12 @@ pub fn fast_skyline(grid: &Grid, x: f64, y: f64, eye_height_m: f64, distances: &
     skyline_at_distances(grid, x, y, eye_height_m, FAST_DIRS, distances)
 }
 
+/// `fast_skyline`, but where a sample falls outside `grid` (an observer near the crop's edge) the march goes on in
+/// `beyond` (far.bin, matched by easting and northing) instead of stopping, so edge cells do not read as open sky.
+pub fn fast_skyline_beyond(grid: &Grid, beyond: Option<&Grid>, x: f64, y: f64, eye_height_m: f64, distances: &[f64]) -> Result<Vec<f32>, String> {
+    march(grid, beyond, x, y, eye_height_m, FAST_DIRS, distances)
+}
+
 /// Shared march for `skyline` and `fast_skyline`: same maths, any list of
 /// increasing distances in metres.
 pub fn skyline_at_distances(
@@ -68,6 +74,10 @@ pub fn skyline_at_distances(
     n_dirs: usize,
     distances: &[f64],
 ) -> Result<Vec<f32>, String> {
+    march(grid, None, x, y, eye_height_m, n_dirs, distances)
+}
+
+fn march(grid: &Grid, beyond: Option<&Grid>, x: f64, y: f64, eye_height_m: f64, n_dirs: usize, distances: &[f64]) -> Result<Vec<f32>, String> {
     let ground = grid
         .sample_local(x, y)
         .ok_or_else(|| format!("observer at x {x}, y {y} is outside the grid or on no-data"))?;
@@ -81,10 +91,19 @@ pub fn skyline_at_distances(
 
         for &dist in distances {
             let (px, py) = (x + dx * dist, y + dy * dist);
-            if !grid.contains_local(px, py) {
+            let h = if grid.contains_local(px, py) {
+                grid.sample_local(px, py)
+            } else if let Some(b) = beyond {
+                let (e, n) = grid.local_to_en(px, py);
+                let (bx, by) = b.en_to_local(e, n);
+                if !b.contains_local(bx, by) {
+                    break;
+                }
+                b.sample_local(bx, by)
+            } else {
                 break;
-            }
-            let Some(h) = grid.sample_local(px, py) else { continue }; // no-data: skip
+            };
+            let Some(h) = h else { continue }; // no-data: skip
             let angle = (h as f64 - eye).atan2(dist);
             best = Some(best.map_or(angle, |b| b.max(angle)));
         }

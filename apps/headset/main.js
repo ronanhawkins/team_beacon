@@ -107,7 +107,11 @@ async function start() {
     document.querySelector('[data-action="next"]').disabled = !ready || !selection || selection.index === selection.points.length - 1;
   }
 
+  let siteId = null;
   function applyState(next) {
+    // The hub's planet view switched the relay to another site: reload so terrain, route and layers all change.
+    if (next.site && siteId && next.site !== siteId) { location.reload(); return; }
+    if (next.site) siteId = next.site;
     const nextRouteId = next.plan?.routeId ?? null;
     if (session && nextRouteId !== routeId) {
       routeId = nextRouteId; pendingState = next;

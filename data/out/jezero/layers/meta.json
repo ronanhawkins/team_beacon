@@ -1,5 +1,5 @@
 {
-  "height": 375,
+  "height": 750,
   "layers": {
     "baseLink": {
       "file": "baseLink.png",
@@ -16,17 +16,6 @@
       "max": 1.0,
       "min": 0.6
     },
-    "minutesToShelter": {
-      "file": "minutesToShelter.png",
-      "max": 30.0,
-      "min": 0.0,
-      "validBounds": {
-        "xMax": 1769.0,
-        "xMin": 1103.0,
-        "yMax": 1998.0,
-        "yMin": 1058.0
-      }
-    },
     "slope": {
       "file": "slope.png",
       "max": 45.0,
@@ -39,8 +28,8 @@
     }
   },
   "metresPerPixel": 4.0,
-  "originX": 750.0,
-  "originY": 750.0,
+  "originX": 0.0,
+  "originY": 0.0,
   "version": 1,
-  "width": 375
+  "width": 750
 }

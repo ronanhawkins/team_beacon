@@ -10,13 +10,12 @@
 const SLOPE_SCALE_DEG = 15;
 const D8 = [[-1, -1, Math.SQRT2], [0, -1, 1], [1, -1, Math.SQRT2], [-1, 0, 1], [1, 0, 1], [-1, 1, Math.SQRT2], [0, 1, 1], [1, 1, Math.SQRT2]];
 
-// G: makeWalkGrid() result. from: {x, y} local metres. Returns { minutes: Float32Array (Infinity = unreachable), cols, rows, cell, H, at(x, y) }.
+// G: makeWalkGrid() result. from: {x, y} local metres, or a list of them (time to the nearest one). Returns { minutes: Float32Array (Infinity = unreachable), cols, rows, cell, H, at(x, y) }.
 export function walkField(G, from, { walkSpeed = 0.8, maxSlopeDeg = 25 } = {}) {
   const { cols, rows, cell, slope } = G, H = rows * cell, n = cols * rows;
   const mpm = new Float32Array(n); // minutes per metre, Infinity where impassable
   for (let i = 0; i < n; i++) { const s = slope[i] / SLOPE_SCALE_DEG; mpm[i] = slope[i] > maxSlopeDeg ? Infinity : (1 + s * s) / walkSpeed / 60; }
   const minutes = new Float32Array(n).fill(Infinity), done = new Uint8Array(n);
-  const c0 = Math.max(0, Math.min(cols - 1, Math.floor(from.x / cell))), r0 = Math.max(0, Math.min(rows - 1, Math.floor((H - from.y) / cell)));
   // binary min-heap of (minutes, cell)
   let hk = new Float64Array(4096), hv = new Int32Array(4096), hn = 0;
   const push = (key, val) => {
@@ -28,10 +27,13 @@ export function walkField(G, from, { walkSpeed = 0.8, maxSlopeDeg = 25 } = {}) {
     for (;;) { let c = 2 * i + 1; if (c >= hn) break; if (c + 1 < hn && hk[c + 1] < hk[c]) c++; if (hk[c] >= key) break; hk[i] = hk[c]; hv[i] = hv[c]; i = c; }
     hk[i] = key; hv[i] = val; return top;
   };
-  const start = r0 * cols + c0; minutes[start] = 0; push(0, start);
+  for (const p of Array.isArray(from) ? from : [from]) {
+    const c0 = Math.max(0, Math.min(cols - 1, Math.floor(p.x / cell))), r0 = Math.max(0, Math.min(rows - 1, Math.floor((H - p.y) / cell)));
+    const start = r0 * cols + c0; if (minutes[start] === 0) continue; minutes[start] = 0; push(0, start);
+  }
   while (hn) {
     const i = pop(); if (done[i]) continue; done[i] = 1;
-    const c = i % cols, r = (i / cols) | 0, mi = mpm[i] === Infinity ? 1 / walkSpeed / 60 : mpm[i]; // the base cell itself always counts as walkable
+    const c = i % cols, r = (i / cols) | 0, mi = mpm[i] === Infinity ? 1 / walkSpeed / 60 : mpm[i]; // a start cell (base, shelter) always counts as walkable
     for (const [dc, dr, k] of D8) {
       const cc = c + dc, rr = r + dr; if (cc < 0 || rr < 0 || cc >= cols || rr >= rows) continue;
       const j = rr * cols + cc; if (done[j] || mpm[j] === Infinity) continue;

@@ -145,7 +145,7 @@ public static class BeaconMissionPreview
         alarmCount=AlarmStarts();stormTask=Tap(false);stormId=LastId();Reply(StateAt(0,true,nearest),stormId);stormTask.GetAwaiter().GetResult();
         Require(AlarmStarts()==alarmCount+1,"a later fresh storm gets its own five-second beep");
         var resetTask=Tap(true);string resetId=LastId();
-        Require((string)sent[sent.Count-1]["type"]=="reset" && !resetTask.IsCompleted,"A requests a confirmed reset");
+        Require((string)sent[sent.Count-1]["type"]=="reset" && (bool?)sent[sent.Count-1]["example"]==true && !resetTask.IsCompleted,"A requests a confirmed reset to the example route");
         int pendingCount=sent.Count;
         Require(!relay.AdvanceWaypoint().GetAwaiter().GetResult() && sent.Count==pendingCount,"arrival events pause while reset is pending");
         relay.Preview(StateAt(0),doc,site);

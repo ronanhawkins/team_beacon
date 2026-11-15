@@ -99,6 +99,19 @@ with no code change.
 
 Map: drag to rotate, Shift-drag or right-drag to move, scroll to zoom.
 
+## Example route and cancelling
+
+- **Start example route** (presenter controls, or E) sends `reset` with `example: true`: the walk starts
+  again from the beginning of the site's example route, putting it back if a plan replaced it. The Quest's A button
+  does the same.
+- **Set to default route** (bottom of the planner, next to "Route in use: Default / Planned route") sends the same
+  event to put the site's default route back in place of a planned one, asking first if a walk or emergency is on.
+  On the default route already, it only discards unsent stops. If the relay does not answer within 3 s (a relay
+  started before this event existed), the planner says to restart it.
+- **Cancel shelter and SOS** appears in the banner while SOS or a shelter request is on. It sends `cancelReroute`,
+  which turns off both and returns to the route where the reroute began; during a storm the shelter route stays.
+  The wrist page (hold "Back to route") and the ESP cuff (hold ACK 2 s) send the same event.
+
 ## Planning a walk
 
 1. In **Plan**, press Start, + Stops or End and click the map. Points must be inside the planned area (the dashed
@@ -175,3 +188,14 @@ Map: drag to rotate, Shift-drag or right-drag to move, scroll to zoom.
    `heartRateBpm` (number), `spo2Fraction` (0 to 1), `skinTempC` (degrees Celsius) and
    `wristBatteryFraction` (0 to 1). Any the wrist module cannot measure can be left out. The hub works
    out the wrist link's age from when the values last changed. Different names are a one-line change in `route.js`.
+
+## Planet view
+
+When the hub opens it shows all of Mars (`planet.js`, a WebGL globe with the Viking MDIM 2.1 colour mosaic, NASA /
+USGS, public domain, in `assets/`) with a marker for each base the relay serves (`/sites.json`). Click the base in use
+(or press Esc) to enter it; click the other to switch the relay to it (`site` event). Every page then reloads into the
+new base, and the hub goes straight in. The **Mars** button at the top left opens the planet again. Without the relay
+the hub can only enter the base it has.
+
+All map layers cover the whole terrain: the engine layers over the 3 km crop, and Minutes to shelter and Minutes to
+base computed here (`walkfield.js`) from the route's shelters and the base.

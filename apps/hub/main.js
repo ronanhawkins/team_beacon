@@ -14,6 +14,7 @@ import { createVitals, ITEMS, GROUPS, worse } from './vitals.js';
 import { makeWalkGrid, findPath } from './pathfind.js';
 import { drawProfile, profileFromPoints, sampleLine } from './profile.js';
 import { walkField, fieldImage } from './walkfield.js';
+import { openPlanet } from './planet.js';
 
 const $ = (id) => document.getElementById(id);
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
@@ -121,18 +122,24 @@ function warnOnce(key, text) { if (!app.warned[key]) { app.warned[key] = 1; log(
 
 // ---------- incoming ----------
 let routeSerial = 0;
-// Walking time to the base from everywhere on the terrain (walkfield.js): the "Minutes to base" layer and the
-// astronaut panel's "To base". Recomputed only when the base moves.
+// Walking time from everywhere on the terrain (walkfield.js), so both layers cover the whole map:
+//   "Minutes to shelter": to the nearest refuge (the route's shelters and the base). Recomputed when they change.
+//   "Minutes to base": to the base, where medical help is; also the astronaut panel's "To base".
 function buildBaseField() {
-  const b = app.route && app.route.base, l = CONFIG.LAYERS.find((x) => x.id === 'minutesToBase');
-  if (!app.walkGrid || !b || !l || !app.map) return;
-  const key = `${Math.round(b.x)},${Math.round(b.y)}`; if (app.baseField && app.baseField.key === key) return;
+  const r = app.route; if (!r || !app.walkGrid || !app.map) return;
+  const refuges = [...r.shelters, ...(r.base ? [r.base] : [])];
+  if (refuges.length) app.shelterField = hubLayer('minutesToShelter', refuges, app.shelterField) || app.shelterField;
+  if (r.base) app.baseField = hubLayer('minutesToBase', [r.base], app.baseField) || app.baseField;
+}
+function hubLayer(id, from, last) {
+  const l = CONFIG.LAYERS.find((x) => x.id === id); if (!l) return null;
+  const key = from.map((p) => `${Math.round(p.x)},${Math.round(p.y)}`).sort().join(';'); if (last && last.key === key) return null;
   const t0 = performance.now(), P = app.planner || {};
-  const F = walkField(app.walkGrid, b, { walkSpeed: P.walkSpeed || 0.8, maxSlopeDeg: P.maxSlopeDeg || 25 }); F.key = key;
-  app.baseField = F;
-  let slot = app.layers.findIndex((x) => x.id === l.id); if (slot < 0) { if (app.layers.length >= 7) return; slot = app.layers.length; app.layers.push(l); }
+  const F = walkField(app.walkGrid, from, { walkSpeed: P.walkSpeed || 0.8, maxSlopeDeg: P.maxSlopeDeg || 25 }); F.key = key;
+  let slot = app.layers.findIndex((x) => x.id === l.id); if (slot < 0) { if (app.layers.length >= 7) return null; slot = app.layers.length; app.layers.push(l); }
   l.index = slot; app.map.setLayer(slot, fieldImage(F, l.domain[1]), { domain: [0, 1], stops: l.stops, noData: 255 });
-  console.info(`Minutes to base: ${Math.round(performance.now() - t0)} ms`);
+  console.info(`${l.label}: ${Math.round(performance.now() - t0)} ms`);
+  return F;
 }
 const baseMinAt = (x, y) => (app.baseField && x != null ? app.baseField.at(x, y) : null);
 function setRoute(doc, announce) {
@@ -158,6 +165,9 @@ async function loadMission(raw) {
   if (latest) onState(latest);
 }
 function onState(raw) {
+  // The relay switched site (planet view, here or on another hub): reload into it, straight past the planet view.
+  if (raw.site && app.siteId && raw.site !== app.siteId) { skipPlanetOnce(raw.site); location.reload(); return; }
+  if (raw.site && !app.siteId) app.siteId = raw.site;
   const rid = raw.plan ? raw.plan.routeId ?? null : app.routeId;
   if (app.session && rid !== app.routeId) { app.routeId = rid; notePlan(raw.plan); loadMission(raw); return; }
   if (app.pendingState) { app.pendingState = raw; return; }
@@ -171,6 +181,8 @@ function onState(raw) {
     if (!ns.storm && p.storm) log('Solar storm ended.');
     if (ns.panic && !p.panic) log(`Panic button pressed by ${name()}.`, 'emergency');
     if (ns.rerouteRequested && !p.rerouteRequested) log(`${name()} requested a reroute. Heading to shelter.`, 'caution');
+    if (!ns.panic && p.panic && !(ns.wp === 0 && !ns.reroute && !ns.storm)) log('SOS cancelled.');
+    if (!ns.rerouteRequested && p.rerouteRequested && !(ns.wp === 0 && !ns.reroute && !ns.storm)) log('Shelter request cancelled.');
     if (!ns.reroute && p.reroute) log('Back on the main route.');
     if (!ns.reroute && ns.wp !== p.wp) {
       if (si.at >= 0) log(`Arrived at ${app.route.stops[si.at].name}.`);
@@ -265,6 +277,23 @@ function command(cmd) {
     }
     case 'storm': send(events.storm(!s.storm), s.storm ? 'Presenter: end storm sent.' : 'Presenter: storm sent.'); break;
     case 'panic': if (!s.panic) send(events.panic(), 'Presenter: panic sent.'); break;
+    case 'example':
+      if (emergency() && !confirm('A storm or panic is on. Start the example route anyway? This clears it.')) return;
+      if (send(events.example(), 'Example route started.')) { app.mode = 'live'; app.draftDirty = false; renderAll(); }
+      break;
+    case 'default': {
+      // Puts back the site's default route in place of a planned one (and drops unsent stops).
+      if (app.routeId == null) { resetDraft(); app.planNote = 'Already on the default route.'; renderAll(); break; }
+      if ((onWalk() || emergency()) && !confirm('Set the default route? The walk starts again from its beginning and any storm or panic is cleared.')) return;
+      if (!send(events.example(), 'Default route set.')) return;
+      app.mode = 'live'; app.draftDirty = false; app.planNote = ''; renderAll();
+      setTimeout(() => {
+        if (app.routeId == null) return;
+        app.planNote = 'The relay did not answer. It may be an older version: restart it (npm run demo).';
+        log(app.planNote, 'caution'); renderAll();
+      }, 3000);
+      break;
+    }
     case 'reset':
       if (Date.now() - app.resetArmed < 2500) { app.resetArmed = 0; send(events.reset(), 'Presenter: reset sent.'); }
       else { app.resetArmed = Date.now(); toast('Press Reset again to restart the walk.'); }
@@ -373,12 +402,12 @@ function bannerModel() {
   const s = app.state, L = live(), local = app.link && app.link.kind === 'local';
   if (emergency()) {
     return { level: 'emergency', icon: ICON.warn,
-      html: `<b>${s.storm ? 'SOLAR STORM' : 'PANIC BUTTON'}</b><span class="act">${L.atShelter ? 'In shelter' : `Go to shelter · ${fmt1(L.shelterMin)} min away`}</span><span class="sub">${s.storm && s.panic ? 'Panic button also pressed. ' : s.panic ? `Pressed by ${esc(name())}. Reset clears it. ` : ''}<span id="emTimer"></span></span>`,
-      actions: [...(app.alarm && app.sound ? [['silence', 'Silence alarm']] : []), ...(s.storm ? [['endstorm', 'End storm']] : [])] };
+      html: `<b>${s.storm ? 'SOLAR STORM' : 'PANIC BUTTON'}</b><span class="act">${L.atShelter ? 'In shelter' : `Go to shelter · ${fmt1(L.shelterMin)} min away`}</span><span class="sub">${s.storm && s.panic ? 'Panic button also pressed. ' : s.panic ? `Pressed by ${esc(name())}. Cancel or Reset clears it. ` : ''}<span id="emTimer"></span></span>`,
+      actions: [...(app.alarm && app.sound ? [['silence', 'Silence alarm']] : []), ...(s.panic || s.rerouteRequested ? [['cancelrr', s.storm ? 'Cancel SOS' : 'Cancel shelter and SOS']] : []), ...(s.storm ? [['endstorm', 'End storm']] : [])] };
   }
   if (app.link && !local && app.relayStatus !== 'open') return { level: 'caution', icon: ICON.warn, html: `<b>Relay offline</b><span class="sub">Reconnecting to ${esc(app.relayUrl)}. Values on screen may be out of date.</span>`, actions: [['local', 'Run locally without the relay']] };
   if (app.vit.marginLevel && app.vit.marginLevel !== 'ok' && onWalk()) { const vp = vitalsProblem(); return { level: 'caution', icon: ICON.warn, html: `<b>${esc(vp.title.toUpperCase())}</b><span class="sub">${esc(name())}: ${esc(vp.text)}</span>`, actions: [['vitals', 'Astronaut status']] }; }
-  if (s.rerouteRequested) return { level: 'caution', icon: ICON.warn, html: `<b>${esc(name())} requested a reroute</b><span class="sub">${L.atShelter ? 'Now in shelter.' : `Heading to shelter · ${fmt1(L.shelterMin)} min away.`} Reset returns to the main route.</span>`, actions: [] };
+  if (s.rerouteRequested) return { level: 'caution', icon: ICON.warn, html: `<b>${esc(name())} requested a reroute</b><span class="sub">${L.atShelter ? 'Now in shelter.' : `Heading to shelter · ${fmt1(L.shelterMin)} min away.`}</span>`, actions: [['cancelrr', 'Cancel shelter request']] };
   const vp = vitalsProblem();
   if (vp && onWalk()) return { level: 'caution', icon: ICON.warn, html: `<b>${vp.level === 'alarm' ? esc(vp.title.toUpperCase()) : esc(vp.title)}</b><span class="sub">${esc(name())}: ${esc(vp.text)}</span>`, actions: [['vitals', 'Astronaut status']] };
   return null; // nothing to warn about: the status line in the top bar says how things are
@@ -434,7 +463,9 @@ function renderPlan() {
     ${app.draftDirty && st ? `<div class="pstat"><div><span class="lbl">Distance</span><b>${km(st.distanceM)}</b></div><div><span class="lbl">Walking</span><b>${fmt(st.minutes)} min</b></div><div><span class="lbl">Steepest</span><b class="${st.maxSlopeDeg > CONFIG.MAX_SLOPE_DEG ? 'over' : ''}">${fmt(st.maxSlopeDeg)}°</b></div></div>
       ${st.failed ? `<p class="note">${ICON.warn} ${st.failed} leg${st.failed === 1 ? ' has' : 's have'} no walkable path and ${st.failed === 1 ? 'is' : 'are'} drawn straight.</p>` : ''}` : ''}
     <div class="tools"><button type="button" class="primary" data-act="send-plan" ${!relay || running || !app.draftDirty ? 'disabled' : ''}>${running ? 'Planning…' : 'Plan this route'}</button><button type="button" data-act="undo-plan" ${app.draftDirty ? '' : 'disabled'}>Discard</button></div>
-    ${state}${why || app.planNote ? `<p class="note">${esc(app.planNote || why)}</p>` : ''}`;
+    ${state}${why || app.planNote ? `<p class="note">${esc(app.planNote || why)}</p>` : ''}
+    <div class="routeSrc"><span><span class="lbl">Route in use</span><b>${app.routeId != null ? 'Planned route' : 'Default route'}</b></span>
+      <button type="button" data-cmd="default" ${app.routeId == null && !app.draftDirty ? 'disabled' : ''} title="Put back the site's default route (the walk starts again from its beginning)">Set to default route</button></div>`;
 }
 function renderRoute() {
   const r = app.route, s = app.state, si = stopInfo(), t = r.totals, w = r.waypoints, first = w[0], last = w[w.length - 1];
@@ -721,6 +752,7 @@ function act(a, el) {
     case 'undo-plan': resetDraft(); app.planNote = ''; renderAll(); break;
     case 'focus': focusStop(+el.dataset.i); break;
     case 'endstorm': if (app.state.storm) command('storm'); break;
+    case 'cancelrr': send(events.cancelReroute(), app.state.storm ? 'SOS cancelled; the storm route stays.' : 'Shelter request and SOS cancelled. Back on the route.'); break;
     case 'local': startLocal(); break;
     case 'silence': stopAlarm(); break;
     case 'vitals': toggleVitalsDrawer(); break;
@@ -739,6 +771,7 @@ function act(a, el) {
 }
 function wireInput() {
   document.addEventListener('click', (e) => {
+    if (e.target.closest('#planetBtn')) return showPlanet(false);
     const c = e.target.closest('[data-cmd]'); if (c) return command(c.dataset.cmd);
     const a = e.target.closest('[data-act]'); if (a) return act(a.dataset.act, a);
   });
@@ -753,7 +786,7 @@ function wireInput() {
     if (k === 'Enter' && e.target.closest && e.target.closest('li[data-act]')) return e.target.click();
     if (e.target.tagName === 'BUTTON' && (k === ' ' || k === 'Enter')) return; // let a focused button work normally
     const keys = { ArrowRight: () => command(e.shiftKey ? 'nextstop' : 'next'), ' ': () => command('next'), ArrowLeft: () => command('back'), n: () => command('nextstop'),
-      s: () => command('storm'), p: () => command('panic'), r: () => command('reset'),
+      s: () => command('storm'), p: () => command('panic'), r: () => command('reset'), e: () => command('example'),
       t: () => app.map.view('top'), f: routeView, g: () => $('viewFollow').click(), m: () => $('soundBtn').click(),
       c: () => setMode(app.mode === 'crew' ? 'live' : 'crew'), v: () => toggleVitalsDrawer(), l: toggleLeak,
       h: () => document.body.classList.toggle('noPresenter'), Escape: () => { if (!$('vitalsDrawer').hidden) return toggleVitalsDrawer(false); app.placing = null; app.focusStop = null; app.histSel = null; renderAll(); } };
@@ -849,7 +882,7 @@ async function boot() {
   const fakes = [app.fake.waypoints && 'route', app.fake.layers && 'layers', app.fake.terrain && 'terrain'].filter(Boolean);
   $('dataChip').hidden = !fakes.length; $('dataChip').textContent = fakes.length === 3 ? 'Fake data' : `Fake ${fakes.join(' and ')}`;
   const sun = (doc.main && doc.main[0] && doc.main[0].sun) || null;
-  app.map = createMap($('gl'), $('ov'), { terrain, sun, exaggeration: CONFIG.EXAGGERATION, imageGain: CONFIG.IMAGE_GAIN });
+  app.map = createMap($('gl'), $('ov'), { terrain, sun, exaggeration: CONFIG.EXAGGERATION, imageGain: CONFIG.IMAGE_GAIN, marsTint: CONFIG.MARS_TINT ?? 0 });
   if (terrain.imageUrl) loadImage(terrain.imageUrl).then((im) => app.map.setOrtho(im)).catch(() => {});
   if (meta) {
     if (meta.version !== 1) note += ` Layer metadata is version ${meta.version}; the hub was written for version 1.`;
@@ -882,9 +915,10 @@ async function boot() {
   setInterval(tick, 500);
   tickVitals(); setInterval(tickVitals, 1000);
   routeView();
+  showPlanet(true);
 }
 // Engine extras that belong to the route (shared/outputs.md): the briefing's space weather and weather report,
-// Curiosity photos per stop, and the minutes-to-shelter layer. After a plan they come from the relay's /mission/.
+// Curiosity photos per stop. After a plan they come from the relay's /mission/. (Minutes to shelter is computed here: buildBaseField.)
 async function loadRouteExtras(fromPlan = true) {
   const R = CONFIG.REAL, base = app.session && fromPlan ? app.session.files || '/mission/' : null, q = `?r=${app.routeId ?? 0}`;
   app.briefing = await getJSON((base ? base + 'briefing.json' : R.briefing) + q).catch(() => null);
@@ -893,11 +927,6 @@ async function loadRouteExtras(fromPlan = true) {
   for (const s of (stops && stops.stops) || []) {
     const im = (s.images || [])[0];
     if (im && s.waypoint) app.stopNotes[s.waypoint] = { photo: R.media + im.file, credit: im.credit, task: `Curiosity's view: ${im.title} (${im.date}).` };
-  }
-  const l = app.layers.find((x) => x.id === 'minutesToShelter'), M = app.layerMeta;
-  if (base && l && M) {
-    const im = await loadImage(base + 'layers/' + M.meta.layers[l.id].file + q).catch(() => null);
-    if (im) app.map.setLayer(l.index, im, layerOptions(l, M.meta));
   }
 }
 function layerOptions(l, meta) {
@@ -958,6 +987,37 @@ function mapFurniture() {
   const px = Math.hypot(p1.x - p0.x, p1.y - p0.y) / 100; if (!(px > 0) || !p0.ok) return;
   const nice = [5, 10, 20, 25, 50, 100, 200, 250, 500, 1000, 2000, 5000].find((d) => d * px >= 70) || 5000, key = nice + ':' + Math.round(nice * px);
   if (key !== lastScale) { lastScale = key; const el = $('scale'); el.firstElementChild.style.width = `${Math.round(nice * px)}px`; el.lastElementChild.textContent = nice >= 1000 ? `${nice / 1000} km` : `${nice} m`; }
+}
+// ---------- planet view ----------
+// All of Mars with the bases the relay serves (/sites.json, relay/README.md). Shown when the hub opens and from the
+// Mars button. The base in use enters the hub; another base asks the relay to switch ({ type: "site" }), and every
+// page reloads into it. After that reload the planet view is skipped once (sessionStorage).
+const PLANET_SKIP = 'beacon.hub.enterSite';
+function skipPlanetOnce(id) { try { sessionStorage.setItem(PLANET_SKIP, id); } catch { /* private mode: show it again */ } }
+async function showPlanet(atStart) {
+  if (document.querySelector('.planet:not(.leaving)')) return;
+  const list = await getJSON('/sites.json').catch(() => null);
+  const current = (list && list.current) || app.siteId || 'gale';
+  if (atStart) { let skip = null; try { skip = sessionStorage.getItem(PLANET_SKIP); sessionStorage.removeItem(PLANET_SKIP); } catch { /* none */ } if (skip === current) return; }
+  if (!app.siteId) app.siteId = current;
+  const sites = (list && list.sites && list.sites.length) ? list.sites
+    : [{ id: current, name: (app.siteDoc && app.siteDoc.site) || CONFIG.SITE_NAME, lat: app.siteDoc?.parkingSpot?.lat, lon: app.siteDoc?.parkingSpot?.lon }];
+  const relayOn = () => canPlan();
+  const P = openPlanet({
+    sites, current, texture: './assets/mars-viking-mdim21.jpg',
+    credit: 'Mars: Viking MDIM 2.1 colour mosaic, NASA / USGS Astrogeology (public domain)',
+    note: list ? '' : 'Switching base needs the relay (npm run demo). This hub can only enter the base it has.',
+    onPick: (s, ui) => {
+      if (s.id === current) { P.close(); $('planetBtn').setAttribute('aria-pressed', 'false'); return; }
+      if (!relayOn()) return ui.status('Switching base needs the relay connection.');
+      if ((onWalk() || emergency()) && !confirm(`Switch to ${s.name}? The walk here ends and any storm or panic is cleared.`)) return;
+      skipPlanetOnce(s.id);
+      if (!send({ type: 'site', name: s.id }, `Switching base to ${s.name}.`)) return ui.status('Not connected to the relay. Nothing was sent.');
+      ui.status(`Switching to ${s.name}…`);
+      setTimeout(() => ui.status('The relay did not switch. It may be an older version: restart it (npm run demo).'), 4000);
+    },
+  });
+  $('planetBtn').setAttribute('aria-pressed', 'true');
 }
 function setUnit() { app.u = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16; }
 boot().catch((err) => {

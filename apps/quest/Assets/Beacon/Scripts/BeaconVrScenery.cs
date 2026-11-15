@@ -82,11 +82,11 @@ namespace Beacon
             body.radius=.22f;body.skinWidth=.025f;body.stepOffset=.3f;body.slopeLimit=45;body.minMoveDistance=0;
             Beacon=new WaypointBeacon(this);
             Base=new MissionBase(terrain,missionView.font);Base.Sync(missionView.relay.Site);
-            initialized=true;terrain.gameObject.SetActive(false);missionView.relay.Changed+=MissionChanged;missionView.relay.SimulationReset+=ResetPosition;
+            initialized=true;terrain.gameObject.SetActive(false);missionView.relay.Changed+=MissionChanged;missionView.relay.SimulationReset+=ResetPosition;missionView.relay.RouteChanged+=ResetPosition;
         }
         void MissionChanged() {Base?.Sync(missionView.relay.Site);if(Active && missionView.relay.Connected && !MatchesMission) missionView.SetImmersive(false);}
         void ResetPosition() {completionKey=null;completionIndex=-1;destinationReached=false;ReturnToRoute();TickBeacon();}
-        void OnDestroy() {if(missionView?.relay!=null) {missionView.relay.Changed-=MissionChanged;missionView.relay.SimulationReset-=ResetPosition;}Beacon?.Dispose();Base?.Dispose();}
+        void OnDestroy() {if(missionView?.relay!=null) {missionView.relay.Changed-=MissionChanged;missionView.relay.SimulationReset-=ResetPosition;missionView.relay.RouteChanged-=ResetPosition;}Beacon?.Dispose();Base?.Dispose();}
         public void TickBeacon() {Beacon?.Tick();if(missionView.relay.Selection?.Point.sun!=null) Base?.SetSun(missionView.SkyDirection(missionView.relay.Selection.Point.sun));}
         void Start() {Create();SetActive(missionView.Immersive);}
         public void SetActive(bool active)

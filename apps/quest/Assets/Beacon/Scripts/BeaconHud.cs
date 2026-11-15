@@ -216,7 +216,7 @@ namespace Beacon
             if(relay.SimulationCommandPending && !reset) { ShelterFeedback("SIMULATION","WAITING…"); return; }
             int generation=++commandGeneration;
             bool walking=missionView.Immersive && missionView.vrScenery?.Active==true;
-            ShelterFeedback(reset ? "A · RESET" : "B · STORM",reset ? "RESETTING…" : stopStorm ? "STOPPING…" : "STARTING…",6);Pulse(.08f);
+            ShelterFeedback(reset ? "A · EXAMPLE ROUTE" : "B · STORM",reset ? "RESETTING…" : stopStorm ? "STOPPING…" : "STARTING…",6);Pulse(.08f);
             int? from=walking ? WalkNavigation.ClosestMain(relay.Document,missionView.vrScenery.Position):(int?)null;
             bool confirmed=await (reset ? relay.ResetSimulation() : stopStorm ? relay.StopStorm() : relay.TriggerStorm(from));
             if(this==null || generation!=commandGeneration) return;
@@ -224,7 +224,7 @@ namespace Beacon
             if(reset)
             {
                 sound.Stop();pulseUntil=0;feedbackUntil=0;missionView.atmosphere?.SetStormStrength(0);
-                ShelterFeedback("SIMULATION","RESET",3);
+                ShelterFeedback("EXAMPLE ROUTE","RESET",3);
             }
             else if(stopStorm)
             {

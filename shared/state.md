@@ -42,9 +42,9 @@ Optional, present when the waypoint file has them (the engine writes them when i
 - `doseMicroGray` (number): dose so far in microgray, counts up. From the current waypoint.
 - `doseRateMicroGrayPerHour` (number): dose rate at this point now, microgray per hour; rises once a storm has arrived. From the current waypoint.
 
-Addition, optional: present only when the relay was started for a named site (`SITE=<name>` or `--site <name>`, see `relay/README.md`). Absent for the default site, Gale. Clients that do not use it can ignore it:
+Addition: which site the relay serves. Always present; the hub's planet view can change it while the relay runs (`site` event, `events.md`). The hub, wrist page and web headset reload when it changes. Clients that do not use it can ignore it:
 
-- `site` (string): the site name, the `<name>` in `data/sites/<name>/`.
+- `site` (string): `"gale"` for the default site (`data/site.json`), else the `<name>` in `data/sites/<name>/`.
 
 Addition, optional: present once a client has sent a `plan` event (`events.md`). Clients that do not use it can ignore it:
 

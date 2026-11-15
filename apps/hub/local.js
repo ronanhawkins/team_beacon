@@ -37,6 +37,11 @@ export function localRelay({ doc, onState }) {
         return true;
       case 'panic': sim.panic = true; reroute(); return true;
       case 'requestReroute': sim.rerouteRequested = true; reroute(); return true;
+      case 'cancelReroute':
+        if (!sim.panic && !sim.rerouteRequested) return false;
+        sim.panic = false; sim.rerouteRequested = false;
+        if (sim.route === 'reroute' && !sim.storm) { sim.route = 'main'; sim.waypointIndex = sim.rerouteFrom; }
+        return true;
       case 'reset': sim = { route: 'main', waypointIndex: 0, storm: false, panic: false, rerouteRequested: false, rerouteFrom: 0 }; return true;
       default: return false; // unknown events are ignored (shared/events.md)
     }

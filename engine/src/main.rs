@@ -873,7 +873,7 @@ fn layers_command(p: &Paths) -> Result<(), String> {
     let sky = layers::Sky { sun: (site.sky.sun.az, site.sky.sun.el), earth: (site.sky.earth.az, site.sky.earth.el) };
     let base = layers::Base { x: site.base.x, y: site.base.y, mast_height_m: site.base.mast_height };
     println!("Sun az {} el {}, Earth az {} el {}, base ({}, {}) mast {} m", sky.sun.0, sky.sun.1, sky.earth.0, sky.earth.1, base.x, base.y, base.mast_height_m);
-    layers::write_layers(&grid, &far, &sky, &base, &site.layers_region, &p.file(&format!("{}/layers", p.out)))
+    layers::write_layers(&grid, Some(&far_grid.far), &far, &sky, &base, &site.layers_region, &p.file(&format!("{}/layers", p.out)))
 }
 
 fn point(p: &Paths, x: f64, y: f64) -> Result<(), String> {
@@ -1015,7 +1015,7 @@ mod tests {
         let site: Site = serde_json::from_str(&text).unwrap();
         let v = site.validation.expect("Gale has ground truth");
         assert_eq!((v.check_point.name.as_str(), v.open_ground_stop.as_str()), ("parking spot", "sol1468"));
-        assert_eq!(site.layers_region, layers::Region { origin_x: 748.0, origin_y: 748.0, cells: 375, metres_per_pixel: 4.0 });
+        assert_eq!(site.layers_region, layers::Region { origin_x: 0.0, origin_y: 0.0, cells: 750, metres_per_pixel: 4.0 });
         assert_eq!(site.base_candidates.unwrap().candidates.len(), 4);
     }
 }

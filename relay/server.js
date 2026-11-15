@@ -31,15 +31,21 @@ const ROOT = path.resolve(__dirname, '..');
 // Site: SITE=<name> in the environment, or --site <name>, serves data/sites/<name>/site.json,
 // data/out/<name>/waypoints.json and data/out/<name>/ as /data/. Without one (the default, Gale) it is
 // data/site.json and data/out/, as before. The apps keep the same URLs either way.
-const SITE = (() => {
+// The hub's planet view can switch site while the relay runs ({ type: "site", name }, see useSite); Gale, the
+// default, is the id "gale". SITE is null for Gale.
+const DEFAULT_SITE_ID = 'gale';
+const siteNameOk = (name) => /^[A-Za-z0-9_-]+$/.test(name);
+const siteFileOf = (name) => (name ? path.join(ROOT, 'data/sites', name, 'site.json') : path.join(ROOT, 'data/site.json'));
+const dataOutOf = (name) => (name ? path.join(ROOT, 'data/out', name) : path.join(ROOT, 'data/out'));
+let SITE = (() => {
   const i = process.argv.indexOf('--site');
   const name = i >= 0 ? process.argv[i + 1] : process.env.SITE;
-  if (!name) return null;
-  if (!/^[A-Za-z0-9_-]+$/.test(name)) throw new Error(`Site name "${name}" must be letters, digits, - or _`);
+  if (!name || name === DEFAULT_SITE_ID) return null;
+  if (!siteNameOk(name)) throw new Error(`Site name "${name}" must be letters, digits, - or _`);
   return name;
 })();
-const SITE_FILE = SITE ? path.join(ROOT, 'data/sites', SITE, 'site.json') : path.join(ROOT, 'data/site.json');
-const DATA_OUT = SITE ? path.join(ROOT, 'data/out', SITE) : path.join(ROOT, 'data/out');
+let SITE_FILE = siteFileOf(SITE);
+let DATA_OUT = dataOutOf(SITE);
 if (SITE && !fs.existsSync(SITE_FILE)) throw new Error(`No site file for site "${SITE}": ${path.relative(ROOT, SITE_FILE)}`);
 const CERT_DIR = path.join(__dirname, 'certs');
 
@@ -98,12 +104,53 @@ function loadSite() {
 
 log(SITE ? `Site ${SITE}: ${path.relative(ROOT, SITE_FILE)}, /data/ = ${path.relative(ROOT, DATA_OUT)}/` : 'Site: default (Gale): data/site.json, /data/ = data/out/');
 let { doc: waypoints, synthetic } = loadWaypoints(); // replaced when a new plan is made (see Planning)
-const site = loadSite();
-const earthDelayMinutes = typeof site.earthDelayMinutes === 'number' ? site.earthDelayMinutes : DEFAULT_EARTH_DELAY_MINUTES;
-const WARNING_MINUTES_TO_SHELTER = typeof site.planner?.minutesToShelterLimit === 'number'
-  ? site.planner.minutesToShelterLimit
-  : DEFAULT_WARNING_MINUTES_TO_SHELTER;
+let exampleRoute = { doc: waypoints, synthetic }; // the route the site started with: its example walk
+let site = loadSite();
+const earthDelayOf = (s) => (typeof s.earthDelayMinutes === 'number' ? s.earthDelayMinutes : DEFAULT_EARTH_DELAY_MINUTES);
+const warningOf = (s) => (typeof s.planner?.minutesToShelterLimit === 'number' ? s.planner.minutesToShelterLimit : DEFAULT_WARNING_MINUTES_TO_SHELTER);
+let earthDelayMinutes = earthDelayOf(site);
+let WARNING_MINUTES_TO_SHELTER = warningOf(site);
 log(`earthDelayMinutes = ${earthDelayMinutes}, warning above ${WARNING_MINUTES_TO_SHELTER} min to shelter`);
+
+// Every site the relay can serve: Gale (data/site.json) and each data/sites/<name>/ with a waypoint file. lat and lon
+// (degrees) come from the site file: Gale's parking spot, else the centre of the 3 km crop in its equirectangular frame.
+function listSites() {
+  const names = [null, ...(() => { try { return fs.readdirSync(path.join(ROOT, 'data/sites')).filter(siteNameOk); } catch { return []; } })()];
+  const out = [];
+  for (const name of names) {
+    let s; try { s = JSON.parse(fs.readFileSync(siteFileOf(name), 'utf8')); } catch { continue; }
+    if (!fs.existsSync(path.join(dataOutOf(name), 'waypoints.json'))) continue;
+    let lat = s.parkingSpot?.lat, lon = s.parkingSpot?.lon;
+    const g = s.grid, R = 3396190;
+    if (!(Number.isFinite(lat) && Number.isFinite(lon)) && g && Number.isFinite(g.southWestEasting) && Number.isFinite(g.southWestNorthing)) {
+      const sp = Number((/Standard_Parallel_1",\s*([-\d.]+)/.exec(g.projection || '') || [])[1]) || 0; // equidistant cylindrical
+      lon = ((g.southWestEasting + 1500) / (R * Math.cos(sp * Math.PI / 180))) * 180 / Math.PI; lat = ((g.southWestNorthing + 1500) / R) * 180 / Math.PI;
+    }
+    const full = typeof s.site === 'string' ? s.site : name || DEFAULT_SITE_ID;
+    out.push({ id: name || DEFAULT_SITE_ID, name: full.split('. ')[0], description: full, lat: lat ?? null, lon: lon ?? null });
+  }
+  return out;
+}
+
+// Switches the site the relay serves: its site file, /data/, example route and planning folder. The walk starts
+// again at the new site's example route, and a plan still running for the old site is dropped when it ends.
+function useSite(id) {
+  if (typeof id !== 'string' || !siteNameOk(id)) return false;
+  const name = id === DEFAULT_SITE_ID ? null : id;
+  if (name === SITE) return false;
+  if (!fs.existsSync(siteFileOf(name)) || !fs.existsSync(path.join(dataOutOf(name), 'waypoints.json'))) return false;
+  const was = { SITE, SITE_FILE, DATA_OUT };
+  SITE = name; SITE_FILE = siteFileOf(name); DATA_OUT = dataOutOf(name);
+  let loaded;
+  try { loaded = loadWaypoints(); } catch (e) { ({ SITE, SITE_FILE, DATA_OUT } = was); log(`! site ${id}: ${e.message}`); return false; }
+  MOUNTS['/data/'] = DATA_OUT;
+  ({ doc: waypoints, synthetic } = loaded); exampleRoute = loaded;
+  site = loadSite(); earthDelayMinutes = earthDelayOf(site); WARNING_MINUTES_TO_SHELTER = warningOf(site);
+  PLANS = plansOf(SITE); planDir = null; routePlanId = null; plan = null; planRunning = false; siteEpoch++;
+  Object.assign(sim, { route: 'main', waypointIndex: 0, storm: false, panic: false, rerouteRequested: false, rerouteFrom: 0 });
+  log(`  site switched to ${id}: ${path.relative(ROOT, SITE_FILE)}, /data/ = ${path.relative(ROOT, DATA_OUT)}/`);
+  return true;
+}
 
 // ---- State ------------------------------------------------------------------
 
@@ -138,8 +185,8 @@ function buildState() {
     baseLink: wp.base.visible,
     earthLink: wp.earth.visible,
     earthDelayMinutes,
-    // Optional addition (shared/state.md): which site the relay serves. Only sent when one was chosen.
-    ...(SITE && { site: SITE }),
+    // Addition (shared/state.md): which site the relay serves ("gale" by default). Clients reload when it changes.
+    site: SITE || DEFAULT_SITE_ID,
     // Optional addition (shared/state.md): the latest plan request. Only sent once a plan was asked for.
     ...(plan && { plan: { id: plan.id, status: plan.status, message: plan.message, routeId: routePlanId } }),
   };
@@ -209,9 +256,20 @@ function applyEvent(ev) {
       }
       sim.rerouteRequested = true; switchToReroute(); return true;
     case 'reset':
+      // { type: "reset", example: true } also puts back the site's example route if a plan replaced it
+      // (hub "Example route" button, Quest A button).
+      if (ev.example === true) loadExampleRoute();
       Object.assign(sim, { route: 'main', waypointIndex: 0, storm: false, panic: false, rerouteRequested: false, rerouteFrom: 0 });
       return true;
+    case 'cancelReroute':
+      // Turns off SOS and the astronaut's shelter request together. Back on the main route where the reroute began,
+      // unless a solar storm still needs the shelter route (only base ends a storm).
+      if (!sim.panic && !sim.rerouteRequested) return false;
+      sim.panic = false; sim.rerouteRequested = false;
+      if (sim.route === 'reroute' && !sim.storm) { sim.route = 'main'; sim.waypointIndex = sim.rerouteFrom; }
+      return true;
     case 'plan': return requestPlan(ev);
+    case 'site': return useSite(ev.name);
     default: return false;
   }
 }
@@ -225,7 +283,9 @@ function applyEvent(ev) {
 // is "error" with the reason. Asked for mid-walk, the new route starts where the astronaut is.
 
 const ENGINE = process.env.BEACON_ENGINE || path.join(ROOT, 'engine/target/release/engine' + (process.platform === 'win32' ? '.exe' : ''));
-const PLANS = process.env.BEACON_PLANS || path.join(ROOT, '.local/plans', SITE || 'gale'); // .local/ is ignored by git
+const plansOf = (name) => process.env.BEACON_PLANS || path.join(ROOT, '.local/plans', name || DEFAULT_SITE_ID); // .local/ is ignored by git
+let PLANS = plansOf(SITE);
+let siteEpoch = 0; // bumped by a site switch, so a plan for the old site neither lands nor clears the new site's lock
 const PLAN_TIMEOUT_MS = 180000;
 const MAX_PLAN_POINTS = 14;
 let plan = null;      // { id, status: 'running' | 'done' | 'error', message }
@@ -280,9 +340,11 @@ function requestPlan(ev) {
   log(`  plan ${id}: ${path.relative(ROOT, ENGINE)} ${args.slice(2).join(' ')}`);
   // A .js/.mjs engine (the tests' stand-in) runs through node, so it works on Windows too.
   const [cmd, cmdArgs] = /\.m?js$/.test(ENGINE) ? [process.execPath, [ENGINE, ...args]] : [ENGINE, args];
+  const epoch = siteEpoch;
   execFile(cmd, cmdArgs, { timeout: PLAN_TIMEOUT_MS, maxBuffer: 8 << 20 }, (err, stdout, stderr) => {
+    if (epoch !== siteEpoch) return; // the site changed while this plan ran: drop it
     planRunning = false;
-    if (plan.id !== id) return;
+    if (!plan || plan.id !== id) return;
     try {
       if (err) throw new Error((String(stderr || '').trim().split('\n').pop() || err.message).replace(/^Error:\s*/, ''));
       const doc = JSON.parse(fs.readFileSync(path.join(dir, 'waypoints.json'), 'utf8'));
@@ -302,6 +364,14 @@ function requestPlan(ev) {
     broadcast();
   });
   return true;
+}
+
+// Back to the site's example route, dropping a planned route and any plan still being made.
+function loadExampleRoute() {
+  if (routePlanId == null && !planRunning) return;
+  waypoints = exampleRoute.doc; synthetic = exampleRoute.synthetic; planDir = null; routePlanId = null;
+  plan = { id: ++planSerial, status: 'done', message: 'Example route loaded.' }; // a plan still running is ignored when it ends
+  log('  example route loaded');
 }
 
 // Keeps the plan in use and the two before it.
@@ -428,7 +498,7 @@ function onRequest(req, res) {
   // Serve the exact in-memory route used by this relay, including WAYPOINTS overrides.
   if (urlPath === '/session.json') {
     return send(res, 200, 'application/json', JSON.stringify({ version: 1, waypoints: '/mission/waypoints.json', synthetic, files: '/mission/', planId: routePlanId, plannerBounds: planBounds(),
-      capabilities: { commandReplies: true, stormStop: true, plan: true } }));
+      capabilities: { commandReplies: true, stormStop: true, plan: true, exampleRoute: true } }));
   }
   if (urlPath === '/mission/waypoints.json') return send(res, 200, 'application/json', JSON.stringify(waypoints));
   // The route's other files (briefing, stops, minutesToShelter layer) follow the latest plan; see missionFile.
@@ -439,6 +509,7 @@ function onRequest(req, res) {
   }
   // The one file outside data/out/ that pages may read.
   if (urlPath === '/data/site.json') return serveFile(res, SITE_FILE);
+  if (urlPath === '/sites.json') return send(res, 200, 'application/json', JSON.stringify({ version: 1, current: SITE || DEFAULT_SITE_ID, sites: listSites() }));
   if (urlPath === '/clients') {
     const list = [...clients].map(({ role, transport, address, since }) => ({ role, transport, address, since }));
     return send(res, 200, 'application/json', JSON.stringify(list));
@@ -486,8 +557,9 @@ function upgradeBrowser(req, socket, head) {
 }
 server.on('upgrade', upgradeBrowser);
 
-if (!LOCAL && !WIFI) {
-  const plainWss = new WebSocketServer({ port: PLAIN_PORT });
+// The ESP32 socket also runs in Wi-Fi mode (hotspot demos), on the same address as the HTTPS pages.
+if (!LOCAL) {
+  const plainWss = new WebSocketServer({ port: PLAIN_PORT, ...(process.env.RELAY_HOST && { host: process.env.RELAY_HOST }) });
   plainWss.on('connection', (ws, req) => onConnection(ws, req, 'ws'));
   plainWss.on('listening', () => log(`Plain WebSocket (ESP32) on ws://<laptop>:${PLAIN_PORT}`));
 }
@@ -505,7 +577,7 @@ server.listen(LOCAL ? LOCAL_PORT : HTTPS_PORT, LOCAL ? '127.0.0.1' : process.env
   for (const host of LOCAL ? ['127.0.0.1'] : process.env.RELAY_HOST ? [process.env.RELAY_HOST] : ['localhost', ...ips]) {
     console.log(`\n  ${host}`);
     for (const p of ['hub/', 'headset/', 'wrist/', 'debug']) console.log(`    ${protocol}://${host}:${port}/${p}`);
-    if (!LOCAL && !WIFI && host !== 'localhost') console.log(`    ESP32: ws://${host}:${PLAIN_PORT}`);
+    if (!LOCAL && host !== 'localhost') console.log(`    ESP32: ws://${host}:${PLAIN_PORT}`);
   }
   console.log('');
 });

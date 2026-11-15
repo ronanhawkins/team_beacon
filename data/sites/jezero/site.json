@@ -22,13 +22,7 @@
     "y": 1500.0,
     "note": "The crop centre C"
   },
-  "layersRegion": {
-    "originX": 750.0,
-    "originY": 750.0,
-    "cells": 375,
-    "metresPerPixel": 4.0,
-    "note": "The central 1.5 km: x and y from 750 to 2250 m in 4 m cells"
-  },
+  "layersRegion": { "originX": 0.0, "originY": 0.0, "cells": 750, "metresPerPixel": 4.0, "note": "The whole 3 km near crop: x and y from 0 to 3000 m in 4 m cells, the same extent as the hub's terrain. Near the crop edge the skyline march continues in far.bin" },
   "earthDelayMinutes": 10.95,
   "sky": {
     "timeUT": "2026-11-15 00:00",

@@ -49,6 +49,10 @@ For later demo sessions, wear the USB-connected headset and run **Start Native Q
 
 **Mirror Quest USB.cmd** shows the app on the laptop; HDMI can carry that window to the projector. Build the APK first using `tools/build-quest-native.ps1`.
 
+### Demo launch (for people and AI agents)
+
+`docs/DEMO-LAUNCH.md`: the relay, hub, Quest and ESP cuff on CJ's laptop, the phone over a hotspot, step by step.
+
 ### Local laptop rehearsal / Quest over Wi-Fi
 
 Windows: **Start Laptop Demo.cmd** (or `npm run demo`) builds the headset and starts Ronan's relay on loopback port 5174. Open `http://127.0.0.1:5174/hub/` for controls and `http://127.0.0.1:5174/headset/?helmet=1` for the laptop helmet simulation. Drag or use arrow keys to look; Escape exits the helmet preview. Both screens share the same state. No developer account or headset is required for this rehearsal.

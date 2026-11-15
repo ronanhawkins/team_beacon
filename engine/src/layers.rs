@@ -11,7 +11,7 @@ use crate::skyline::{self, FAST_DIRS};
 use crate::terrain::Grid;
 
 /// The square the layers cover, from the site file's `layersRegion`: south-west corner at local
-/// (origin_x, origin_y) metres, `cells` x `cells` cells of `metres_per_pixel`. At Gale: 748 to 2248 m in 4 m cells.
+/// (origin_x, origin_y) metres, `cells` x `cells` cells of `metres_per_pixel`. At Gale and Jezero: the whole 3 km crop, 0 to 3000 m in 4 m cells.
 #[derive(serde::Deserialize, Clone, Copy, Debug, PartialEq)]
 #[serde(rename_all = "camelCase")]
 pub struct Region {
@@ -126,7 +126,8 @@ pub fn update_meta(out_dir: &Path, region: &Region, entries: serde_json::Map<Str
 
 /// Computes every layer, writes the PNGs and meta.json into `out_dir`, and
 /// prints a summary. `far` is the 72-direction far-field skyline, reused for every cell.
-pub fn write_layers(near: &Grid, far: &[f32], sky: &Sky, base: &Base, region: &Region, out_dir: &Path) -> Result<(), String> {
+/// `beyond` (far.bin) continues the near-field march for cells whose 700 m reach crosses the edge of `near`.
+pub fn write_layers(near: &Grid, beyond: Option<&Grid>, far: &[f32], sky: &Sky, base: &Base, region: &Region, out_dir: &Path) -> Result<(), String> {
     assert_eq!(far.len(), FAST_DIRS);
     let started = Instant::now();
     let distances = skyline::fast_distances();
@@ -140,7 +141,7 @@ pub fn write_layers(near: &Grid, far: &[f32], sky: &Sky, base: &Base, region: &R
             let (col, row) = (i % cells_n, i / cells_n);
             let (x, y) = region.cell_centre(col, row);
             let slope = slope_at(&blocks, region, col, row).unwrap_or(f32::NAN);
-            let Ok(near_sky) = skyline::fast_skyline(near, x, y, EYE_HEIGHT_M, &distances) else {
+            let Ok(near_sky) = skyline::fast_skyline_beyond(near, beyond, x, y, EYE_HEIGHT_M, &distances) else {
                 return [f32::NAN, f32::NAN, f32::NAN, f32::NAN, slope];
             };
             let merged = skyline::merge(&near_sky, far);

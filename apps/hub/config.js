@@ -29,6 +29,7 @@ export const CONFIG = {
 
   EXAGGERATION: 1.6,             // vertical exaggeration of the 3D terrain (1 = true scale)
   IMAGE_GAIN: 1.35,              // brightens the draped image so routes and labels read on a projector (1 = as supplied)
+  MARS_TINT: 0.8,                // 0 = HiRISE enhanced colour as supplied (blue-grey sand); 1 = fully graded to Mars reds and tans
 
   // Map layers in toggle order (keys 1 to 6). `id` is the layer name in meta.json.
   // `domain` is in the layer's own units (meta.json min..max) and is the range the colours span;
@@ -50,10 +51,11 @@ export const CONFIG = {
     { id: 'slope', label: 'Slope', domain: [6, 32],
       stops: [[1, 1, 1, 0], [1.0, 0.93, 0.62, 0.55], [0.55, 0.20, 0.05, 0.85]],
       lo: 'Flat', hi: 'Too steep', source: 'Orbiter elevation model' },
-    { id: 'minutesToShelter', label: 'Minutes to shelter', domain: [0, 10], noData: 255,
+    // Computed in the hub (walkfield.js) from the route's shelters and the base, so it covers the whole terrain.
+    { id: 'minutesToShelter', label: 'Minutes to shelter', hub: true, domain: [0, 10], noData: 255,
       stops: [[0.10, 0.78, 0.50, 0.30], [0.98, 0.86, 0.35, 0.55], [0.95, 0.50, 0.12, 0.80]],
-      lo: 'At shelter', hi: '10+ min', blank: 'Clear: no walkable path, or outside the planned area',
-      source: 'Walking time to the nearest radiation shelter (engine). Shown only where the engine planned' },
+      lo: 'At shelter', hi: '10+ min', blank: 'Clear: no walkable path to a shelter',
+      source: 'Walking time to the nearest radiation shelter or the base. Hub estimate on the 4 m terrain, engine walking rules' },
     // Computed in the hub (walkfield.js), not exported by the engine: covers the whole terrain.
     { id: 'minutesToBase', label: 'Minutes to base', hub: true, domain: [0, 60], noData: 255,
       stops: [[0.20, 0.78, 0.55, 0.30], [0.98, 0.80, 0.30, 0.45], [0.90, 0.25, 0.30, 0.75]],

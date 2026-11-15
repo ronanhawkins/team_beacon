@@ -26,8 +26,11 @@ async function loadRoute() {
   loadingRoute = false;
   if (raw) applyState(raw);
 }
-let lastPlan = null;
+let lastPlan = null, siteId = null;
 function applyState(next) {
+  // The hub's planet view switched the relay to another site: reload, since the terrain and route are kept once loaded.
+  if (next.site && siteId && next.site !== siteId) { location.reload(); return; }
+  if (next.site) siteId = next.site;
   const pl = next.plan;
   if (pl && (!lastPlan || lastPlan.id !== pl.id || lastPlan.status !== pl.status) && lastPlan !== undefined) {
     if (pl.status === 'done' && lastPlan) note('Route updated');
@@ -73,15 +76,35 @@ function render() {
   $('kicker').textContent = m.kicker; $('title').textContent = m.title; $('detail').textContent = m.detail;
   $('link').lastElementChild.textContent = online ? 'Linked' : 'No link';
   const n = nextTarget(); $('nextKicker').textContent = n ? n.kicker : 'Next'; $('nextName').textContent = n ? n.name : '--';
+  renderDistance(n);
   renderProgress();
   const rerouting = !!state && !!state.reroute, panic = !!state && state.panic;
-  setButton($('reroute'), { disabled: !online || !state || rerouting, done: rerouting, doneText: 'Rerouting' });
-  setButton($('sos'), { disabled: !online || !state || panic, done: panic, doneText: 'SOS active' });
+  setButton($('reroute'), { disabled: !online || !state || rerouting, done: rerouting, doneText: 'Route to shelter on' });
+  setButton($('sos'), { disabled: !online || !state || panic, done: panic, doneText: 'Base has your alert' });
+  // one button turns off both the shelter request and SOS; a storm keeps its shelter route (only base ends it)
+  const canCancel = online && !!state && (state.panic || state.rerouteRequested);
+  $('cancel').hidden = !canCancel;
+  if (canCancel) {
+    $('cancel').querySelector('b').textContent = state.storm ? (state.panic ? 'Cancel SOS' : 'Cancel request') : 'Back to route';
+    $('cancel').querySelector('small').textContent = state.storm ? 'Storm on: shelter route stays' : 'Hold to cancel shelter and SOS';
+  }
   const why = whyNoWaypoint(); $('addWp').disabled = !!why; $('addWp').title = why || 'Add a waypoint to the route';
+  $('addWp').hidden = !!state && (state.storm || state.panic || !!state.reroute); // keep the map clear while it cannot be used
   if (adding && why) stopAdding();
   if (adding) { const d = here() ? Math.hypot(adding.x - here().x, adding.y - here().y) : 0, ok = inBounds(adding);
     $('nextKicker').textContent = 'New waypoint'; $('nextName').textContent = ok ? `${Math.round(d)} m from you` : 'Outside the planned area';
-    $('addConfirm').disabled = !ok; }
+    $('addConfirm').disabled = !ok; $('nextDist').hidden = true; }
+}
+// Straight-line distance to the next target, and the walking time left where the route knows it.
+function renderDistance(n) {
+  const el = $('nextDist'), p = here();
+  if (!n || !n.pt || !p) { el.hidden = true; return; }
+  const d = Math.hypot(n.pt.x - p.x, n.pt.y - p.y), w = route.waypoints, now = w[Math.min(state.wp, w.length - 1)].t || 0;
+  const min = state.reroute ? state.shelterMin : n.pt.etaMin != null ? n.pt.etaMin - now : n.pt.t != null ? n.pt.t - now : null;
+  if (d < 5 && (min == null || min <= 0)) { el.hidden = true; return; }
+  el.hidden = false;
+  el.firstElementChild.textContent = d >= 1000 ? `${(d / 1000).toFixed(1)} km` : `${Math.round(d)} m`;
+  el.lastElementChild.textContent = min != null && min > 0 ? `~${Math.max(1, Math.round(min))} min` : '';
 }
 // Start, science stops and end along a line by walking time, filled up to where you are on the main route.
 function renderProgress() {
@@ -309,6 +332,11 @@ function send(ev, sent) {
 holdToConfirm($('reroute'), () => send({ type: 'requestReroute' }, 'Reroute requested'));
 holdToConfirm($('sos'), () => send({ type: 'panic' }, 'SOS sent to base'));
 holdToConfirm($('addConfirm'), addWaypoint);
+holdToConfirm($('cancel'), () => {
+  send({ type: 'cancelReroute' }, state && state.storm ? 'Cancelled. Storm route stays' : 'Back on the route');
+  // A relay older than cancelReroute ignores it without a reply: say so instead of leaving the button there.
+  setTimeout(() => { if (online && state && (state.panic || state.rerouteRequested)) note('Base did not respond. Restart the relay'); }, 2500);
+});
 loadRoute();
 
 // ---------- clock, landscape and screen ----------

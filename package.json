@@ -11,7 +11,8 @@
     "build:standalone": "vite build --mode standalone",
     "preview": "vite preview --host 127.0.0.1",
     "test": "node --test tests/*.test.js",
-    "quest": "powershell -NoProfile -ExecutionPolicy Bypass -File tools/connect-quest.ps1"
+    "quest": "powershell -NoProfile -ExecutionPolicy Bypass -File tools/connect-quest.ps1",
+    "esp": "node tools/esp-usb-bridge.mjs"
   },
   "dependencies": { "three": "0.187.0" },
   "devDependencies": { "vite": "8.3.8", "ws": "8.23.0" }

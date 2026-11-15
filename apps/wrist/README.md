@@ -5,7 +5,10 @@
 Phone page worn landscape on the astronaut's forearm. Left (the smaller part): a north-up map that follows your position, with
 the route (walked part solid, the rest dashed), science stops, shelters and base; during a reroute the way to
 shelter is amber, or red in a storm or SOS. + and − zoom. Right: the status, the next target with a walk-progress
-track, and two actions. Readings (dose, oxygen) stay in the headset.
+track, and two actions. Readings (dose, oxygen) stay in the headset. The status card carries a one-line
+instruction ("Follow the red route to shelter"); the next card shows the straight-line distance to the target and
+the walking time left. An action that is already on (rerouting, SOS) turns into a tinted card with an "Active"
+badge, so the only holdable buttons look like buttons. The Waypoint button is hidden during a storm, SOS or reroute.
 
 The map is drawn, not photographed: contour lines every 2 m (brighter every 10 m) generated from the terrain's
 height grid (`/data/terrain/`, loaded with the hub's `apps/hub/terrain.js`) over the area around the route, on a
@@ -19,6 +22,7 @@ page stacks the map above the controls.
 |---|---|---|
 | Go to shelter | `{ "type": "requestReroute" }` | hold 0.9 s |
 | SOS | `{ "type": "panic" }` | hold 1.5 s |
+| Back to route | `{ "type": "cancelReroute" }` | hold 1 s; shown only while SOS or a shelter request is on. Turns both off and returns to the route; during a storm the shelter route stays |
 | Add a waypoint | `{ "type": "plan", ... }` | Waypoint on the map, tap to place, hold 0.7 s |
 
 **Adding a waypoint.** "Waypoint" on the map drops a pin; tap the map to move it. The dashed white lines show

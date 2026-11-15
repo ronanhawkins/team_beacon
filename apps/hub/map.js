@@ -52,7 +52,7 @@ uniform sampler2D uOrtho, uL0, uL1, uL2, uL3, uL4, uL5, uL6;
 //   uFeather: how far in from that rectangle's edge the layer fades in, in layer coordinates
 //   uND: pixel values (0..1) at or above this are missing (no walkable path, outside the planner); > 1 = none
 uniform vec4 uUVl[7]; uniform vec4 uValid[7]; uniform vec2 uFeather[7]; uniform float uND[7];
-uniform float uHasOrtho, uExag, uGain; uniform vec3 uSun;
+uniform float uHasOrtho, uExag, uGain, uMars; uniform vec3 uSun;
 uniform float uOp[7]; uniform int uMode[7]; uniform vec2 uDom[7]; uniform vec4 uC0[7]; uniform vec4 uC1[7]; uniform vec4 uC2[7];
 out vec4 o;
 // Bilinear blend of the four nearest pixels that hold values. Missing pixels are left out of the blend, and how much
@@ -84,8 +84,16 @@ vec3 layer(vec3 base, sampler2D s, int i) {
   vec4 c = v < 0.5 ? mix(uC0[i], uC1[i], v * 2.0) : mix(uC1[i], uC2[i], v * 2.0 - 1.0);
   return mix(base, c.rgb, c.a * uOp[i] * cover);
 }
+// HiRISE enhanced colour shows the dark basalt sand blue-grey. uMars blends the image toward a rust-to-tan ramp by
+// brightness, so the map reads as Mars while keeping every detail of the image (0 = image as supplied).
+vec3 marsGrade(vec3 c) {
+  float l = clamp(dot(c, vec3(0.30, 0.55, 0.15)), 0.0, 1.0);
+  vec3 lo = vec3(0.17, 0.075, 0.04), mid = vec3(0.68, 0.33, 0.17), hi = vec3(0.97, 0.77, 0.57);
+  vec3 r = l < 0.5 ? mix(lo, mid, l * 2.0) : mix(mid, hi, l * 2.0 - 1.0);
+  return mix(c, r, uMars);
+}
 void main() {
-  vec3 base = uHasOrtho > 0.5 ? texture(uOrtho, vUV).rgb * uGain : mix(vec3(0.60, 0.38, 0.25), vec3(0.74, 0.52, 0.38), vH);
+  vec3 base = uHasOrtho > 0.5 ? marsGrade(texture(uOrtho, vUV).rgb * uGain) : mix(vec3(0.60, 0.38, 0.25), vec3(0.74, 0.52, 0.38), vH);
   vec3 n = normalize(vec3(vSlope * uExag, 1.0));
   base *= 0.42 + 0.72 * max(dot(n, uSun), 0.0);
   base = layer(base, uL0, 0); base = layer(base, uL1, 1); base = layer(base, uL2, 2); base = layer(base, uL3, 3);
@@ -93,7 +101,7 @@ void main() {
   o = vec4(base, 1.0);
 }`;
 
-export function createMap(glCanvas, ovCanvas, { terrain: T, sun, exaggeration = 1.5, imageGain = 1 }) {
+export function createMap(glCanvas, ovCanvas, { terrain: T, sun, exaggeration = 1.5, imageGain = 1, marsTint = 0 }) {
   const gl = glCanvas.getContext('webgl2', { antialias: true, alpha: false });
   if (!gl) throw new Error('This browser has no WebGL2, which the 3D map needs.');
   const ctx = ovCanvas.getContext('2d');
@@ -248,7 +256,7 @@ export function createMap(glCanvas, ovCanvas, { terrain: T, sun, exaggeration = 
     gl.clearColor(0.043, 0.055, 0.075, 1); gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT); gl.enable(gl.DEPTH_TEST);
     gl.uniformMatrix4fv(U('uMVP'), false, new Float32Array(mvp));
     gl.uniform1f(U('uExag'), ex); gl.uniform2f(U('uSize'), T.W, T.H); gl.uniform1f(U('uRelief'), T.maxZ - T.minZ);
-    gl.uniform1f(U('uHasOrtho'), hasOrtho); gl.uniform1f(U('uGain'), imageGain); gl.uniform3fv(U('uSun'), sunVec);
+    gl.uniform1f(U('uHasOrtho'), hasOrtho); gl.uniform1f(U('uGain'), imageGain); gl.uniform1f(U('uMars'), marsTint); gl.uniform3fv(U('uSun'), sunVec);
     gl.uniform4fv(U('uUVl'), layers.flatMap((l) => l.uv));
     gl.uniform1fv(U('uOp'), layers.map((l) => (l.op < 0.01 ? 0 : l.op)));
     gl.uniform1iv(U('uMode'), layers.map((l) => l.mode));

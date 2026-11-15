@@ -25,6 +25,8 @@ namespace Beacon
         public bool Synthetic { get; private set; }
         public string Error { get; private set; } = "Connecting to laptop";
         public event Action Changed;
+        // Raised after a new route replaced the old one (a plan from the hub or wrist, or A loading the example route).
+        public event Action RouteChanged;
         public event Action SimulationReset;
         public bool SimulationCommandPending => commandReply!=null;
         TaskCompletionSource<bool> commandReply;
@@ -100,11 +102,23 @@ namespace Beacon
                                 } while (!result.EndOfMessage);
                                 var envelope = JObject.Parse(Encoding.UTF8.GetString(message.ToArray()));
                                 if ((string)envelope["type"] != "state") continue;
+                                // A new plan (or the example route) replaced the route: fetch it before reading the state against it
+                                // (shared/state.md, plan.routeId). The socket stays open, so a pending A/B reply is not lost.
+                                var routeIdToken = envelope["state"]?["plan"]?["routeId"];
+                                int? routeId = routeIdToken == null || routeIdToken.Type == JTokenType.Null ? (int?)null : (int)routeIdToken;
+                                bool newRoute = routeId != session.planId;
+                                if (newRoute)
+                                {
+                                    route = await LoadRoute(new Uri(serverUrl.TrimEnd('/') + "/"), session.waypoints, cancel);
+                                    session.planId = routeId;
+                                }
                                 var next = Contracts.StateFrom(envelope["state"]);
                                 var selection = Contracts.Select(next, route);
+                                var routeNow = route;
                                 Publish(() => {
-                                    bool changed = !Connected || State?.route != next.route || State?.waypointIndex != next.waypointIndex || State?.mode != next.mode;
-                                    State = next; Selection = selection; Document = route; Site = site; Synthetic = session.synthetic; Connected = true; Error = "";
+                                    bool changed = newRoute || !Connected || State?.route != next.route || State?.waypointIndex != next.waypointIndex || State?.mode != next.mode;
+                                    State = next; Selection = selection; Document = routeNow; Site = site; Synthetic = session.synthetic; Connected = true; Error = "";
+                                    if (newRoute) { Debug.Log("BEACON_ROUTE: new route from the laptop"); RouteChanged?.Invoke(); }
                                     ConfirmCommand((string)envelope["replyTo"]);
 #if DEVELOPMENT_BUILD || UNITY_EDITOR
                                     if (changed) Debug.Log($"BEACON_STATE: {next.route} {next.waypointIndex} {next.mode} {selection.Point.id}");
@@ -119,6 +133,19 @@ namespace Beacon
                 finally { socket = null; }
                 try { await Task.Delay(delay, cancel); } catch (OperationCanceledException) { break; }
                 delay = Math.Min(delay * 2, 8000);
+            }
+        }
+        static async Task<RouteDocument> LoadRoute(Uri root, string path, CancellationToken cancel)
+        {
+            var routeUri = new Uri(root, path);
+            if (routeUri.Authority != root.Authority || routeUri.Scheme != root.Scheme) throw new InvalidDataException("Route must come from the same mission server");
+            using (var http = new HttpClient { Timeout = TimeSpan.FromSeconds(8) })
+            using (var response = await http.GetAsync(routeUri, cancel))
+            {
+                response.EnsureSuccessStatusCode();
+                var route = JsonConvert.DeserializeObject<RouteDocument>(await response.Content.ReadAsStringAsync());
+                Contracts.Validate(route);
+                return route;
             }
         }
         async Task SendText(ClientWebSocket ws, string text, CancellationToken cancel)
@@ -154,6 +181,8 @@ namespace Beacon
             commandReply=new TaskCompletionSource<bool>();commandDeadline=Time.unscaledTime+5;
             var reply=commandReply;
             var message=new JObject {["type"]=type=="stopStorm" ? "storm":type,["requestId"]=commandId};
+            // A starts the example route from the beginning, putting it back if a plan from the hub or wrist replaced it.
+            if(type=="reset") message["example"]=true;
             if(type=="storm" || type=="stopStorm")
             {
                 message["on"]=type=="storm";message["expected"]=Expected();

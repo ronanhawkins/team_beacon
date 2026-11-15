@@ -21,7 +21,7 @@ The pages and the browser socket share port 8443, so each device accepts one cer
 
 For laptop-only rehearsal, run `npm run demo` from the repo root. `node relay/server.js --local` uses HTTP + WS on **127.0.0.1:5174 only**, with the same state logic and static mounts. No certificate or ESP port is used. Override `LOCAL_PORT` if needed. The headset must already be built.
 
-For Quest over Wi-Fi, Windows users can run `Start WiFi Demo.cmd` from the root. `node relay/server.js --wifi` serves HTTPS on 8443 and a loopback HTTP mirror on 5174, both sharing the same state and clients. It requires certificates, omits the ESP port, and checks browser WebSocket origins. `RELAY_HOST` optionally binds HTTPS to one network address. The Windows launcher sets it to the Wi-Fi address. Default `npm start` retains the original HTTPS + ESP setup.
+For Quest over Wi-Fi, Windows users can run `Start WiFi Demo.cmd` from the root. `node relay/server.js --wifi` serves HTTPS on 8443 and a loopback HTTP mirror on 5174, both sharing the same state and clients. It requires certificates, opens the ESP port (8081, on `RELAY_HOST` when set), and checks browser WebSocket origins. `RELAY_HOST` optionally binds HTTPS to one network address. The Windows launcher sets it to the Wi-Fi address. Default `npm start` retains the original HTTPS + ESP setup.
 
 `/session.json` returns `{version:1, waypoints:"/mission/waypoints.json", synthetic:boolean, files:"/mission/", planId, plannerBounds, capabilities:{commandReplies, stormStop, plan}}`. That waypoint endpoint serves the exact in-memory route, so browser clients agree with relay state even with `WAYPOINTS` overrides or newly written disk exports. Restart the relay to adopt a new export.
 
@@ -31,6 +31,15 @@ The hub's Plan screen sends a `plan` event (`shared/events.md`). The relay check
 
 - `/mission/<file>` serves the route's other files: from the latest plan's folder first (`briefing.json`, `stops.json`, `shelters.json`, `layers/minutesToShelter.png`), else from the site's `data/out` (terrain, the other layers, photos).
 - The last three plan folders are kept; `.local/` is ignored by git.
+
+### Sites
+
+The relay starts on Gale, or on `--site <name>`, and can switch while it runs: the hub's planet view sends
+`{ type: "site", name }` (`shared/events.md`). `/sites.json` returns `{ version: 1, current, sites: [{ id, name,
+description, lat, lon }] }` for Gale (`"gale"`) and every `data/sites/<name>/` that has `data/out/<name>/waypoints.json`.
+lat and lon are degrees: Gale's parking spot, else the centre of the site's 3 km crop. State carries `site`, and the
+hub, wrist page and web headset reload when it changes. The Quest app checks the relay's site file against its
+built-in terrain and turns off the base marker and photos when they differ.
 - `BEACON_ENGINE` points at another engine binary and `BEACON_PLANS` at another plans folder (the tests use both).
 - The browser headset fetches the new route when `state.plan.routeId` changes. The Quest app reads the route once at start, so restart it after a new plan.
 

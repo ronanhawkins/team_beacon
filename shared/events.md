@@ -14,8 +14,10 @@ Every message is one JSON object with a `type` field.
 | `{ "type": "goto", "index": 3 }` | hub | Jump to a waypoint on the current route |
 | `{ "type": "storm", "on": true }` | hub, native headset | Start or end the solar storm. Starting it switches to the reroute |
 | `{ "type": "panic" }` | esp, wrist, hub | Set panic and switch to the reroute |
-| `{ "type": "requestReroute" }` | wrist, headset | Astronaut asks for a reroute. Switches to the reroute |
-| `{ "type": "reset" }` | hub, native headset | Back to waypoint 0 on the main route, all flags cleared |
+| `{ "type": "requestReroute" }` | wrist, headset, esp | Astronaut asks for a reroute. Switches to the reroute |
+| `{ "type": "site", "name": "jezero" }` | hub (planet view) | Switches the site the relay serves (`"gale"` or a `data/sites/<name>/` with a waypoint file): its site file, `/data/`, example route and planning folder. The walk starts again at the new site's example route; storm, SOS and any planned route are cleared. Ignored for an unknown name or the site already in use. `/sites.json` lists the sites |
+| `{ "type": "cancelReroute" }` | wrist, esp, hub | Turns off both SOS (`panic`) and the reroute request, and goes back to the main route where the reroute began. During a solar storm the shelter route stays; only base ends a storm. Ignored when neither is on |
+| `{ "type": "reset" }` | hub, native headset | Back to waypoint 0 on the main route, all flags cleared. With `"example": true`, also puts back the site's example route if a plan replaced it (hub "Start example route", Quest A) |
 
 ## Relay to devices
 

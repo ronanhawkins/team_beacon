@@ -9,6 +9,10 @@ export const events = {
   storm: (on) => ({ type: 'storm', on }),
   panic: () => ({ type: 'panic' }),
   reset: () => ({ type: 'reset' }),
+  // Back to the site's example route (if a plan replaced it), at its start. Same as the Quest's A button.
+  example: () => ({ type: 'reset', example: true }),
+  // Turns off SOS and the reroute request together (a storm keeps its shelter route).
+  cancelReroute: () => ({ type: 'cancelReroute' }),
   plan: (points) => ({ type: 'plan', points }),
 };
 

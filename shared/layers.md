@@ -51,10 +51,15 @@ The numbers in the example are illustrative. The engine writes the real ones.
 `meta.json` may also carry `originX` and `originY`: the local metres of the south-west corner of the images. When they are absent they are 0, and the images start at the crop's south-west corner as above. With them, pixel (col, row) covers x from originX + col * metresPerPixel to originX + (col + 1) * metresPerPixel, and its centre is at x = originX + (col + 0.5) * metresPerPixel, y = originY + (height - row - 0.5) * metresPerPixel.
 
 ```json
-{ "version": 1, "width": 375, "height": 375, "metresPerPixel": 4, "originX": 748, "originY": 748, "layers": { "...": "..." } }
+{ "version": 1, "width": 750, "height": 750, "metresPerPixel": 4, "originX": 0, "originY": 0, "layers": { "...": "..." } }
 ```
 
 `meta.json` lists only the layers the engine has written. A layer that is missing from it has not been produced yet.
+
+Both sites' layers now cover the whole 3 km crop (site file `layersRegion`: origin 0, 750 cells of 4 m). Near the crop's
+edge the 700 m skyline march continues in far.bin instead of stopping, so edge cells are not read as open sky. The hub
+computes "Minutes to shelter" and "Minutes to base" itself over the whole terrain (`apps/hub/walkfield.js`); the
+planner's `minutesToShelter.png` in a plan folder is no longer drawn by the hub.
 
 ### Layers valid over part of the image (addition)
 

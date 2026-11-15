@@ -42,7 +42,7 @@ namespace Beacon
         public double headingDeg, shelterBearingDeg, minutesToShelter, openSky, doseFraction, oxygenFraction, earthDelayMinutes;
         [JsonIgnore] public bool Emergency => storm || panic || mode == "storm";
     }
-    [Serializable] public sealed class MissionSession { public int version; public string waypoints; public bool synthetic; }
+    [Serializable] public sealed class MissionSession { public int version; public string waypoints; public bool synthetic; public int? planId; }
     public sealed class MissionSelection
     {
         public readonly List<Waypoint> Points;

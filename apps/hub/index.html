@@ -10,7 +10,7 @@
 <body class="plan">
 <div id="app">
   <header id="bar">
-    <div class="brand"><strong>Beacon</strong><span id="siteName"></span><span id="dataChip" class="chip" hidden></span></div>
+    <div class="brand"><button id="planetBtn" type="button" class="ghost planetBtn" title="All of Mars: choose a base" aria-pressed="false"><span aria-hidden="true"></span>Mars</button><strong>Beacon</strong><span id="siteName"></span><span id="dataChip" class="chip" hidden></span></div>
     <nav class="modes" role="group" aria-label="Mode">
       <button id="modePlan" type="button" title="Plan a walk">Plan</button>
       <button id="modeLive" type="button" title="Follow the walk">Live</button>
@@ -86,6 +86,7 @@
         <button type="button" data-cmd="storm" class="danger" id="stormBtn" title="Storm (S)">Storm</button>
         <button type="button" data-cmd="panic" class="danger" title="Panic (P)">Panic</button>
         <button type="button" data-cmd="reset" title="Reset (R, twice)">Reset</button>
+        <button type="button" data-cmd="example" class="wide" title="Start the example route from the beginning (E). Same as A on the Quest controller">Start example route</button>
       </div>
     </section>
   </footer>
