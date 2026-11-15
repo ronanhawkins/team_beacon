@@ -1,3 +1,4 @@
+using System;
 using TMPro;
 using UnityEngine;
 using UnityEngine.Rendering;
@@ -13,10 +14,13 @@ namespace Beacon
         public Shader skylineShader;
         public OVRPassthroughLayer passthrough;
         public MarsAtmosphere atmosphere;
+        public BeaconVrScenery vrScenery;
         public float NorthYaw { get; private set; }
         public float Heading => (float)Navigation.Wrap(EyeYaw - NorthYaw);
         public bool Immersive { get; private set; }
         public bool RingVisible { get; private set; } = true;
+        public event Action Recentered;
+        public event Action<string> ActionFeedback;
         float EyeYaw => Mathf.Atan2(rig.centerEyeAnchor.forward.x,rig.centerEyeAnchor.forward.z) * Mathf.Rad2Deg;
         Transform ring;
         Mesh mesh;
@@ -82,28 +86,41 @@ namespace Beacon
             string key=relay.State.route+":"+relay.State.rerouteFrom+":"+relay.Selection.Point.id;
             if(key!=pointKey)
             {
-                // Each presenter step puts the new travel heading in front. Head
-                // turns between steps still look naturally around the whole ring.
-                targetNorth=EyeYaw-(float)relay.State.headingDeg; pointKey=key;
+                // Route changes must never rotate north, the Sun or the scenery.
+                // Only initial calibration / an explicit recenter sets this frame.
+                pointKey=key;
                 if(!hasSamples) { for(int i=0;i<72;i++) elevations[i]=(float)relay.Selection.Point.skyline[i]; hasSamples=true; }
             }
         }
         public void Calibrate() { targetNorth=EyeYaw-(float)(relay.State?.headingDeg ?? 0); NorthYaw=targetNorth; aligned=true; }
+        public void Recenter()
+        {
+            targetNorth=EyeYaw-(float)(relay.State?.headingDeg ?? 0); aligned=true;
+            Recentered?.Invoke(); Debug.Log("BEACON_VIEW: Recentered");
+        }
         public void SetImmersive(bool enabled)
         {
+            if(enabled && (relay.Selection==null || !relay.Connected || vrScenery==null || !vrScenery.MatchesMission))
+            {ActionFeedback?.Invoke("VR NEEDS MATCHING MISSION DATA");return;}
             Immersive=enabled;
             if(passthrough!=null) passthrough.hidden=enabled;
             if(atmosphere!=null) atmosphere.SetImmersive(enabled);
-            Debug.Log("BEACON_VIEW: "+(enabled ? "VR fallback" : "AR passthrough"));
+            if(vrScenery!=null) vrScenery.SetActive(enabled);
+            Debug.Log("BEACON_VIEW: "+(enabled ? "Mars VR" : "AR passthrough"));
         }
         void Update()
         {
             if(OVRInput.GetDown(OVRInput.Button.One,OVRInput.Controller.LTouch)) SetImmersive(!Immersive);
-            if(OVRInput.GetDown(OVRInput.Button.Two,OVRInput.Controller.LTouch)) RingVisible=!RingVisible;
+            if(OVRInput.GetDown(OVRInput.Button.Two,OVRInput.Controller.LTouch))
+            {
+                if(Immersive) {vrScenery.ReturnToRoute();ActionFeedback?.Invoke("RETURNED TO ROUTE");}
+                else RingVisible=!RingVisible;
+            }
+            if(OVRInput.GetDown(OVRInput.Button.PrimaryThumbstick,OVRInput.Controller.LTouch)) Recenter();
         }
         void LateUpdate()
         {
-            if(!aligned && Time.timeSinceLevelLoad>1 && OVRPlugin.GetNodeOrientationTracked(OVRPlugin.Node.EyeCenter)) Calibrate();
+            if(!aligned && relay.Connected && relay.Selection!=null && Time.timeSinceLevelLoad>1 && OVRPlugin.GetNodeOrientationTracked(OVRPlugin.Node.EyeCenter)) Calibrate();
             Tick(Time.unscaledDeltaTime);
         }
         public void Tick(float delta)
@@ -111,31 +128,56 @@ namespace Beacon
             if(ring==null) return;
             NorthYaw=Mathf.LerpAngle(NorthYaw,targetNorth,1-Mathf.Exp(-delta*5));
             ring.position=rig.centerEyeAnchor.position; ring.rotation=Quaternion.Euler(0,NorthYaw,0);
+            vrScenery?.TickBeacon();
             bool available=relay.Connected && relay.Selection!=null;
             ring.gameObject.SetActive(available && (RingVisible || Immersive));
             if(!available) return;
             var p=relay.Selection.Point; var s=relay.State;
-            Color tone=s.Emergency ? new Color(1,.39f,.30f) : s.mode=="warning" ? new Color(1,.72f,.26f) : new Color(.46f,.86f,.92f);
+            Color tone=s.Emergency ? new Color(1,.48f,.34f) : s.mode=="warning" ? new Color(1,.72f,.38f) : new Color(.85f,.62f,.42f);
             float blend=1-Mathf.Exp(-delta*5);
             for(int i=0;i<72;i++) elevations[i]=Mathf.Lerp(elevations[i],(float)p.skyline[i],blend);
             for(int i=0;i<=72;i++)
             {
                 float az=i*5,el=elevations[i%72]; int v=i*6;
-                vertices[v]=Direction(az,Immersive ? -89.9f : -18)*6;
+                // The measured mask covers blocked SKY only. Never paint the
+                // room's floor or the photographic ground with a flat silhouette.
+                vertices[v]=Direction(az,0)*6;
                 vertices[v+1]=Direction(az,el)*6;
                 vertices[v+2]=Direction(az,el-.12f)*5.995f;
                 vertices[v+3]=Direction(az,el+.12f)*5.995f;
                 vertices[v+4]=Direction(az,-.055f)*5.99f; vertices[v+5]=Direction(az,.055f)*5.99f;
-                colours[v]=Immersive ? new Color(.22f,.10f,.055f,1) : new Color(.30f,.49f,.52f,0);
-                colours[v+1]=Immersive ? new Color(.36f,.20f,.12f,1) : new Color(tone.r,tone.g,tone.b,.16f);
-                colours[v+2]=colours[v+3]=new Color(tone.r,tone.g,tone.b,.68f);
-                colours[v+4]=colours[v+5]=new Color(.65f,.78f,.81f,.22f);
+                colours[v]=new Color(tone.r,tone.g,tone.b,0);
+                colours[v+1]=new Color(tone.r,tone.g,tone.b,Immersive ? 0 : .045f);
+                // Keep the measured AR shading, but never draw the unwanted
+                // floating contour over either the room or the VR landscape.
+                colours[v+2]=colours[v+3]=Color.clear;
+                colours[v+4]=colours[v+5]=Color.clear;
             }
             mesh.vertices=vertices; mesh.colors=colours;
             Place(sun,(float)p.sun.az,(float)p.sun.el,"Sun",new Color(1,.83f,.43f),p.sun.visible && s.sunlit);
             Place(earth,(float)p.earth.az,(float)p.earth.el,earthText,new Color(.56f,.76f,1),p.earth.visible && s.earthLink);
-            Place(baseMarker,(float)p.@base.az,-1,baseText,Color.white,p.@base.visible && s.baseLink);
-            Place(shelter,(float)s.shelterBearingDeg,4,shelterText,tone,true);
+            float baseAz=(float)p.@base.az,shelterAz=(float)s.shelterBearingDeg;
+            bool showBase=MissionPresentation.ShowBaseMarker(p),showShelter=MissionPresentation.ShowShelterMarker(p);
+            string baseLabel=baseText,shelterLabel=shelterText;
+            if(Immersive && vrScenery.Active)
+            {
+                vrScenery.terrain.SetSun(SkyDirection(p.sun));var position=vrScenery.Position;
+                if(relay.Site?.@base!=null)
+                {
+                    baseAz=(float)Navigation.Bearing(position,relay.Site.@base);double distance=Navigation.Distance(position,relay.Site.@base);
+                    baseLabel="Base · "+Navigation.DistanceText(distance);showBase=distance>WalkNavigation.ArrivalRadius;
+                }
+                var destination=vrScenery.ShelterPosition;
+                if(destination!=null)
+                {
+                    shelterAz=(float)Navigation.Bearing(position,destination);double distance=Navigation.Distance(position,destination);
+                    shelterLabel=MissionPresentation.ShelterName(p.shelter.id,p.shelter.label)+" · "+Navigation.DistanceText(distance);
+                    showShelter=distance>WalkNavigation.ArrivalRadius;
+                }
+            }
+            Place(baseMarker,baseAz,-1,baseLabel,Color.white,p.@base.visible && s.baseLink);
+            Place(shelter,shelterAz,4,shelterLabel,tone,true);
+            baseMarker.root.gameObject.SetActive(showBase);shelter.root.gameObject.SetActive(showShelter);
             shelter.root.localScale *= s.Emergency ? 1+.06f*Mathf.Sin(Time.unscaledTime*4) : 1;
             for(int i=0;i<4;i++) Place(cardinal[i],i*90,-5,Cardinals[i],Color.white,true,true);
         }

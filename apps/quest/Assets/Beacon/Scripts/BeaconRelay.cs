@@ -25,19 +25,31 @@ namespace Beacon
         public bool Synthetic { get; private set; }
         public string Error { get; private set; } = "Connecting to laptop";
         public event Action Changed;
+        public event Action SimulationReset;
+        public bool SimulationCommandPending => commandReply!=null;
+        TaskCompletionSource<bool> commandReply;
+        string commandId,commandType;
+        float commandDeadline;
         readonly ConcurrentQueue<Action> mainThread = new ConcurrentQueue<Action>();
         readonly SemaphoreSlim sendLock = new SemaphoreSlim(1, 1);
         CancellationTokenSource lifetime;
         ClientWebSocket socket;
         void Start() { lifetime = new CancellationTokenSource(); _ = Run(lifetime.Token); }
-        void Update() { while (mainThread.TryDequeue(out var action)) action(); }
-        void OnDestroy() { lifetime?.Cancel(); socket?.Abort(); }
+        void Update()
+        {
+            while (mainThread.TryDequeue(out var action)) action();
+            if(SimulationCommandPending && Time.unscaledTime>=commandDeadline) CompleteCommand(false);
+        }
+        void OnDestroy() { CompleteCommand(false); lifetime?.Cancel(); socket?.Abort(); }
         void Publish(Action update) => mainThread.Enqueue(() => { update(); Changed?.Invoke(); });
 #if UNITY_EDITOR
+        public Func<JObject,Task<bool>> PreviewTransport;
         public void Preview(MissionState state, RouteDocument document, MissionSite site)
         {
             State=state; Document=document; Site=site; Selection=Contracts.Select(state,document); Connected=true; Changed?.Invoke();
         }
+        public void PreviewOffline() { Connected=false; Selection=null; CompleteCommand(false); Changed?.Invoke(); }
+        public void PreviewCommandReply(string id) => ConfirmCommand(id);
 #endif
         async Task Run(CancellationToken cancel)
         {
@@ -93,6 +105,7 @@ namespace Beacon
                                 Publish(() => {
                                     bool changed = !Connected || State?.route != next.route || State?.waypointIndex != next.waypointIndex || State?.mode != next.mode;
                                     State = next; Selection = selection; Document = route; Site = site; Synthetic = session.synthetic; Connected = true; Error = "";
+                                    ConfirmCommand((string)envelope["replyTo"]);
 #if DEVELOPMENT_BUILD || UNITY_EDITOR
                                     if (changed) Debug.Log($"BEACON_STATE: {next.route} {next.waypointIndex} {next.mode} {selection.Point.id}");
 #endif
@@ -102,7 +115,7 @@ namespace Beacon
                     }
                 }
                 catch (OperationCanceledException) when (cancel.IsCancellationRequested) { break; }
-                catch (Exception error) { var detail = error.Message; Publish(() => { Connected = false; Selection = null; Error = detail; Debug.LogWarning("BEACON_OFFLINE: " + detail); }); }
+                catch (Exception error) { var detail = error.Message; Publish(() => { Connected = false; Selection = null; CompleteCommand(false); Error = detail; Debug.LogWarning("BEACON_OFFLINE: " + detail); }); }
                 finally { socket = null; }
                 try { await Task.Delay(delay, cancel); } catch (OperationCanceledException) { break; }
                 delay = Math.Min(delay * 2, 8000);
@@ -114,12 +127,65 @@ namespace Beacon
             try { await ws.SendAsync(new ArraySegment<byte>(Encoding.UTF8.GetBytes(text)), WebSocketMessageType.Text, true, cancel); }
             finally { sendLock.Release(); }
         }
-        public async void RequestShelter()
+        JObject Expected() => new JObject { ["route"]=State.route,["waypointIndex"]=State.waypointIndex,["rerouteFrom"]=State.rerouteFrom.HasValue ? (JToken)State.rerouteFrom.Value:JValue.CreateNull() };
+        public Task<bool> RequestShelter(int? mainIndex=null)
         {
+            var message=new JObject {["type"]="requestReroute"};
+            if(mainIndex.HasValue && State!=null) {message["atIndex"]=mainIndex.Value;message["expected"]=Expected();}
+            return SendEvent(message);
+        }
+        public Task<bool> AdvanceWaypoint()
+        {
+            if(State==null || SimulationCommandPending) return Task.FromResult(false);
+            return SendEvent(new JObject {["type"]="next",["expected"]=Expected()});
+        }
+        public Task<bool> TriggerStorm(int? mainIndex=null) => SimulationCommand("storm",mainIndex);
+        public Task<bool> StopStorm() => SimulationCommand("stopStorm",null);
+        public Task<bool> ResetSimulation() => SimulationCommand("reset",null);
+        async Task<bool> SimulationCommand(string type,int? mainIndex)
+        {
+            if(!Connected || State==null) return false;
+            if(SimulationCommandPending)
+            {
+                if(type!="reset") return false;
+                CompleteCommand(false); // A supersedes an in-flight B request.
+            }
+            commandId=Guid.NewGuid().ToString("N");commandType=type;
+            commandReply=new TaskCompletionSource<bool>();commandDeadline=Time.unscaledTime+5;
+            var reply=commandReply;
+            var message=new JObject {["type"]=type=="stopStorm" ? "storm":type,["requestId"]=commandId};
+            if(type=="storm" || type=="stopStorm")
+            {
+                message["on"]=type=="storm";message["expected"]=Expected();
+                if(mainIndex.HasValue && State.route=="main") message["atIndex"]=mainIndex.Value;
+            }
+            bool sent=await SendEvent(message);
+            if(!sent && commandReply==reply) CompleteCommand(false);
+            return await reply.Task;
+        }
+        void ConfirmCommand(string id)
+        {
+            if(commandReply==null || id!=commandId) return;
+            bool confirmed=commandType=="storm" ? State?.storm==true : commandType=="stopStorm" ? State?.storm==false : State?.route=="main" && State.waypointIndex==0 && !State.storm && !State.panic && !State.rerouteRequested;
+            CompleteCommand(confirmed);
+        }
+        void CompleteCommand(bool success)
+        {
+            var reply=commandReply;bool reset=commandType=="reset";
+            commandReply=null;commandId=null;commandType=null;
+            if(reply==null) return;
+            if(success && reset) SimulationReset?.Invoke();
+            reply.TrySetResult(success);
+        }
+        async Task<bool> SendEvent(JObject message)
+        {
+#if UNITY_EDITOR
+            if(PreviewTransport!=null) return await PreviewTransport(message);
+#endif
             var ws = socket;
-            if (!Connected || ws?.State != WebSocketState.Open) return;
-            try { await SendText(ws, "{\"type\":\"requestReroute\"}", lifetime.Token); }
-            catch (Exception error) { Debug.LogWarning("Shelter request failed: " + error.Message); }
+            if (!Connected || ws?.State != WebSocketState.Open) return false;
+            try { await SendText(ws,message.ToString(Formatting.None),lifetime.Token); return true; }
+            catch (Exception error) { Debug.LogWarning("Mission request failed: " + error.Message); return false; }
         }
     }
 }

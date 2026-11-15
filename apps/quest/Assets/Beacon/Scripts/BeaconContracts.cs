@@ -13,7 +13,7 @@ namespace Beacon
     [Serializable] public sealed class BaseDecision { public double? minutes; public bool? excludedByLimit; }
     [Serializable] public sealed class RerouteDecision { public DecisionOption chosen; public BaseDecision @base; }
     [Serializable] public sealed class SkyMetadata { public string timeUT, source; }
-    [Serializable] public sealed class MissionSite { public SkyMetadata sky; }
+    [Serializable] public sealed class MissionSite { public string site; public SkyMetadata sky; public SitePosition @base; }
     [Serializable] public sealed class Waypoint
     {
         public string id, label;

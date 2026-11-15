@@ -1,6 +1,6 @@
 # Murray Buttes terrain handoff for Ronn
 
-Prepared from the exact crop and source URLs supplied by the team. These are real terrain/image assets. The AR mission route remains synthetic until Ronan's engine exports real waypoints.
+Prepared from the exact crop and source URLs supplied by the team. These are real terrain/image assets. The active mission now uses Ronan's exported waypoints in the same crop frame.
 
 | File | Use |
 | --- | --- |
@@ -9,6 +9,10 @@ Prepared from the exact crop and source URLs supplied by the team. These are rea
 | `buttes_4096.jpg` | Hub colour texture, whole 3 km square, JPEG quality 90 |
 | `buttes_2048.jpg` | Smaller colour texture for later headset use, same entire square |
 | `terrain.json` | Exact bounds, CRS, source URLs, units, height reference and pixel coordinates |
+| `detail_height_601.bin` | Native VR: 601-square real 1 m Float32 height samples, 600 m vertex span |
+| `detail_2404.jpg` | Matching native detail image footprint, 601 m square sampled at 0.25 m/pixel |
+| `detail_sun_301.bin` | Static visual Sun visibility, 301-square Float32 at 2 m spacing; not mission telemetry |
+| `detail_native.json` | Detail origin, source URLs, frame, scenario Sun and main route corridor |
 
 ## Load in Three.js
 
@@ -33,6 +37,6 @@ GDAL average resampling gives pixel-centre height samples: first sample is x=2 m
 
 The script uses GDAL via Rasterio because no standalone `gdal_translate` executable is installed on this laptop. It checks that the DEM source window matches the supplied projected bounds. The image and DEM have different datum names but identical numerical projection parameters and Mars radius; those parameters are verified before the image is cropped. The raw height binary is written explicitly because the bundled ENVI writer rejected the planetary CRS. All georeferencing is preserved in `terrain.json`.
 
-Original 1 m crop: `data/raw/near.tif`, ignored by Git. The optional central 1 km VR grid is deferred until AR passes the headset test. A central-only height grid would need a matching central-only texture or adjusted UVs; the full-square JPEG must not be stretched onto it.
+Original 1 m crop: `data/raw/near.tif`, ignored by Git. `python tools/prepare-mission-vr.py` creates the native detail tile around all exported Gale routes and its matching colour image, then copies them into Unity. Its southwest vertex is (1200.5, 1140.5); all 268 main/diversion points fit. The 600 m vertex span and 601 m image footprint reflect pixel centres versus edges. See `apps/quest/Assets/Beacon/Art/MissionTerrain/README.md` for detail levels, generated appearance and limits. Do not stretch the full-square image over the smaller tile.
 
-Sources: [USGS DEM](https://planetarymaps.usgs.gov/mosaic/Mars/MSL/MSL_Gale_DEM_Mosaic_1m_v3.tif), [USGS/PDS colour mosaic](https://asc-pds-services.s3.us-west-2.amazonaws.com/mosaic/Mars/MSL/MSL_Gale_HiRISE-LRGB_78quads_sharp_cog.tif). Credit: NASA/JPL/University of Arizona/USGS. Parking now follows Ronan's sol 1455 record in `data/site.json`. Sun/Earth directions and the mission date remain pending there; these visual assets do not establish the paper's 19%/10% validation.
+Sources: [USGS DEM](https://planetarymaps.usgs.gov/mosaic/Mars/MSL/MSL_Gale_DEM_Mosaic_1m_v3.tif), [USGS/PDS colour mosaic](https://asc-pds-services.s3.us-west-2.amazonaws.com/mosaic/Mars/MSL/MSL_Gale_HiRISE-LRGB_78quads_sharp_cog.tif). Credit: NASA/JPL/University of Arizona/USGS. Scenario metadata follows `data/site.json`; these visual assets do not establish the paper's 19%/10% validation.

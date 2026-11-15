@@ -9,6 +9,16 @@ namespace Beacon
         // A shelter's optional label ("Butte M12 shelter") when the engine gives one, else its id (s-<x>-<y>, from its position).
         public static string ShelterName(string id, string label = null) => !string.IsNullOrEmpty(label) ? label : string.IsNullOrEmpty(id) ? "Shelter" : id == "base" ? "Base" : "Shelter " + id.ToUpperInvariant();
         public static string Warning(MissionState s) => !s.baseLink ? "BASE LINK LOST" : "SHELTER IS DISTANT";
+        public static string Alert(MissionState s, bool connected, bool sheltered)
+        {
+            if(!connected) return s==null ? "CONNECTING TO MISSION" : s.Emergency ? "LAST ALERT · DATA OFFLINE" : "DATA OFFLINE · CHECK USB";
+            if(s?.Emergency==true) return sheltered ? "IN SHELTER · HOLD POSITION" : s.panic ? "EMERGENCY · SEEK SHELTER" : "SOLAR STORM, TAKE COVER";
+            return s?.mode=="warning" ? Warning(s) : "";
+        }
+        public static bool AlertBorder(MissionState s, bool connected) => s?.Emergency==true || (connected && s?.mode=="warning");
+        public static bool StormAtmosphere(MissionState s, bool connected) => connected && s?.storm==true;
+        public static bool ShowBaseMarker(Waypoint p) => p?.@base!=null && p.@base.distance>1;
+        public static bool ShowShelterMarker(Waypoint p) => p?.shelter!=null && !p.isShelter && p.shelter.distance>1;
         public static string Decision(MissionState state, RouteDocument doc)
         {
             if (state?.route != "reroute" || !state.rerouteFrom.HasValue || doc?.rerouteInfo == null ||

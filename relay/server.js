@@ -166,6 +166,17 @@ function switchToReroute() {
 
 // Applies one event to sim. Returns false if the event is unknown or invalid.
 function applyEvent(ev) {
+  if (ev.requestId !== undefined && (typeof ev.requestId !== 'string' || ev.requestId.length === 0 || ev.requestId.length > 80)) return false;
+  // Native walking acknowledges a specific sample. A delayed/replayed packet
+  // must not advance a route selected meanwhile by the hub or an emergency.
+  if (ev.expected !== undefined) {
+    const expected = ev.expected;
+    // An emergency press can overlap a walking acknowledgement on the same
+    // route. Storm start/stop must still work, without rewinding another route.
+    const changingStorm = ev.type === 'storm' && typeof ev.on === 'boolean';
+    if (!expected || expected.route !== sim.route || (!changingStorm && expected.waypointIndex !== sim.waypointIndex) ||
+        expected.rerouteFrom !== (sim.route === 'reroute' ? sim.rerouteFrom : null)) return false;
+  }
   switch (ev.type) {
     case 'next': sim.waypointIndex = clampIndex(sim.waypointIndex + 1); return true;
     case 'back': sim.waypointIndex = clampIndex(sim.waypointIndex - 1); return true;
@@ -175,6 +186,11 @@ function applyEvent(ev) {
       return true;
     case 'storm':
       if (typeof ev.on !== 'boolean') return false;
+      if (ev.atIndex !== undefined) {
+        if (!ev.on || sim.route !== 'main' || !Number.isInteger(ev.atIndex) || ev.atIndex < 0 || ev.atIndex >= waypoints.main.length ||
+            !waypoints.reroutes?.[String(ev.atIndex)]?.length) return false;
+        sim.waypointIndex = ev.atIndex;
+      }
       if (ev.on) { sim.storm = true; switchToReroute(); return true; }
       sim.storm = false;
       if (sim.route === 'reroute' && !sim.panic && !sim.rerouteRequested) {
@@ -183,7 +199,15 @@ function applyEvent(ev) {
       }
       return true;
     case 'panic': sim.panic = true; switchToReroute(); return true;
-    case 'requestReroute': sim.rerouteRequested = true; switchToReroute(); return true;
+    case 'requestReroute':
+      // Optional VR position match; the engine still selects the entire shelter
+      // route. Clients cannot submit replacement paths or shelter decisions.
+      if (ev.atIndex !== undefined) {
+        if (sim.route !== 'main' || !Number.isInteger(ev.atIndex) || ev.atIndex < 0 || ev.atIndex >= waypoints.main.length ||
+            !waypoints.reroutes?.[String(ev.atIndex)]?.length) return false;
+        sim.waypointIndex = ev.atIndex;
+      }
+      sim.rerouteRequested = true; switchToReroute(); return true;
     case 'reset':
       Object.assign(sim, { route: 'main', waypointIndex: 0, storm: false, panic: false, rerouteRequested: false, rerouteFrom: 0 });
       return true;
@@ -301,12 +325,12 @@ let state = buildState();
 
 const clients = new Set(); // { ws, role, transport, address, since }
 
-function sendState(client) {
-  if (client.ws.readyState === WebSocket.OPEN) client.ws.send(JSON.stringify({ type: 'state', state }));
+function sendState(client, replyTo) {
+  if (client.ws.readyState === WebSocket.OPEN) client.ws.send(JSON.stringify({ type: 'state', state, ...(replyTo && { replyTo }) }));
 }
 
-function broadcast() {
-  for (const c of clients) sendState(c);
+function broadcast(requester, requestId) {
+  for (const c of clients) sendState(c, c === requester ? requestId : undefined);
 }
 
 function who(c) {
@@ -351,7 +375,8 @@ function onConnection(ws, req, transport) {
     state = buildState();
     const changed = JSON.stringify(state) !== before;
     log(`  event     ${who(client)}: ${JSON.stringify(ev)} -> ${state.route}[${state.waypointIndex}] ${state.mode}${changed ? '' : ' (no change)'}`);
-    if (changed) broadcast();
+    if (changed) broadcast(client, ev.requestId);
+    else if (ev.requestId) sendState(client, ev.requestId);
   });
 }
 
@@ -402,7 +427,8 @@ function onRequest(req, res) {
   if (urlPath === '/debug') return serveFile(res, path.join(__dirname, 'debug.html'));
   // Serve the exact in-memory route used by this relay, including WAYPOINTS overrides.
   if (urlPath === '/session.json') {
-    return send(res, 200, 'application/json', JSON.stringify({ version: 1, waypoints: '/mission/waypoints.json', synthetic, files: '/mission/', planId: routePlanId, plannerBounds: planBounds() }));
+    return send(res, 200, 'application/json', JSON.stringify({ version: 1, waypoints: '/mission/waypoints.json', synthetic, files: '/mission/', planId: routePlanId, plannerBounds: planBounds(),
+      capabilities: { commandReplies: true, stormStop: true, plan: true } }));
   }
   if (urlPath === '/mission/waypoints.json') return send(res, 200, 'application/json', JSON.stringify(waypoints));
   // The route's other files (briefing, stops, minutesToShelter layer) follow the latest plan; see missionFile.

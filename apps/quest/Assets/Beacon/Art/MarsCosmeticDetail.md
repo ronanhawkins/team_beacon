@@ -1,0 +1,9 @@
+# Illustrative Mars surface detail
+
+`MarsCosmeticDetail.png` was generated with the built-in image generation tool on 14 November 2026 for the requested cosmetic repairs. It is synthetic material, not NASA imagery, inferred elevation or recovered scientific data. The original 65 Access Mars photographs and all mesh coordinates remain unchanged. The native shader applies warm fill to low-chroma grey patches and restrained fine detail to nearby surfaces. It fades the detail with distance and projects in the original model frame to avoid sliding across the terrain.
+
+Generated asset: 1254 × 1254 PNG, imported at 1024 pixels with repeating edges, mipmaps, anisotropic filtering and ASTC 6×6 compression. Source linear RGB mean: `(0.3593, 0.1924, 0.0961)`. No new triangles are added. `east-original.png` and `east-cosmetic.png` in the ignored preview folder compare the same camera with the cosmetic layer disabled/enabled.
+
+Generation prompt (built-in tool, not API/CLI fallback):
+
+> Use case: photorealistic-natural. Asset type: a seamless square game texture, albedo only, for cosmetic surface detail in a Mars VR demo. Generate a flat orthographic top-down view of dusty Martian sandstone ground covering about 2 metres square. Muted warm taupe, ochre and dusty brown (not vivid orange or red), fine windblown sand, scattered tiny angular stone chips and subtle weathered stone grain. Even flat diffuse illumination across the whole image, no directional shadows, no vignette, no perspective, no horizon, no large boulders, no landmarks, no objects, no text, no watermarks. High-frequency fine natural surface detail with restrained contrast and no recognizable repeated motif. All four edges must tile seamlessly. Entire frame is ground. This is illustrative synthetic surface material, not scientific imagery or elevation data. 1024 by 1024 square.

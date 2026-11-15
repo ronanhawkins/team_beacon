@@ -1,0 +1,48 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!28 &2800000
+Texture2D:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_Name: NASA mosaic captured bounds
+  m_ImageContentsHash:
+    serializedVersion: 2
+    Hash: 00000000000000000000000000000000
+  m_IsAlphaChannelOptional: 0
+  serializedVersion: 4
+  m_Width: 256
+  m_Height: 1
+  m_CompleteImageSize: 1024
+  m_MipsStripped: 0
+  m_TextureFormat: 4
+  m_MipCount: 1
+  m_IsReadable: 1
+  m_IsPreProcessed: 0
+  m_IgnoreMipmapLimit: 1
+  m_MipmapLimitGroupName: 
+  m_StreamingMipmaps: 0
+  m_StreamingMipmapsPriority: 0
+  m_VTOnly: 0
+  m_AlphaIsTransparency: 0
+  m_ImageCount: 1
+  m_TextureDimension: 2
+  m_TextureSettings:
+    serializedVersion: 2
+    m_FilterMode: 1
+    m_Aniso: 1
+    m_MipBias: 0
+    m_WrapU: 0
+    m_WrapV: 0
+    m_WrapW: 0
+  m_LightmapFormat: 0
+  m_ColorSpace: 0
+  m_PlatformBlob: 
+  image data: 1024
+  _typelessdata: 97d700ff98d700ff98d700ff99d800ff99d800ff99d900ff99d900ff99d900ff99da00ff99da00ff99db00ff91db00ff7fdc00ff80dc00ff80cd00ff80c200ff80c200ff80c200ff80c200ff80c200ff71c200ff66c200ff66c300ff67c400ff68c400ff68c500ff69c500ff69c600ff6ac600ff6ac700ff6bc800ff6cc800ff6cc900ff6dc900ff6dca00ff6eca00ff6fcb00ff6fcc00ff70cc00ff70cd00ff71cd00ff71ce00ff72cf00ff73ee00ff73ee00ff74ef00ff74ef00ff75f000ff76f100ff76f100ff77f200ff77f200ff78f300ff78f300ff79f400ff7af500ff7af500ff7af500ff7bf600ff7cf600ff7cf700ff7cf700ff7df800ff7df800ff7ef900ff7ef900ff7ffa00ff7ffa00ff7ffa00ff7ffb00ff7ffb00ff7ffc00ff7ffc00ff7ffd00ff7fe100ff2fe100ff2fe100ff30e100ff30e100ff30e100ff30e100ff30e100ff30e100ff30e200ff30e200ff2fe200ff2fe200ff2fe300ff2fe300ff2ee300ff2de300ff2ce300ff2ce300ff2de400ff2de400ff2de400ff2de400ff2de400ff2de400ff2de400ff2de400ff2de400ff2de400ff2de400ff2de400ff2de300ff2ce300ff2ce300ff2ce300ff2ce300ff2ce300ff2ce300ff2ce200ff2ce200ff2be200ff2be100ff2be100ff2ae100ff2ae100ff2ae000ff2ae000ff2ae000ff2adf00ff29df00ff29df00ff28df00ff28df00ff27df00ff27df00ff26df00ff26df00ff26ea00ff25fa00ff25f900ff25f800ff24f800ff23f800ff23f700ff23f700ff23f600ff22f600ff21f500ff20f500ff20f400ff1ff400ff1ef300ff1ef300ff1df200ff1cf100ff1cf100ff1bf000ff1af000ff1aef00ff19ef00ff19ee00ff19ed00ff18ed00ff17ec00ff16ec00ff16eb00ff15ea00ff14ea00ff14e900ff13e900ff13e800ff12e700ff12e700ff11e600ff11e500ff11e500ff10e400ff0fe400ff0fe300ff0ee300ff0de200ff0de200ff0ce100ff0ce000ff0be000ff0bdf00ff0bdf00ff0ade00ff0ade00ff0add00ff09dd00ff09dc00ff08dc00ff08db00ff07db00ff07da00ff06da00ff06d900ff06d900ff05d800ff05d800ff05d800ff05d700ff04d700ff04d700ff04d600ff04d600ff04d500ff03d500ff03d500ff03d500ff02d400ff02d400ff02d400ff02d300ff01d300ff01d300ff01d300ff01d300ff01d300ff01d200ff01d200ff01d200ff01d200ff1dd200ff1dd200ff1dd200ff1dd200ff1dd200ff1dd200ff1dd200ff1dd200ff1dd200ff1dd200ff1dd200ff1dd200ff1cd200ff1cd200ff1cd200ff1dd200ff1dd200ff1dd200ff1dd200ff1ed300ff92d300ff92d300ff92d300ff92d300ff92d300ff93d300ff93d300ff93d300ff94d400ff94d400ff94d400ff95d400ff95d500ff95d500ff96d500ff96d600ff96d600ff97d600ff
+  m_StreamData:
+    serializedVersion: 2
+    offset: 0
+    size: 0
+    path: 

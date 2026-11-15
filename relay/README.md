@@ -23,7 +23,7 @@ For laptop-only rehearsal, run `npm run demo` from the repo root. `node relay/se
 
 For Quest over Wi-Fi, Windows users can run `Start WiFi Demo.cmd` from the root. `node relay/server.js --wifi` serves HTTPS on 8443 and a loopback HTTP mirror on 5174, both sharing the same state and clients. It requires certificates, omits the ESP port, and checks browser WebSocket origins. `RELAY_HOST` optionally binds HTTPS to one network address. The Windows launcher sets it to the Wi-Fi address. Default `npm start` retains the original HTTPS + ESP setup.
 
-`/session.json` returns `{version:1, waypoints:"/mission/waypoints.json", synthetic:boolean, files:"/mission/", planId, plannerBounds}`. That waypoint endpoint serves the exact in-memory route, so browser clients agree with relay state even with `WAYPOINTS` overrides or newly written disk exports. Restart the relay to adopt a new export.
+`/session.json` returns `{version:1, waypoints:"/mission/waypoints.json", synthetic:boolean, files:"/mission/", planId, plannerBounds, capabilities:{commandReplies, stormStop, plan}}`. That waypoint endpoint serves the exact in-memory route, so browser clients agree with relay state even with `WAYPOINTS` overrides or newly written disk exports. Restart the relay to adopt a new export.
 
 ### Planning
 

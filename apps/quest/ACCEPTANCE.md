@@ -2,37 +2,201 @@
 
 The supplied screenshots are the functional checklist. The user's later native Unity/USB requirement replaces their original browser/HTTPS/Three.js delivery instructions. The current export is the authority for numbers and shelter ids.
 
+**Current target: 0.22 Jezero.** The wearer explicitly switched from Murray Buttes to Jezero. Historical Gale reference values below remain evidence for earlier builds, not the current Jezero mission. The wearer resumed live testing after the earlier deferral.
+
+## Version 0.22 faster walking and sprint
+
+Normal VR movement is **4.5 m/s**, the previous sprint speed. Holding the sprint control now requests **11.25 m/s**, exactly 2.5 times the previous sprint. Both the script defaults and serialized Unity scene are updated. Existing acceleration, turning and collision handling remain unchanged.
+
+**Eight focused checks passed**. Actual physics displacement measured **4.50 m/s normally and 11.25 m/s sprinting** after acceleration. Checks cover the scene values, speed ratio, returning to normal speed on grip release, stopping on stick release, unchanged mission state and a maximum frame step smaller than the waypoint arrival radius. Only this movement check ran; unrelated photo, storm and full-route suites were skipped. The broader VR test's stopping window now allows the higher speed to decelerate, and its route timeout uses the configured speed. Evidence: `.local/unity-speed22-check.log`.
+
+The Android build succeeded and **0.22.0 / code 22** installed over USB. The Quest was asleep, so the launcher left it unopened and no new wearer or laptop-mirror check is claimed.
+
+## Version 0.21 bottom-centre arrival card
+
+The arrival card moves from the upper-right area to **bottom centre, 24 degrees below forward gaze**, in both AR and VR. It now expires five seconds after arrival, and staying in the zone does not restart it. Photo selection, arrival radius and reset behaviour remain unchanged.
+
+**10 focused checks passed**, including visibility immediately before five seconds, hiding at exactly five seconds, no replay while remaining in the zone, and centred placement. AR and VR editor previews were visually inspected in `.local/arrival21-previews/`. Existing base, storm, movement and route suites were skipped. Build/preview logs use `.local/unity-arrival21-*`.
+
+The Android build succeeded and **0.21.0 / code 21** installed over USB. The Quest was asleep at installation, so the app was not opened and no live mirror or wearer check is claimed for this revision.
+
+## Version 0.20 base habitat and real arrival photographs
+
+The VR base is anchored to the exported Jezero base at **(1500, 1350)** in mission metres. A pressure module, solar racks, antenna and supply cases use **660 triangles in one coloured mesh**, plus the sign and simple collision boxes. The 3 m central arrival/reset apron stays clear. Everything is parented to the measured terrain and disappears in AR. This is illustrative habitation, not a real Mars structure or new shelter data.
+
+A compact photo appears above the right HUD column for 12 seconds at named arrivals. Three Forks uses **PIA25681**; the delta uses a cropped, enhanced-colour **PIA24921** panorama. These show the real areas, not a claimed exact camera pose. Base/end arrivals without a rover photo use an 80 m HiRISE crop and correctly positioned marker. All images are bundled offline, preserve their aspect ratio and include credits. Dense route samples do not trigger cards. VR requires arrival within 2.5 m; AR follows the selected presenter stop. Cards yield to emergencies, hide offline, do not repeat each frame, and can reappear after reset.
+
+**40 focused base/photo checks passed**, and five editor previews were rendered and visually inspected. Checks cover registration after calibration, the clear apron, AR hiding, the shader, packaged photos, arrival before/after relay acknowledgement, expiry, no repeated popups, remote-stop suppression, panorama selection, offline/emergency hiding, AR arrival, satellite fallback, reset and wrong-site rejection. The first preview caught Unity importing the new image assets as cubemaps; explicit 2D import with preserved aspect ratio fixed that before packaging. Existing storm, sprint and route suites were not rerun, as requested.
+
+Local preview evidence: `.local/arrival20-previews/`; focused log: `.local/unity-arrival20-preview.log`. No private-room recording or headset screenshot was made.
+
+The Android build succeeded and the copied APK matches its SHA-256. The Quest independently reports **0.20.0 / code 20**, installed at **23:37:14**. Live startup logs confirm the base at `(1500, 1350)` and the packaged HiRISE arrival card. The wearer entered VR and walked/sprinted; two sampled steady windows reported **72.0 fps / p95 13.9 ms**. USB mission forwarding is active. These are startup observations, not a repeated end-to-end route test. Local device evidence: `.local/quest20-live-check.log`.
+
+## Version 0.19 storm alarm and hold-to-stop
+
+A live solar-storm onset plays a finite five-second alarm with ten alternating-tone beeps and short gaps. The clip does not loop. Routine updates and reconnecting to the same active storm do not restart it; a new storm does, including when a separate panic already exists. Stopping the storm or resetting silences it immediately. The existing quiet short panic chime remains separate.
+
+Press B to start. Once a storm is active, release and hold B for one second to stop it. The hold is armed only when the storm existed at button-down, so holding the original start press cannot accidentally cancel it. Short holds and a stalled frame do not stop the storm; a completed hold fires once and cannot restart it while kept down. A retains reset priority. The stop waits for a correlated relay reply, clears the storm effect, and preserves VR position. The relay resumes the main mission at the diversion origin unless another emergency/request retains the diversion. Storm-stop commands tolerate a concurrent walking acknowledgement on that same route.
+
+The reported offline state was not present during diagnosis: USB forwarding and the native relay connection were active, and device logs showed live waypoint progress and 72 fps samples. Installation refreshes the USB connection and updates the relay's storm-stop capability. The preceding 0.18 confirmation does not establish alarm audibility.
+
+**21 relay/integration tests** passed, including storm-stop replies, same-route walking races, resumption at the diversion origin, preservation of a separate panic, idempotent stops and stale-route rejection. Native HUD/input checks passed for the exact five-second non-looping clip, ten audible pulse windows and silent gaps, no alarm replay on repeated states/reconnection, fresh storm alarms and panic-to-storm onset. They also cover short/stalled holds, one stop per complete hold, no accidental cancellation from the original start press, no restart while held, no stop teleport, A reset and command failure handling. Hold-hint and storm-ended editor previews were visually inspected; launcher parsing passed.
+
+The Android build succeeded, the copied APK matches the build output, and the embedded notice identifies 0.19. The device independently reports **0.19.0 / code 19**, updated at **23:22:49**. USB forwarding and both relay capabilities were verified. Asked about the five-second beeps and B-hold stop, the wearer replied **“Both work”**. The headset was asleep during the final diagnostics, so the launcher and mirror correctly left it unopened; no fresh device alarm/input log or new frame-rate measurement was captured for 0.19. No new room recording or screenshot was made.
+
+## Version 0.18 storm/reset controls and completed beacons
+
+Right B now starts the actual solar storm and shelter diversion on a single press, including when already at base. It replaces the one-second shelter-only hold. Right A resets the authoritative mission and, after a matching acknowledgement, returns VR to the start with movement cleared. A no longer toggles atmospheric effects. AR/VR mode is preserved. Held buttons do not repeat; A takes precedence over simultaneous presses and can supersede a pending B. Commands pause route acknowledgements, time out after five seconds, and report offline/send failures without false success. The relay returns optional correlated replies even for an already-reset state. A storm press tolerates a concurrent walking step on the same route without permitting stale route changes.
+
+The wearer clarified that the backward arrow happened **after reaching the beacon**. Completed final destinations now stay completed when the wearer walks away: neither compass arrow nor world beacon reappears. Completion is latched on physical arrival, before the final route acknowledgement; a new one-point diversion to an unvisited base shelter still displays guidance. Reset, a new route or rewinding progress clears the completion state. Shelter coverage remains based on actual position, with “Outside shelter” and distance when appropriate. This supersedes the old automatic return guidance from 0.16/0.17. The previous live relay log also confirms the wearer requested and completed the far-point shelter route through reroute 43 index 8.
+
+**1,401 mission/navigation checks**, **8,827 VR checks** and **21 relay/integration tests** passed. The button-handler checks cover immediate B at base and while walking, no repeated held input, A precedence, correlated replies, a confirmed return to base without changing AR/VR mode, no storm teleport, an old B reply during reset, offline/send failure and timeout. Rendered guidance is verified to remain hidden after walking away from completed main and shelter destinations while physical cover status changes. The launcher detects older relays through `capabilities.commandReplies` and restarts only the existing local mission service; PowerShell parsing passed.
+
+The initial Android packaging attempt ran out of disk space. About 2 GB of redundant image-download fragments and generated native debug output were removed; the assembled original imagery and source data remain intact. The final build includes a small feedback correction so a storm at base says “Stay covered” instead of contradicting the “In shelter” status.
+
+The final APK built successfully and matches the copied output; its embedded terrain notice identifies 0.18. The device independently confirms **0.18.0 / code 18**, updated at **23:08:57**. The launcher upgraded the local relay, confirmed `commandReplies: true`, and verified the native process and live mission connection. Live logs record continuous VR walking/sprint and progression from base through main 18, with sampled steady windows at **72.0 fps / p95 13.9 ms** (Unity app timings). The single-eye laptop mirror is open and responsive with an advancing playback clock. Local diagnostics: `.local/quest18-live-check.log`, `.local/quest18-mirror.log` and `.local/quest-client-view-error.log`; no new room recording or headset screenshot was made.
+
+**Physical B and A were subsequently exercised successfully.** The right-B log was followed by the real `storm` command from main 18, a matching storm-state reply and “Take cover” feedback. The wearer progressed through diversion 18 to index 12. Further B presses retained that route and its progress, with acknowledgements even when unchanged. Right A then produced `reset → main[0] nominal`; the device logged `BEACON_VR_ORIGIN: m00` and `RESET | SIMULATION` immediately after the correlated reply. This verifies actual controller input, storm activation, idempotent B and the VR reset/return path, in addition to the automated checks.
+
+The wearer then confirmed **“it all works”** and requested the GitHub push.
+
+## Version 0.17 waypoint guidance and open stat layout
+
+The six stat backings are removed from VR as well as AR. Both columns move from ±24° to ±26°, with the science card and brief feedback aligned to them. Outlined text and the shelter-hold progress bar remain.
+
+The wearer confirmed that “waypoint” means the next named mission stop. Compass distance and the VR beacon now share that destination, using the endpoint after the last stop and the chosen shelter on a diversion. The blue arrow continues to steer along the next unpassed route point. A missed non-stop sample can advance when the wearer is closer to the destination and has crossed its incoming plane or moved onto its outgoing leg. A 0.5 m margin avoids threshold jitter. A closer destination alone does not skip an unpassed hairpin, and science stops/shelters cannot be marked arrived merely by passing them. The arrow immediately looks ahead while relay acknowledgements remain sequential and guarded against stale/duplicate events; no new route is computed.
+
+Checks exercise before-turn behaviour, overshoots, cut corners, multiple passed points, hairpins, coordinate rotation/translation, destination selection, actual science/shelter arrival and repeated coordinates. The duplicate-coordinate test caught a mismatch between the UI's distinct-position `Next` lookup and the relay's single-index `next` event; progression now checks the exact next index.
+
+**1,339 mission/navigation checks**, **8,821 VR checks**, existing HUD/shelter-input checks and **21 relay/integration tests** passed. The VR checks include the rendered compass arrow's route bearing, separate from destination distance. AR and VR previews were inspected: the stat backings are absent, both columns sit slightly farther out, and at Jezero main 19 the compass and beacon both show about **195 m** to the Delta-front sample site, rather than about 15 m to the next path sample. Live headset verification remains separate from these automated checks.
+
+The final Android build succeeded, the copied APK matches the build output, and its bundled terrain notice identifies 0.17. The Quest package manager independently confirms **0.17.0 / code 17**, updated at **22:45:48**. The launcher confirmed the native process and live Jezero relay connection. Live logs then recorded AR → VR, walking and sprint up to **4.50 m/s**, and mission progress **41 → 42 → 43**. Sampled steady windows report **72.0 fps / p95 13.9 ms**, with one **67.5 fps** mode-transition window; these are app timings, not compositor measurements. No matching startup exception was found. The unchanged left-eye mirror is open and responsive with an advancing playback clock. Physical missed-turn behaviour and final wearer readability remain awaiting confirmation. Diagnostics are local only: `.local/quest17-live-check.log`, `.local/quest17-mirror.log` and `.local/quest-client-view-error.log`; no recording or headset screenshot was made.
+
+## Version 0.16 distant waypoint beacon
+
+The wearer requested a beacon at the next waypoint. VR now renders a soft mint light column and ground ring at the actual measured target, with an outlined distance label. Shelter diversions use amber, and storm routes use orange. The beacon follows the existing target selection without choosing or advancing a route itself. It hides inside the arrival radius, at a completed destination, while disconnected and in AR. Leaving a completed destination can show its return marker. The beam/ring add 126 triangles, plus the label UI; no dynamic light or particle system is added.
+
+**8,817 VR checks** passed, including the new world-anchor, movement/turn stability, main/reroute selection, colour, offline/reconnect, final arrival and AR checks. Existing HUD/shelter-input checks also passed. Initial preview inspection prompted a larger distance label; near, distant and emergency previews cover the final appearance. The distant editor preview now updates the sky dome's camera position just as runtime does.
+
+The final 15 m and 115 m previews were visually inspected with the enlarged label. The Android build succeeded and the Quest package manager confirms **0.16.0 / code 16** installed over USB. The relay retains main waypoint 41, with a valid next waypoint. The headset is asleep, so the app and mirror have not been reopened; on-headset beacon readability and performance remain for the next live check. Prior mirror confirmation remains applicable to the unchanged mirror helper.
+
+## Version 0.15 clear lower view
+
+The wearer requested removal of the bottom text. The bottom-centre source-credit line and shelter-choice explanation are removed in AR and VR. This supersedes the earlier screenshot requirement for a headset credit and decision line. The bundled attribution notice and source documents remain available; the side shelter stat continues to show current minutes and request feedback.
+
+Existing HUD visual and shelter-input checks passed; the storm preview was visually inspected with the lower text absent. The Android build succeeded and the device independently reports **0.15.0 / code 15**. The launcher confirmed Beacon running with its live mission connection, and the bundled notice was verified. The headset then went to sleep before the mirror restart, so the mirror helper correctly refused to start a blank stream. The wearer-confirmed single-eye setup is unchanged. Terrain and planner code were not changed by this update.
+
+## Version 0.14 AR stats and laptop playback
+
+The six AR stat backgrounds are removed, retaining outlined text and the shelter hold bar. VR keeps its translucent stat panels. The existing HUD visual and shelter-input checks passed, and the generated AR preview was inspected. Terrain and route logic are unchanged from 0.13, whose broader checks remain applicable.
+
+During the live 0.13 startup, Beacon opened and connected to Jezero over USB. Sampled app-frame windows reported 72.0 fps and p95 13.9 ms in the initial AR state; this is not a full VR performance run. The laptop's raw H.264 playback initially had a `nan` clock and no displayed frames. Supplying timestamps, retaining the first keyframe and using the video clock restored continuous decoding. Starting FFplay visibly produced the **Beacon Quest Demo** window. Crop/orientation and physical B/sprint checks still require wearer confirmation. No new room recording or headset screenshot was made.
+
+The device package manager confirms **0.14.0 / code 14** is installed; the APK's updated notice was verified. Reopening was blocked by a Quest system dialog (`SystemUXController: Launch is blocked ... a Reprojected OS dialog is currently showing`), then the headset slept. The launcher now submits its request without the unbounded Android `-W` wait and retains its bounded process/relay verification, with an explicit prompt-clearing instruction on failure. No success is claimed from a launch request alone. Earlier 0.13 relay logs recorded physical VR arrival events through main point 27; these establish route progression but not final shelter arrival.
+
+After the prompt cleared, the revised launcher confirmed the **0.14 native process and live Jezero connection**. Device logs then showed AR-to-VR switching, grounded continuous movement, sprint up to **4.50 m/s** and guarded route progression from main 27 through 31. Steady sampled windows reported **72.0 fps / p95 13.9 ms**; one mode-switch window reported **67.3 fps**. These are Unity app timings. The restarted single-eye player is responsive with the expected window title and an advancing playback clock. Wearer confirmation of the image framing, AR text readability and physical shelter request remains pending. Local diagnostics: `.local/quest14-live-check.log`, `.local/quest14-live-mirror.log` and `.local/quest-client-view-error.log`; no new video recording.
+
+The wearer subsequently confirmed **“Yes—one upright live view”** for the corrected laptop mirror. This establishes the single-eye picture and orientation; the AR readability and shelter-request checks remain separate.
+
+## Version 0.13 Jezero switch
+
+The native AR/VR app now uses Jezero's Three Forks/delta-front export and the matching USGS/NASA terrain. All **428 main/diversion points** match the measured 1 m detail tile within 0.25 m. A reprojected 7 km landscape supports approximately 3.5 km roaming radius; distant geometry is coarser. The maximum visible scene budget is **865,108 triangles**, including ground, seam geometry and decorative stones, with detail levels reducing ordinary drawing. Original orbital coverage is distinct from the illustrative warm tint/generated fine materials. No specific 45-million-triangle downloadable model was verified or claimed as imported.
+
+**1,321 mission checks**, **8,803 VR checks**, the shelter-input checks, mission/VR renders and **21 Node integration tests** passed. The physics checks walk Jezero's full main route and its last-point diversion through to shelter. Additional checks verify ground around the wider landscape, survey bounds, consistent coordinate/elevation frame, AR restoration and fixed Sun. New shelter-input tests retain the improvement from the interrupted 0.12 work. Preview inspection found gaps between terrain levels; deeper seam geometry and two-sided rendering close them. The launcher defaults to the Jezero relay and refuses a mismatched site. Physical controller input, haptics, headset frame rate and the laptop's one-eye picture remain unverified for this version.
+
+Source/provenance: `Assets/Beacon/Art/JezeroTerrain/README.md`. Generated material provenance and original Gale/Access Mars assets remain preserved. No new private-room recording was made.
+
+The final APK is installed over USB as **0.13.0 / code 13**, independently confirmed by the Quest package manager. Its embedded Jezero attribution notice was checked. The laptop relay serves **Three Forks and the delta front, Jezero crater**, and USB forwarding on port 5174 is verified. The Quest reports **Asleep**; the launcher correctly leaves it unopened. Start `Start Native Quest.cmd` once wearing it. Installation and automated checks do not establish physical B input, frame rate or mirror quality.
+
+Current Jezero reference: 44 main points; base has **92.8% open sky**. A storm at main index **43** selects **s-1468-1765**, initially **4.31 minutes**, through nine diversion points. Arrival has **82.1% open sky** and retains the base link. The exported shelter label is empty, so presentation uses its id rather than inventing a name.
+
 | Item | Implementation / evidence |
 | --- | --- |
-| Readable, less peripheral HUD | Compass lowered 27° → 16°; core readings enlarged and moved to a lower strip; open sky/science at ±24° rather than corner dashboards. Wearer fit confirmation remains necessary. |
-| AR and VR fallback | Starts in Quest passthrough. Left X switches to opaque Mars sky plus the solid waypoint skyline and back. |
-| 72-sample skyline, N/E/S/W, smooth transitions | Native dynamic mesh from the exact selected waypoint; smooth sample and heading interpolation. Y hides the ring in AR. |
-| Sun/Earth/base/shelter markers | Supplied azimuths and elevations; visibility and base-link dimming; Earth delay and base distance; shelter minutes. No local sky calculation. |
-| Main readings | Open sky from `openSky`; lower line includes shelter time, base link, sunlight, oxygen and dose. Fractions displayed as percentages. |
+| Readable, less peripheral HUD | Compass at 16°; current stat columns at ±26°, without backing panels in AR or VR, and brief feedback below the left column. Wearer fit confirmation remains necessary for the new arrangement. |
+| AR and VR fallback | Starts in Quest passthrough. Left X switches to planner-aligned Jezero terrain and warm sky, then back to the room. The terrain and walking controller are disabled in AR. |
+| 72-sample skyline, N/E/S/W, smooth transitions | Native dynamic mesh from the exact selected waypoint; smooth sample interpolation and stable calibrated north. 0.10 removes the contour in both modes, retains faint AR shading, and removes the VR fill. No blue baseline or ground fill. Y hides the ring in AR. |
+| Sun/Earth/base/shelter markers | Supplied azimuths/elevations in a fixed frame; visibility and base-link dimming; Earth delay and base distance; shelter minutes. Base/shelter markers hide at arrival. No local sky calculation. |
+| Main readings | Open sky from `openSky`; left column adds oxygen and dose; right column shows shelter, base link and sunlight. Fractions displayed as percentages. |
 | Modes and arrival | Nominal calm, warning amber with reason, storm red border/chime/pulsing shelter, arrival “In shelter” with active storm retained. |
 | Route and decision | Exact `route`, `waypointIndex`, `rerouteFrom`; decision reason from `rerouteInfo`. No locally chosen shelter or independently running countdown. |
-| Science stop and next waypoint | Named science card; one waypoint arrow on the compass, preserving the user's compass-only navigation preference. |
+| Science stop and next waypoint | Named science card and compass arrow. The user's later request adds a terrain-anchored next-waypoint beacon in VR in 0.16. |
 | Offline operation and reconnect | Local relay and cached real data over USB; existing retry loop and explicit reroute origin. Relay reconnect regression tests pass. No headset internet needed. |
-| Sources | Small credit from `data/site.json`: HiRISE/USGS, JPL Horizons and 14 Nov 2026 19:40 UT. |
-| Visual QA | Unity previews for base, Quela, northwest skyline, warning, storm, arrival and VR fallback. Preview caught missing CanvasRenderer on custom UI; fixed and covered by a regression check. |
+| Sources | HiRISE/USGS and the Jezero JPL Horizons scenario at 15 Nov 2026 00:00 UT remain in site metadata and the APK notice. The HUD credit was removed at the wearer's request in 0.15. |
+| Visual QA | Current Unity previews cover Jezero mission states, shelter feedback and AR/VR scenery. Historical Gale previews and findings are documented below. |
 | Laptop/projector | USB mirror previously confirmed by wearer. Physical HDMI projector rehearsal still needs the actual projector. |
-| Full recording and frame rate | Pending final 0.5 headset run. Development build reports measured mean FPS and 95th percentile frame time to its log. |
-| Optional terrain or panorama in VR | Not included in the fallback; real downloaded terrain remains available in `data/out/terrain/`. |
+| Full recording and frame rate | Completed on 0.5: 31 main points, all 13 S03 diversion points, arrival and reset. USB recording 85.54 s; Unity reported mean 72.0 fps, p95 13.9 ms throughout sampled windows, including storm and recording. These measure app-frame pacing. |
+| Navigable 3D scenery in VR | Version 0.13 uses Jezero's real 1 m detail DEM in the planner frame and a wider coarse landscape, up to 865,108 visible triangles with detail levels. Generated materials are cosmetic. Continuous walking acknowledges reached route samples. Previous Access Mars model remains archived with its licence. |
 
-## Current export checks
+## Version 0.12 shelter-button follow-up
+
+The wearer clarified that holding B seemed to do nothing and deferred hardware testing. The old pre-0.11 VR guard used the selected waypoint's `isShelter` even after the wearer walked away from base; 0.11 replaced it with physical proximity. Feedback had remained in a brief low-left panel, which could hide the reason for a refused request. Version 0.12 moves hold progress and all shelter-request outcomes into the existing right-side shelter card. A tap explains the one-second hold; base says **Already safe**; an existing diversion says **Route active**. Offline, send failure and missing replies have distinct messages. Brief right-controller pulses acknowledge press/confirmation, and logs identify both button recognition and outcome. Focus loss clears an unfinished hold.
+
+Input-path checks exercise short taps, the one-second hold, no repeats while held, a long-frame guard, the base, offline state, a failed socket, an existing diversion and continuous VR walking away from a still-selected base waypoint. The latter must reach the sender instead of claiming the wearer remains sheltered. The visual review caught truncated long messages; shortened copy and preferred-width checks now guard against ellipsis. The earlier mission and VR suites are rerun with this change. Physical B input, haptics, current headset performance and the one-eye mirror are deferred at the wearer's request; automated input does not establish those hardware results.
+
+## Version 0.11 verification
+
+Merged `origin/main` through `d28ae32`, including stable shelter ids/labels, current dose outputs and multi-site relay support. The far-point diversion now names **Butte M12 shelter**, rather than relying on the old S03/S04 ids.
+
+The active VR scene now uses the original 1 m DEM in the planner's coordinates: a 600 m vertex-span detail tile, matching HiRISE image and coarse 3 km distant terrain. All 268 exported Gale route points lie inside the detail tile. The maximum visible budget is **834,976 triangles**, with automatic detail reduction. Generated sand/layered-rock materials, decorative stones and a scenario-Sun shadow bake improve appearance without replacing measured heights or planner calculations. Seven VR comparison previews and eleven mission previews rendered; the updated terrain and lighting were visually inspected. This remains a heightfield with illustrative detail, not a complete ground-level photogrammetric reconstruction.
+
+VR arrival sends a guarded relay step only when the wearer reaches the next sample. B selects the existing diversion from the nearest main sample. The compass uses physical VR position and shows metres; shelter arrival requires physical proximity and guidance returns if the wearer walks away. Ordinary movement and route changes do not teleport. Y explicitly returns to the selected mission point. AR remains presenter-driven, with sticks disabled.
+
+**1,321 mission checks**, **8,450 VR checks**, **21 Node integration tests**, **9 fixture checks** and the web build passed. Native checks cover DEM alignment for every exported point, an end-to-end continuous physics walk of the main route and far-point diversion, walking/sprint/collision, arrival, leaving shelter, north and AR restoration. Relay integration tests traverse every exported diversion for both Gale and Jezero and reject duplicate/stale events, invalid origins and main-route steps delayed across a storm. Rust engine tests were not run; the engine itself was not modified. The web build retains its existing large-bundle advisory.
+
+The mirror now crops and rotates the full unmodified Quest capture on the laptop, avoiding device-side crop/rotation. A synthetic 1920 by 1240 input successfully produced a one-second 1356 by 1510 filtered file. PowerShell parsing passed. This validates the filter, not the live headset picture. The new optional filtered-recording path also needs a hardware rehearsal.
+
+The final APK built successfully, includes the terrain provenance notice, and is installed over USB as **0.11.0 / code 11**, independently confirmed by the device package manager. The local relay was restarted with the merged data and guarded-event handling. The Quest reports **Asleep**, so the launcher correctly did not claim to open the app. Frame pacing, wearer navigation/readability and live single-eye presentation remain pending. Previous versions' hardware results below are historical and do not establish 0.11 performance. No new passthrough recording was made.
+
+## Version 0.10 verification
+
+Installed **0.10.0 / code 10** over USB and independently confirmed it with the device package manager. The update removes the bright skyline contour in both modes, keeps only faint blocked-sky shading in AR, moves the five lower readings into side columns alongside Open Sky, and moves transient control feedback below the left column. Holding the left grip (or right index trigger) while moving sprints at up to 4.5 m/s; walking remains 1.4 m/s. AR ignores locomotion.
+
+**815 mission checks** and **1,734 VR checks** passed, including a timed walk-versus-sprint comparison, gradual collision-bounded movement, release-to-stop, no mission-state change and AR restoration. Seven VR comparison renders and eleven mission previews completed. Visual regressions check that the lower strip and contour are gone while all five readings remain at the sides, with fixed Sun/north, clear floor, no baseline and no particles. Calm, storm, offline emergency, AR and the updated VR view were visually inspected.
+
+The user explicitly requested invented cosmetic detail for poor photography. A generated material warms grey patches and provides subtle near-surface grain; the matched `east-original` / `east-cosmetic` renders were inspected. There are still 158,096 visible terrain triangles; original photo files, terrain shape, collision and the planner's data are unchanged. The new texture, generation prompt and limitations are documented in `Assets/Beacon/Art/MarsCosmeticDetail.md`. The APK's updated attribution notice was verified.
+
+The laptop mirror now defaults to a cropped, rotated left-eye view, retaining software H.264 decoding and the 30 fps cap. It reads reported dimensions, supports right-eye/full-stereo/manual crop alternatives and refuses to start a blank stream while the Quest is asleep.
+
+Once the wearer put the headset on, the launcher confirmed the native process and relay connection. The wearer confirmed that **the panels look good and sprint works**. Live logs show AR/VR switching and six sprint samples, reaching 4.50 m/s on the photographed ground. The latest twelve five-second app-frame windows measured **72.0–72.2 fps**, mean **72.02 fps**, with **p95 13.9 ms**. An earlier mode-switch window measured 70.6 fps. These are Unity app timings, not independent GPU/compositor measurements. The single-eye mirror delivered a **1486×1920** stream at about **30 fps**, with no reported mirror error, but the wearer reported a bad laptop picture. The single-eye presentation has therefore **not passed**; frame delivery alone does not verify framing. Local logs: `.local/quest10-live-check.log`, `.local/quest10-mirror-live.log` and `.local/quest10-mirror-live-error.log` (excluded from Git; no new recording).
+
+## Version 0.9 verification
+
+The user replaced the separate Jezero work with Murray Buttes. No Jezero app was installed; unfinished local assets are retained outside the active project. Beacon starts in AR and exposes the original-area scenery through X.
+
+**815 mission checks**, **1,630 VR checks**, and **16 relay/client tests** passed. The two relay-network tests initially encountered the restricted environment's local-network denial; all 16 passed with local networking allowed. VR checks cover geometry/winding, the photographed ground collider, gradual left-stick movement, continuous right-stick turning, no route changes, stable north/Sun, dead zone, diagonal speed and restoration of the physical AR frame. Five VR/AR comparison renders and the eleven mission regression previews completed. The scene regressions retain the fixed Sun, clear floor, absent blue baseline and absence of particles.
+
+The starting view was inspected by eye with NASA's M12/Quela reference photo and the supplied Quela skyline. The butte is placed under the northwest high side, with a roughly 4° peak-height difference. This is deliberately reference scenery, not georegistration; the mission ring does not follow free exploration. The roughly 128 m central reconstruction has uneven photographic coverage and a coarser distant background. Movement is bounded inside the reconstructed surface. The 600 m fallback was not needed for the directional alignment. Full source, transformations and pinned hashes are documented in `Assets/Beacon/Art/AccessMars/README.md`.
+
+The **0.9.0 APK / version code 9** built successfully and was installed over USB, independently confirmed by the device package manager. The Apache licence and attribution/modification notice were verified inside the finished APK. The headset was asleep immediately after installation; the old launcher accepted a launch request without actually starting Unity. Once awake, a direct activity launch started Beacon and connected its native relay client. The launcher now checks wakefulness, uses an explicit activity launch and verifies both the app process and relay handshake. `Start Native Quest.cmd` repeats this setup without reinstalling.
+
+The wearer then confirmed **AR and VR movement work**, including the X mode switch. Device logs show continuous movement at approximately 1.4 m/s over the actual terrain. The retained 25 frame windows measured **71.3–72.0 fps / p95 13.9 ms**. These are Unity frame timings, not independent GPU/compositor measurements. The logs also recorded the existing r09 shelter route becoming active. The original mirror was black/frozen; restarting it with software H.264 decoding restored the **live laptop picture**, explicitly confirmed by the wearer, while its diagnostic counter reported about **30 fps**. The software decode setting is retained in the mirror helper. These fixes do not rebuild or reinstall the functioning 0.9 app.
+
+Local diagnostic evidence: `.local/quest09-live-check.log`, `.local/quest09-mirror-restart.log`, and `.local/quest09-mirror-restart-error.log`. Logs stay excluded from Git. Physical projector/HDMI validation still requires the projector.
+
+## Earlier version verification
+
+Superseded movement: version **0.8.0 / code 8** removes thumbstick waypoint stepping, per the wearer's correction. The update passed **815 native checks**, built and was installed over USB. The emergency B request remains.
+
+Installed over USB and independently confirmed as version 0.7.0 / code 7. **816 native checks**, **16 relay/client tests**, and eleven mission previews passed. The scene checks confirm that a 90° head turn and route step do not rotate the Sun or north, the skyline does not mask the ground or draw a flat baseline, and the atmosphere has no dust geometry. Arrival-marker suppression and offline next/back requests are covered. AR and the final NASA panorama were visually inspected in editor renders. The original NASA pixels remain unchanged; a conservative coverage lookup feathers the mosaic edges. The Quest was asleep after installation, so physical controller input, wearer appearance and a new frame-rate run remain unverified for 0.7. USB mirroring is restored.
+
+## Historical Gale export checks
 
 | State | Current expected output |
 | --- | --- |
 | m00, Base | 92.4% open sky, nominal; already under cover at base |
 | m19, Quela drill site | 81.5%, northwest butte, Sun marker dim and Sun disc hidden, named science card |
 | m25–m28 | Amber “Base link lost” |
-| m30 then storm | Reroute 30 → S03, initially 4.52 min; base 9.73 min and excluded by limit; base link retained at chosen shelter |
+| m30 then storm | Reroute 30 → Butte M12 shelter, initially 4.52 min; base 9.73 min and excluded by limit; base link retained at chosen shelter |
 | End of reroute 30 | “In shelter”, 0 remaining minutes, 74.6% open sky, base link retained |
 
-The screenshots' approximate base 95% and shelter S04 are older values. They are not hard-coded into the headset. “Initial” in the decision line distinguishes the original choice time from the changing remaining minutes in the main strip.
+The screenshots' approximate base 95% and shelter S04 are older values. They are not hard-coded into the headset. “Initial” in the decision line distinguishes the original choice time from the changing remaining minutes in the shelter card.
 
-Current checks: **805 native checks**, 16 Node tests, 9 fixture checks and a successful web build after the upstream merge. All seven updated Unity mission previews rendered successfully; arrow, compass ticks, cardinal labels and red border were visually confirmed after the renderer fix.
+Earlier 0.6 checks: **812 native checks** and ten successful Unity mission previews. The new offline-emergency and recenter screens were visually checked, alongside the storm view. Regression checks cover offline alert retention, startup, shelter arrival, panic versus solar-storm effects and offline request failure. The preceding upstream integration passed 16 Node tests, 9 fixture checks and the web build.
 
-The **0.5.0 APK (version code 5) is installed on Quest 3 over USB**. The relay was restarted and its in-memory export confirmed at 92.4% base open sky and S03. The Quest was asleep after installation, so wearer readability, controller toggles, native frame-rate measurements and the full recording remain pending. The laptop mirror was reopened.
+The **0.6.0 APK (version code 6) is installed on Quest 3 over USB**. It adds a one-second B hold indicator, request/result feedback and smooth left-stick-click recentering. Stale readings are labelled and any last-known emergency retains its red border. The Quest was asleep after this installation, so new physical button interactions remain awaiting wearer confirmation. The laptop USB mirror was reopened. No repeat full-run or frame-rate claim is made for this update.
+
+The **0.5.0 APK completed the full live USB rehearsal**. The relay's in-memory export was confirmed at 92.4% base open sky and S03. Native device logs confirm each stage and measured 72.0 fps / p95 13.9 ms. The MP4 was checked for a complete container and duration; it has not been reviewed frame by frame. Final wearer readability and controller-toggle confirmation remain useful; physical HDMI projection still needs the actual projector.
+
+Local evidence: `.local/Beacon-Quest-demo-2026-11-14-153004.mp4` (85.54 s, 1920×1248, no microphone audio), `.local/quest05-full-run-timeline.json`, `.local/quest05-full-run-device.log`. These include private demo/passthrough content and are excluded from Git.
 
 For the full presenter rehearsal, keep Beacon open and run `node tools/demo-quest-run.mjs` from the repository root. It validates every displayed waypoint, Quela, the link-loss warning, the S03 diversion and arrival, then resets. It writes `.local/quest-demo-timeline.json`. `--quick` reduces the holds for a shorter integration check. Recording is supported by `tools/mirror-quest.ps1 -Record <new-file.mp4> -Seconds 90`; capture includes passthrough but no microphone audio. Keep recordings local unless the wearer chooses to share them.

@@ -1,0 +1,24 @@
+Beacon 0.22 Jezero VR scenery
+
+Terrain and colour sources: NASA/JPL/University of Arizona/USGS.
+https://planetarymaps.usgs.gov/mosaic/mars2020_trn/HiRISE/JEZ_hirise_soc_006_DTM_MOLAtopography_DeltaGeoid_1m_Eqc_latTs0_lon0_blend40.tif
+https://planetarymaps.usgs.gov/mosaic/mars2020_trn/HiRISE/JEZ_hirise_soc_006_orthoMosaic_25cm_Eqc_latTs0_lon0_first.tif
+https://asc-pds-services.s3.us-west-2.amazonaws.com/mosaic/mars2020_trn/HiRISE/JEZ_hirise_soc_007_orthoMosaic_25cm_Ortho_blend120.tif
+
+Beacon derives a 599 m vertex-span detail mesh, a 7 km distant mesh and a
+static visual shadow mask from these sources. Geometry remains aligned to
+the mission's exported coordinates. The shader blends generated sand and
+layered-rock textures; small stones are illustrative procedural scenery.
+Generated appearance is not new scientific data and does not alter the
+engine's route, shelter selection, skyline, dose or sunlight calculations.
+
+Full provenance, generation prompts and conversion instructions are in
+Assets/Beacon/Art/JezeroTerrain/README.md, MarsLayeredRock.md and
+MarsCosmeticDetail.md in the source repository.
+
+The simple base habitat, solar racks and antenna are illustrative scenery,
+anchored to the exported mission base. They do not change shelter calculations.
+Arrival photos are bundled offline, with full provenance in
+Assets/Resources/WaypointPhotos/README.md. PIA25681: NASA/JPL-Caltech/MSSS;
+PIA24921: NASA/JPL-Caltech/ASU/MSSS (enhanced colour, regional panorama).
+Other named arrivals use the measured HiRISE image with a location marker.

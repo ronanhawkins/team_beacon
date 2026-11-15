@@ -1,0 +1,259 @@
+{
+  "version": 1,
+  "site": "jezero",
+  "width": 600,
+  "height": 600,
+  "originX": 1136.5,
+  "originY": 1228.5,
+  "spacing": 1,
+  "heightOrigin": -2543.35,
+  "backgroundWidth": 1000,
+  "backgroundSpacing": 7.0,
+  "backgroundOrigin": -1996.5,
+  "backgroundMeshSpacing": 32,
+  "wideWalking": true,
+  "photoTint": [
+    0.86,
+    0.67,
+    0.49
+  ],
+  "shadowWidth": 301,
+  "shadowSpacing": 1.9966666666666666,
+  "shadowSun": {
+    "az": 275.8,
+    "el": 12.0
+  },
+  "sources": {
+    "dem": "https://planetarymaps.usgs.gov/mosaic/mars2020_trn/HiRISE/JEZ_hirise_soc_006_DTM_MOLAtopography_DeltaGeoid_1m_Eqc_latTs0_lon0_blend40.tif",
+    "colour": "https://planetarymaps.usgs.gov/mosaic/mars2020_trn/HiRISE/JEZ_hirise_soc_006_orthoMosaic_25cm_Eqc_latTs0_lon0_first.tif",
+    "credit": "NASA/JPL-Caltech/University of Arizona/USGS"
+  },
+  "wideImageSource": "https://asc-pds-services.s3.us-west-2.amazonaws.com/mosaic/mars2020_trn/HiRISE/JEZ_hirise_soc_007_orthoMosaic_25cm_Ortho_blend120.tif",
+  "frame": "+X east, +Y up, +Z north; local mission metres from southwest of the Jezero crop",
+  "heightLayout": "Float32 little-endian, north row first, pixel centres",
+  "wideHeightLimit": "Reprojected earlier 9.765625 m cache; 7 m output does not increase source detail",
+  "textureLimit": "Grayscale HiRISE; warm tint and fine materials are illustrative",
+  "routePointsCovered": 428,
+  "mainRoute": [
+    {
+      "x": 1500.0,
+      "y": 1350.0,
+      "z": -2545.2
+    },
+    {
+      "x": 1495.72,
+      "y": 1334.72,
+      "z": -2545.09
+    },
+    {
+      "x": 1484.06,
+      "y": 1323.06,
+      "z": -2545.07
+    },
+    {
+      "x": 1478.1,
+      "y": 1308.5,
+      "z": -2545.31
+    },
+    {
+      "x": 1479.6,
+      "y": 1323.0,
+      "z": -2545.18
+    },
+    {
+      "x": 1480.0,
+      "y": 1337.61,
+      "z": -2544.85
+    },
+    {
+      "x": 1480.0,
+      "y": 1352.27,
+      "z": -2544.66
+    },
+    {
+      "x": 1480.0,
+      "y": 1366.93,
+      "z": -2544.78
+    },
+    {
+      "x": 1482.0,
+      "y": 1381.38,
+      "z": -2544.77
+    },
+    {
+      "x": 1482.0,
+      "y": 1396.04,
+      "z": -2544.48
+    },
+    {
+      "x": 1483.12,
+      "y": 1410.59,
+      "z": -2544.05
+    },
+    {
+      "x": 1484.0,
+      "y": 1425.15,
+      "z": -2544.39
+    },
+    {
+      "x": 1484.0,
+      "y": 1439.81,
+      "z": -2544.29
+    },
+    {
+      "x": 1484.29,
+      "y": 1454.44,
+      "z": -2544.15
+    },
+    {
+      "x": 1486.0,
+      "y": 1468.93,
+      "z": -2543.95
+    },
+    {
+      "x": 1486.0,
+      "y": 1483.58,
+      "z": -2543.59
+    },
+    {
+      "x": 1488.46,
+      "y": 1497.76,
+      "z": -2543.4
+    },
+    {
+      "x": 1495.59,
+      "y": 1510.49,
+      "z": -2542.89
+    },
+    {
+      "x": 1501.91,
+      "y": 1523.52,
+      "z": -2542.32
+    },
+    {
+      "x": 1507.22,
+      "y": 1537.05,
+      "z": -2541.73
+    },
+    {
+      "x": 1513.67,
+      "y": 1550.17,
+      "z": -2541.2
+    },
+    {
+      "x": 1518.04,
+      "y": 1564.09,
+      "z": -2540.63
+    },
+    {
+      "x": 1519.0,
+      "y": 1578.4,
+      "z": -2539.49
+    },
+    {
+      "x": 1516.0,
+      "y": 1592.79,
+      "z": -2537.89
+    },
+    {
+      "x": 1516.0,
+      "y": 1607.75,
+      "z": -2534.85
+    },
+    {
+      "x": 1516.0,
+      "y": 1622.71,
+      "z": -2531.17
+    },
+    {
+      "x": 1514.0,
+      "y": 1637.3,
+      "z": -2526.47
+    },
+    {
+      "x": 1499.87,
+      "y": 1641.0,
+      "z": -2525.94
+    },
+    {
+      "x": 1485.19,
+      "y": 1641.0,
+      "z": -2525.98
+    },
+    {
+      "x": 1470.69,
+      "y": 1642.86,
+      "z": -2525.98
+    },
+    {
+      "x": 1456.02,
+      "y": 1643.0,
+      "z": -2526.19
+    },
+    {
+      "x": 1441.47,
+      "y": 1644.31,
+      "z": -2525.81
+    },
+    {
+      "x": 1426.85,
+      "y": 1645.0,
+      "z": -2525.34
+    },
+    {
+      "x": 1412.17,
+      "y": 1645.0,
+      "z": -2525.29
+    },
+    {
+      "x": 1398.01,
+      "y": 1647.39,
+      "z": -2524.84
+    },
+    {
+      "x": 1385.42,
+      "y": 1654.95,
+      "z": -2524.31
+    },
+    {
+      "x": 1371.17,
+      "y": 1657.0,
+      "z": -2524.17
+    },
+    {
+      "x": 1358.3,
+      "y": 1662.7,
+      "z": -2523.18
+    },
+    {
+      "x": 1347.55,
+      "y": 1673.57,
+      "z": -2521.04
+    },
+    {
+      "x": 1344.73,
+      "y": 1687.83,
+      "z": -2516.07
+    },
+    {
+      "x": 1348.0,
+      "y": 1702.53,
+      "z": -2513.2
+    },
+    {
+      "x": 1348.0,
+      "y": 1717.82,
+      "z": -2512.42
+    },
+    {
+      "x": 1350.3,
+      "y": 1732.75,
+      "z": -2511.52
+    },
+    {
+      "x": 1353.6,
+      "y": 1747.3,
+      "z": -2509.65
+    }
+  ]
+}

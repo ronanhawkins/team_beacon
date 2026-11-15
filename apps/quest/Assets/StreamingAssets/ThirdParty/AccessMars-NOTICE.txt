@@ -1,0 +1,19 @@
+Access Mars — Murray Buttes reference scenery
+Copyright 2017 Google Inc.
+Licensed under the Apache License, Version 2.0; see AccessMars-LICENSE.txt.
+
+Source: https://github.com/googlecreativelab/access-mars
+Pinned commit: 4b0a445f4e3b3fbfbc6b06f3adf07c24c05a2c57
+Terrain and photographs: NASA/JPL-Caltech and Google Creative Lab.
+
+Modified for Beacon: Draco decoded offline; original scene scale preserved;
+coordinate handedness, triangle winding and original shader UV correction applied;
+geometry repacked for Unity. Original JPEG files are unchanged; their in-app
+textures are compressed for Quest. Added native rendering, walking collision,
+distance haze and a visual orientation to the mission ring. This orientation is
+reference scenery, not a georegistration to the mission route. No endorsement is implied.
+
+Beacon 0.10 adds a separate AI-generated illustrative surface texture in its
+shader: neutral grey photography receives warm cosmetic fill and nearby
+surfaces receive fine detail. This is not NASA imagery or recovered survey data.
+Original photographs, mesh vertices, collision and mission data are unchanged.

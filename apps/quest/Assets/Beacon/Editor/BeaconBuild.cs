@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Linq;
 using Beacon;
+using Newtonsoft.Json.Linq;
 using TMPro;
 using UnityEditor;
 using UnityEditor.Build;
@@ -18,6 +19,9 @@ using UnityEngine.XR.OpenXR.Features;
 
 public static class BeaconBuild
 {
+    public const string SiteKey="jezero";
+    public static string WaypointsFile(string repo) => Path.Combine(repo,"data/out/jezero/waypoints.json");
+    public static string SiteFile(string repo) => Path.Combine(repo,"data/sites/jezero/site.json");
     const string ScenePath = "Assets/Beacon/Scenes/BeaconAR.unity";
     [MenuItem("Beacon/Prepare native Quest app")]
     public static void Prepare()
@@ -25,7 +29,7 @@ public static class BeaconBuild
         Directory.CreateDirectory("Assets/Beacon/Scenes"); Directory.CreateDirectory("Assets/XR");
         PlayerSettings.companyName = "Team Beacon"; PlayerSettings.productName = "Beacon AR";
         PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android, "com.teambeacon.ar");
-        PlayerSettings.bundleVersion = "0.5.0"; PlayerSettings.Android.bundleVersionCode = 5;
+        PlayerSettings.bundleVersion = "0.22.0"; PlayerSettings.Android.bundleVersionCode = 22;
         PlayerSettings.SetScriptingBackend(NamedBuildTarget.Android, ScriptingImplementation.IL2CPP);
         PlayerSettings.Android.targetArchitectures = AndroidArchitecture.ARM64;
         PlayerSettings.Android.minSdkVersion = AndroidSdkVersions.AndroidApiLevel32;
@@ -37,6 +41,7 @@ public static class BeaconBuild
         PlayerSettings.SetGraphicsAPIs(BuildTarget.Android, new[] { GraphicsDeviceType.Vulkan });
         PlayerSettings.runInBackground = true;
         QualitySettings.antiAliasing = 4; QualitySettings.vSyncCount = 0;
+        QualitySettings.anisotropicFiltering=AnisotropicFiltering.ForceEnable;
         // Enable the new input backend required by OpenXR.
         var settingsObject = new SerializedObject(AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/ProjectSettings.asset")[0]);
         settingsObject.FindProperty("activeInputHandler").intValue = 1; settingsObject.ApplyModifiedPropertiesWithoutUndo();
@@ -86,10 +91,13 @@ public static class BeaconBuild
         var prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Packages/com.meta.xr.sdk.core/Prefabs/OVRCameraRig.prefab");
         if (prefab == null) throw new Exception("Meta camera rig prefab is missing");
         var rigObject = (GameObject)PrefabUtility.InstantiatePrefab(prefab);
+        var playerRoot=new GameObject("VR movement root",typeof(CharacterController));
+        playerRoot.GetComponent<CharacterController>().enabled=false;
+        rigObject.transform.SetParent(playerRoot.transform,false);
         var rig = rigObject.GetComponent<OVRCameraRig>();
         var manager = rigObject.GetComponent<OVRManager>() ?? rigObject.AddComponent<OVRManager>();
         manager.isInsightPassthroughEnabled = true; manager.trackingOriginType = OVRManager.TrackingOrigin.Stage;
-        foreach (var camera in rig.GetComponentsInChildren<Camera>(true)) { camera.clearFlags = CameraClearFlags.SolidColor; camera.backgroundColor = Color.clear; camera.nearClipPlane = .05f; camera.farClipPlane = 100; }
+        foreach (var camera in rig.GetComponentsInChildren<Camera>(true)) { camera.clearFlags = CameraClearFlags.SolidColor; camera.backgroundColor = Color.clear; camera.nearClipPlane = .05f; camera.farClipPlane = 5000; }
         var passthrough = new GameObject("Room passthrough").AddComponent<OVRPassthroughLayer>();
         passthrough.textureOpacity = 1; passthrough.edgeRenderingEnabled = false;
         RenderSettings.skybox = null;
@@ -101,20 +109,92 @@ public static class BeaconBuild
         missionView.skylineShader=AssetDatabase.LoadAssetAtPath<Shader>("Assets/Beacon/Shaders/Skyline.shader");
         if(missionView.skylineShader==null) throw new Exception("Skyline shader is missing");
         hud.missionView=missionView;
+        var terrain=new GameObject("Planner-aligned Mars terrain").AddComponent<MissionTerrain>();
+        const string terrainPath="Assets/Beacon/Art/JezeroTerrain/";
+        terrain.heights=AssetDatabase.LoadAssetAtPath<TextAsset>(terrainPath+"height.bytes");
+        terrain.backgroundHeights=AssetDatabase.LoadAssetAtPath<TextAsset>(terrainPath+"background.bytes");
+        terrain.shadowData=AssetDatabase.LoadAssetAtPath<TextAsset>(terrainPath+"shadow.bytes");
+        terrain.metadata=AssetDatabase.LoadAssetAtPath<TextAsset>(terrainPath+"terrain.json");
+        terrain.surfaceShader=AssetDatabase.LoadAssetAtPath<Shader>("Assets/Beacon/Shaders/MissionTerrain.shader");
+        Texture2D Texture(string path,int size,bool repeat)
+        {
+            var importer=AssetImporter.GetAtPath(path) as TextureImporter;
+            if(importer==null) throw new Exception("Missing terrain texture: "+path);
+            importer.textureType=TextureImporterType.Default;importer.sRGBTexture=true;
+            importer.maxTextureSize=size;importer.mipmapEnabled=true;importer.isReadable=false;
+            importer.wrapMode=repeat ? TextureWrapMode.Repeat:TextureWrapMode.Clamp;importer.anisoLevel=8;
+            importer.SetPlatformTextureSettings(new TextureImporterPlatformSettings {name="Android",overridden=true,maxTextureSize=size,format=TextureImporterFormat.ASTC_6x6});
+            importer.SaveAndReimport();return AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+        }
+        terrain.orbital=Texture(terrainPath+"orbital.jpg",4096,false);
+        terrain.backgroundPhoto=Texture(terrainPath+"background.jpg",4096,false);
+        terrain.cosmeticDetail=Texture("Assets/Beacon/Art/MarsCosmeticDetail.png",2048,true);
+        terrain.rockDetail=Texture("Assets/Beacon/Art/MarsLayeredRock.png",2048,true);
+        if(terrain.heights==null || terrain.metadata==null || terrain.backgroundHeights==null) throw new Exception("Run tools/prepare-jezero-native.py first");
+        terrain.gameObject.SetActive(false);
+        var scenery=app.AddComponent<BeaconVrScenery>();scenery.rig=rig;scenery.missionView=missionView;
+        scenery.terrain=terrain;scenery.playerRoot=playerRoot.transform;missionView.vrScenery=scenery;
         var atmosphere = app.AddComponent<MarsAtmosphere>(); atmosphere.rig = rig; atmosphere.relay = relay;
+        atmosphere.externalVrScenery=true;
         atmosphere.missionView=missionView; missionView.atmosphere=atmosphere;
         atmosphere.skyShader = AssetDatabase.LoadAssetAtPath<Shader>("Assets/Beacon/Shaders/MarsAtmosphere.shader");
-        atmosphere.dustShader = AssetDatabase.LoadAssetAtPath<Shader>("Assets/Beacon/Shaders/MarsDust.shader");
-        if (atmosphere.skyShader == null || atmosphere.dustShader == null) throw new Exception("Mars atmosphere shaders are missing");
+        const string photoPath="Assets/Beacon/Art/MurrayButtes-PIA20840.jpg";
+        var photoImporter=AssetImporter.GetAtPath(photoPath) as TextureImporter;
+        if(photoImporter==null) throw new Exception("NASA panorama is missing");
+        photoImporter.textureType=TextureImporterType.Default; photoImporter.sRGBTexture=true;
+        photoImporter.maxTextureSize=4096; photoImporter.mipmapEnabled=true; photoImporter.isReadable=true;
+        photoImporter.wrapModeU=TextureWrapMode.Repeat; photoImporter.wrapModeV=TextureWrapMode.Clamp;
+        photoImporter.SetPlatformTextureSettings(new TextureImporterPlatformSettings {name="Android",overridden=true,maxTextureSize=4096,format=TextureImporterFormat.ASTC_6x6});
+        photoImporter.SaveAndReimport();
+        atmosphere.panorama=AssetDatabase.LoadAssetAtPath<Texture2D>(photoPath);
+        atmosphere.panoramaBounds=MakePanoramaBounds(atmosphere.panorama);
+        photoImporter.isReadable=false; photoImporter.SaveAndReimport();
+        if (atmosphere.skyShader == null || atmosphere.panorama==null) throw new Exception("Mars atmosphere assets are missing");
         EditorSceneManager.SaveScene(scene, ScenePath);
         EditorBuildSettings.scenes = new[] { new EditorBuildSettingsScene(ScenePath, true) };
         AssetDatabase.SaveAssets();
         Debug.Log("BEACON_PREPARED: Native passthrough scene and OpenXR settings ready");
     }
+    static Texture2D MakePanoramaBounds(Texture2D photo)
+    {
+        const string path="Assets/Beacon/Art/PanoramaBounds.asset";
+        const int columns=256;
+        var bounds=AssetDatabase.LoadAssetAtPath<Texture2D>(path);
+        if(bounds==null) { bounds=new Texture2D(columns,1,TextureFormat.RGBA32,false,true); AssetDatabase.CreateAsset(bounds,path); }
+        bounds.name="NASA mosaic captured bounds"; bounds.wrapMode=TextureWrapMode.Repeat; bounds.filterMode=FilterMode.Bilinear;
+        var pixels=photo.GetPixels32(); var values=new Color[columns];
+        bool Missing(int x,int y) { var c=pixels[y*photo.width+x]; return c.r+c.g+c.b<20; }
+        for(int i=0;i<columns;i++)
+        {
+            int lower=0,upper=photo.height-1;
+            for(int neighbour=-2;neighbour<=2;neighbour++)
+            {
+                int x=((int)((i+.5f)*photo.width/columns)+neighbour+photo.width)%photo.width;
+                int lo=0,hi=photo.height-1;
+                while(lo<photo.height-1 && Missing(x,lo)) lo++;
+                while(hi>lo && Missing(x,hi)) hi--;
+                lower=Mathf.Max(lower,lo); upper=Mathf.Min(upper,hi);
+            }
+            values[i]=new Color((lower+3f)/photo.height,(upper-3f)/photo.height,0,1);
+        }
+        // Be conservative near abrupt stitching edges. Bilinear interpolation
+        // between a tall and short captured column must not reveal a black sliver.
+        var guarded=new Color[columns];
+        for(int i=0;i<columns;i++)
+        {
+            float low=0,high=1;
+            for(int j=-3;j<=3;j++) { var v=values[(i+j+columns)%columns]; low=Mathf.Max(low,v.r); high=Mathf.Min(high,v.g); }
+            guarded[i]=new Color(low,high,0,1);
+        }
+        bounds.SetPixels(guarded); bounds.Apply(false,false); EditorUtility.SetDirty(bounds); return bounds;
+    }
     [MenuItem("Beacon/Build Quest APK")]
     public static void BuildAndroid()
     {
         if (!File.Exists(ScenePath)) Prepare();
+        PlayerSettings.productName="Beacon AR";
+        PlayerSettings.SetApplicationIdentifier(NamedBuildTarget.Android,"com.teambeacon.ar");
+        PlayerSettings.bundleVersion="0.22.0"; PlayerSettings.Android.bundleVersionCode=22;
         Directory.CreateDirectory("Builds");
         var report = BuildPipeline.BuildPlayer(new BuildPlayerOptions {
             scenes = new[] { ScenePath }, target = BuildTarget.Android,
