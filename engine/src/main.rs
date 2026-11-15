@@ -6,7 +6,7 @@
 //!   engine layers                 map layers into data/out/layers/ (shared/layers.md)
 //!   engine base-candidates        base link coverage for each candidate base position
 //!   engine plan                   planner: shelters, main route, reroutes -> data/out/
-//!   engine plan --stops "x,y;x,y;..." --out <dir>   plan other stops (first is the start) into <dir>
+//!   engine plan --stops "x,y;x,y,label;..." --out <dir>   plan other stops into <dir>: first is the start, last the end, the rest science stops
 //!   engine decide <mainIndex> [--lead L] [--limit X]   storm decision table at one main waypoint
 //!   engine decide --sweep         chosen site at four waypoints for warnings of 0 to 15 minutes
 //!
@@ -695,16 +695,7 @@ fn plan_command(p: &Paths, stops_arg: Option<&str>, out: Option<&str>) -> Result
             .iter()
             .map(|s| route::Stop { id: s.id.clone(), x: s.x, y: s.y, label: s.label.clone(), science: s.science_stop })
             .collect(),
-        Some(text) => text
-            .split(';')
-            .filter(|p| !p.trim().is_empty())
-            .enumerate()
-            .map(|(i, pair)| {
-                let (x, y) = pair.split_once(',').ok_or_else(|| format!("stop {pair:?} is not x,y"))?;
-                let num = |v: &str| v.trim().parse::<f64>().map_err(|_| format!("not a number: {v}"));
-                Ok(route::Stop { id: format!("p{i:02}"), x: num(x)?, y: num(y)?, label: String::new(), science: false })
-            })
-            .collect::<Result<_, String>>()?,
+        Some(text) => parse_stops(text)?,
     };
     if stops.len() < 2 {
         return Err("a plan needs at least two stops".into());
@@ -715,6 +706,31 @@ fn plan_command(p: &Paths, stops_arg: Option<&str>, out: Option<&str>) -> Result
     }
     let inputs = plan_inputs(&site, &grid, &far72, &far360, stops);
     route::run(&inputs, &out_dir)
+}
+
+/// `--stops "x,y;x,y,label;..."`: the first point is the start and the last the end; the points between are
+/// science stops, named by the optional label or "Stop N". Labels cannot contain ';' or ','.
+fn parse_stops(text: &str) -> Result<Vec<route::Stop>, String> {
+    let parts: Vec<&str> = text.split(';').filter(|p| !p.trim().is_empty()).collect();
+    let n = parts.len();
+    parts
+        .iter()
+        .enumerate()
+        .map(|(i, part)| {
+            let f: Vec<&str> = part.split(',').map(str::trim).collect();
+            if f.len() < 2 || f.len() > 3 {
+                return Err(format!("stop {part:?} is not x,y or x,y,label"));
+            }
+            let num = |v: &str| v.parse::<f64>().ok().filter(|x| x.is_finite()).ok_or_else(|| format!("not a number: {v}"));
+            let science = i > 0 && i + 1 < n;
+            let label = match f.get(2) {
+                Some(l) if !l.is_empty() => l.to_string(),
+                _ if science => format!("Stop {i}"),
+                _ => String::new(),
+            };
+            Ok(route::Stop { id: format!("p{i:02}"), x: num(f[0])?, y: num(f[1])?, label, science })
+        })
+        .collect()
 }
 
 fn plan_inputs<'a>(site: &Site, grid: &'a terrain::Grid, far72: &'a [f32], far360: &'a [f32], stops: Vec<route::Stop>) -> route::PlanInputs<'a> {
@@ -961,6 +977,15 @@ fn main() -> ExitCode {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn custom_stops_mark_the_middle_points_as_named_science_stops() {
+        let s = parse_stops("1598,1250; 1500,1500,Quela drill site ;1508,1561;1500,1628;").unwrap();
+        let got: Vec<(&str, bool)> = s.iter().map(|x| (x.label.as_str(), x.science)).collect();
+        assert_eq!(got, [("", false), ("Quela drill site", true), ("Stop 2", true), ("", false)]);
+        assert_eq!((s[1].x, s[1].y, s[3].id.as_str()), (1500.0, 1500.0, "p03"));
+        assert!(parse_stops("1,2;3").is_err() && parse_stops("1,2;3,nan").is_err() && parse_stops("1,2,a,b;3,4").is_err());
+    }
 
     #[test]
     fn default_site_keeps_the_gale_layout() {

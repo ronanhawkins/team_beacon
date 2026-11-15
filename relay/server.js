@@ -8,6 +8,7 @@ const os = require('os');
 const path = require('path');
 const https = require('https');
 const http = require('http');
+const { execFile } = require('child_process');
 const { WebSocketServer, WebSocket } = require('ws');
 
 // ---- Settings ---------------------------------------------------------------
@@ -96,7 +97,7 @@ function loadSite() {
 }
 
 log(SITE ? `Site ${SITE}: ${path.relative(ROOT, SITE_FILE)}, /data/ = ${path.relative(ROOT, DATA_OUT)}/` : 'Site: default (Gale): data/site.json, /data/ = data/out/');
-const { doc: waypoints, synthetic } = loadWaypoints();
+let { doc: waypoints, synthetic } = loadWaypoints(); // replaced when a new plan is made (see Planning)
 const site = loadSite();
 const earthDelayMinutes = typeof site.earthDelayMinutes === 'number' ? site.earthDelayMinutes : DEFAULT_EARTH_DELAY_MINUTES;
 const WARNING_MINUTES_TO_SHELTER = typeof site.planner?.minutesToShelterLimit === 'number'
@@ -139,6 +140,8 @@ function buildState() {
     earthDelayMinutes,
     // Optional addition (shared/state.md): which site the relay serves. Only sent when one was chosen.
     ...(SITE && { site: SITE }),
+    // Optional addition (shared/state.md): the latest plan request. Only sent once a plan was asked for.
+    ...(plan && { plan: { id: plan.id, status: plan.status, message: plan.message, routeId: routePlanId } }),
   };
   if (state.storm || state.panic) state.mode = 'storm';
   else if (!state.baseLink || state.minutesToShelter > WARNING_MINUTES_TO_SHELTER) state.mode = 'warning';
@@ -184,8 +187,112 @@ function applyEvent(ev) {
     case 'reset':
       Object.assign(sim, { route: 'main', waypointIndex: 0, storm: false, panic: false, rerouteRequested: false, rerouteFrom: 0 });
       return true;
+    case 'plan': return requestPlan(ev);
     default: return false;
   }
+}
+
+// ---- Planning ---------------------------------------------------------------
+// Addition to shared/events.md: { type: "plan", points: [{ x, y, kind: "start" | "stop" | "end", name? }] }.
+// state.plan.routeId says which plan's route is in use; clients fetch /mission/waypoints.json again when it changes.
+// The relay runs `engine plan --stops ... --out <dir>` in the background. While it runs, state.plan.status is
+// "running"; when it succeeds the new route replaces the old one for every client, the walk starts again at its
+// first waypoint, and state.plan.status is "done" with a new id; when it fails the old route stays and the status
+// is "error" with the reason. Asked for mid-walk, the new route starts where the astronaut is.
+
+const ENGINE = process.env.BEACON_ENGINE || path.join(ROOT, 'engine/target/release/engine' + (process.platform === 'win32' ? '.exe' : ''));
+const PLANS = process.env.BEACON_PLANS || path.join(ROOT, '.local/plans', SITE || 'gale'); // .local/ is ignored by git
+const PLAN_TIMEOUT_MS = 180000;
+const MAX_PLAN_POINTS = 14;
+let plan = null;      // { id, status: 'running' | 'done' | 'error', message }
+let planDir = null;   // folder of the route in use when it came from a plan; null = the site's data/out
+let routePlanId = null; // id of the plan whose route is in use; null = the site's own route
+let planRunning = false;
+let planSerial = 0;
+
+function planBounds() {
+  const b = site.plannerBounds;
+  return b && ['xMin', 'xMax', 'yMin', 'yMax'].every((k) => typeof b[k] === 'number') ? b : null;
+}
+
+// Checks the points and returns { points } or { error }.
+function checkPlanPoints(points) {
+  if (!Array.isArray(points) || points.length < 2) return { error: 'A plan needs a start and an end.' };
+  if (points.length > MAX_PLAN_POINTS) return { error: `A plan can have at most ${MAX_PLAN_POINTS} points.` };
+  const b = planBounds(), out = [];
+  for (const [i, p] of points.entries()) {
+    if (!p || !Number.isFinite(p.x) || !Number.isFinite(p.y)) return { error: `Point ${i + 1} has no x and y.` };
+    if (b && (p.x < b.xMin || p.x > b.xMax || p.y < b.yMin || p.y > b.yMax)) {
+      return { error: `Point ${i + 1} (${Math.round(p.x)}, ${Math.round(p.y)}) is outside the planned area x ${b.xMin}..${b.xMax}, y ${b.yMin}..${b.yMax}.` };
+    }
+    const name = typeof p.name === 'string' ? p.name.replace(/[;,\u0000-\u001f]/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 40) : '';
+    out.push({ x: Math.round(p.x * 10) / 10, y: Math.round(p.y * 10) / 10, name });
+  }
+  return { points: out };
+}
+
+function requestPlan(ev) {
+  const id = ++planSerial;
+  const fail = (message) => { plan = { id, status: 'error', message }; log(`  plan ${id} refused: ${message}`); return true; };
+  if (planRunning) return fail('A plan is already being made. Wait for it to finish.');
+  if (sim.storm || sim.panic) return fail('No new plans during a storm or panic. End it or reset first.');
+  if (sim.route === 'reroute') return fail('The astronaut is on a reroute to shelter. Reset to the main route first.');
+  const checked = checkPlanPoints(ev.points);
+  if (checked.error) return fail(checked.error);
+  const points = checked.points;
+  let note = '';
+  if (sim.waypointIndex > 0) { // mid-walk: start from where the astronaut is
+    const here = waypoints.main[sim.waypointIndex].pos;
+    points[0] = { x: here.x, y: here.y, name: '' };
+    note = ' Started from the astronaut\'s position.';
+  }
+  if (!fs.existsSync(ENGINE)) return fail(`The engine is not built (${path.relative(ROOT, ENGINE)}). Run: cd engine && cargo build --release`);
+  const dir = path.join(PLANS, String(Date.now()) + '-' + id);
+  fs.mkdirSync(dir, { recursive: true });
+  const stops = points.map((p, i) => `${p.x},${p.y}${i > 0 && i < points.length - 1 && p.name ? ',' + p.name : ''}`).join(';');
+  const args = ['--root', ROOT, ...(SITE ? ['--site', SITE] : []), 'plan', '--stops', stops, '--out', dir];
+  plan = { id, status: 'running', message: `Planning ${points.length - 2} science stop${points.length === 3 ? '' : 's'}…` };
+  planRunning = true;
+  log(`  plan ${id}: ${path.relative(ROOT, ENGINE)} ${args.slice(2).join(' ')}`);
+  // A .js/.mjs engine (the tests' stand-in) runs through node, so it works on Windows too.
+  const [cmd, cmdArgs] = /\.m?js$/.test(ENGINE) ? [process.execPath, [ENGINE, ...args]] : [ENGINE, args];
+  execFile(cmd, cmdArgs, { timeout: PLAN_TIMEOUT_MS, maxBuffer: 8 << 20 }, (err, stdout, stderr) => {
+    planRunning = false;
+    if (plan.id !== id) return;
+    try {
+      if (err) throw new Error((String(stderr || '').trim().split('\n').pop() || err.message).replace(/^Error:\s*/, ''));
+      const doc = JSON.parse(fs.readFileSync(path.join(dir, 'waypoints.json'), 'utf8'));
+      if (!Array.isArray(doc.main) || doc.main.length === 0) throw new Error('the engine wrote an empty route');
+      waypoints = doc; synthetic = false; planDir = dir; routePlanId = id;
+      Object.assign(sim, { route: 'main', waypointIndex: 0, storm: false, panic: false, rerouteRequested: false, rerouteFrom: 0 });
+      const n = doc.main.filter((w) => w.isScienceStop).length, min = doc.main[doc.main.length - 1].minutesFromStart;
+      plan = { id, status: 'done', message: `New route: ${Math.round(min)} min, ${n} science stop${n === 1 ? '' : 's'}.${note}` };
+      log(`  plan ${id} done: ${doc.main.length} main waypoints, ${Object.keys(doc.reroutes || {}).length} reroutes`);
+      prunePlans(dir);
+    } catch (e) {
+      plan = { id, status: 'error', message: `The planner failed: ${e.message}` };
+      log(`! plan ${id} failed: ${e.message}`);
+      fs.rm(dir, { recursive: true, force: true }, () => {});
+    }
+    state = buildState();
+    broadcast();
+  });
+  return true;
+}
+
+// Keeps the plan in use and the two before it.
+function prunePlans(keep) {
+  try {
+    const dirs = fs.readdirSync(PLANS).map((d) => path.join(PLANS, d)).filter((d) => d !== keep).sort().reverse();
+    for (const d of dirs.slice(2)) fs.rm(d, { recursive: true, force: true }, () => {});
+  } catch { /* nothing to prune */ }
+}
+
+// Files of the route in use: the plan's folder first, then the site's data/out (terrain, other layers, photos).
+function missionFile(rel) {
+  const inPlan = planDir && path.join(planDir, rel);
+  if (inPlan && inPlan.startsWith(planDir + path.sep) && fs.existsSync(inPlan)) return inPlan;
+  return path.join(DATA_OUT, rel);
 }
 
 let state = buildState();
@@ -294,8 +401,16 @@ function onRequest(req, res) {
   if (urlPath === '/') return send(res, 200, 'text/html; charset=utf-8', INDEX_HTML);
   if (urlPath === '/debug') return serveFile(res, path.join(__dirname, 'debug.html'));
   // Serve the exact in-memory route used by this relay, including WAYPOINTS overrides.
-  if (urlPath === '/session.json') return send(res, 200, 'application/json', JSON.stringify({ version: 1, waypoints: '/mission/waypoints.json', synthetic }));
+  if (urlPath === '/session.json') {
+    return send(res, 200, 'application/json', JSON.stringify({ version: 1, waypoints: '/mission/waypoints.json', synthetic, files: '/mission/', planId: routePlanId, plannerBounds: planBounds() }));
+  }
   if (urlPath === '/mission/waypoints.json') return send(res, 200, 'application/json', JSON.stringify(waypoints));
+  // The route's other files (briefing, stops, minutesToShelter layer) follow the latest plan; see missionFile.
+  if (urlPath.startsWith('/mission/')) {
+    const rel = path.normalize(urlPath.slice('/mission/'.length));
+    if (rel.startsWith('..') || path.isAbsolute(rel)) return send(res, 403, 'text/plain', 'Forbidden');
+    return serveFile(res, missionFile(rel));
+  }
   // The one file outside data/out/ that pages may read.
   if (urlPath === '/data/site.json') return serveFile(res, SITE_FILE);
   if (urlPath === '/clients') {

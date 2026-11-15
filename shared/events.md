@@ -23,13 +23,16 @@ Every message is one JSON object with a `type` field.
 |---|---|
 | `{ "type": "state", "state": { ... } }` | On every change, and to each device when it connects |
 
-## Reserved
+## Planning (addition)
 
-Proposed, not implemented. The relay ignores these like any unknown event.
-
-| Event | Proposed by | Intended effect |
+| Event | Sent by | Effect |
 |---|---|---|
-| `{ "type": "plan", "points": [ { "x": 0, "y": 0, "kind": "start" } ] }` | hub | Send the start, stops and end (`kind`: `"start"`, `"stop"` or `"end"`, positions in local metres) to the route planner |
+| `{ "type": "plan", "points": [ { "x": 0, "y": 0, "kind": "start" }, { "x": 0, "y": 0, "kind": "stop", "name": "Quela drill site" }, { "x": 0, "y": 0, "kind": "end" } ] }` | hub, wrist | Plan a new route through these points |
+
+- `points`: the start, the science stops in order, then the end, in local metres; 2 to 14 points, all inside the site's `plannerBounds`. `name` is optional and only used for stops.
+- The relay runs `engine plan --stops ... --out <folder>` in the background and reports progress in `state.plan` (`state.md`). When it succeeds the new route replaces the old one for every client and the walk starts again at its first waypoint. When it fails the old route stays.
+- Refused during a storm, a panic, a reroute, or while another plan is being made. Sent mid-walk, the new route starts where the astronaut is.
+- Clients that do not plan can ignore it.
 
 ## Rules
 

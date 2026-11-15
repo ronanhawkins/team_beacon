@@ -46,6 +46,14 @@ Addition, optional: present only when the relay was started for a named site (`S
 
 - `site` (string): the site name, the `<name>` in `data/sites/<name>/`.
 
+Addition, optional: present once a client has sent a `plan` event (`events.md`). Clients that do not use it can ignore it:
+
+- `plan` (object): the latest plan request.
+  - `id` (number): counts up with each request.
+  - `status` (string): `"running"`, `"done"` or `"error"`.
+  - `message` (string): what happened, in words, for the screen.
+  - `routeId` (number or null): the `id` of the plan whose route is in use; null while the site's own route is in use. When it changes, fetch the route again from `/session.json`'s `waypoints` (the relay serves the new route there) before reading `waypointIndex`.
+
 ## Mode rules
 
 - `storm` when `storm` or `panic` is true.

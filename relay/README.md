@@ -23,7 +23,16 @@ For laptop-only rehearsal, run `npm run demo` from the repo root. `node relay/se
 
 For Quest over Wi-Fi, Windows users can run `Start WiFi Demo.cmd` from the root. `node relay/server.js --wifi` serves HTTPS on 8443 and a loopback HTTP mirror on 5174, both sharing the same state and clients. It requires certificates, omits the ESP port, and checks browser WebSocket origins. `RELAY_HOST` optionally binds HTTPS to one network address. The Windows launcher sets it to the Wi-Fi address. Default `npm start` retains the original HTTPS + ESP setup.
 
-`/session.json` returns `{version:1, waypoints:"/mission/waypoints.json", synthetic:boolean}`. That waypoint endpoint serves the exact in-memory route, so browser clients agree with relay state even with `WAYPOINTS` overrides or newly written disk exports. Restart the relay to adopt a new export.
+`/session.json` returns `{version:1, waypoints:"/mission/waypoints.json", synthetic:boolean, files:"/mission/", planId, plannerBounds}`. That waypoint endpoint serves the exact in-memory route, so browser clients agree with relay state even with `WAYPOINTS` overrides or newly written disk exports. Restart the relay to adopt a new export.
+
+### Planning
+
+The hub's Plan screen sends a `plan` event (`shared/events.md`). The relay checks the points against the site's `plannerBounds`, then runs `engine/target/release/engine [--site <name>] plan --stops ... --out .local/plans/<site>/<id>/` in the background (build it once with `cd engine && cargo build --release`; a plan takes 1 to 5 seconds). Progress and errors go out in `state.plan` (`shared/state.md`). On success the new route replaces the old one, the walk starts again at its first waypoint, and `planId` in `/session.json` changes.
+
+- `/mission/<file>` serves the route's other files: from the latest plan's folder first (`briefing.json`, `stops.json`, `shelters.json`, `layers/minutesToShelter.png`), else from the site's `data/out` (terrain, the other layers, photos).
+- The last three plan folders are kept; `.local/` is ignored by git.
+- `BEACON_ENGINE` points at another engine binary and `BEACON_PLANS` at another plans folder (the tests use both).
+- The browser headset fetches the new route when `state.plan.routeId` changes. The Quest app reads the route once at start, so restart it after a new plan.
 
 ```sh
 npm install

@@ -25,7 +25,9 @@ async function start() {
   const live = external || params.has('relay');
   const standalone = !live && (params.get('standalone') === '1' || import.meta.env.MODE === 'standalone');
   if (external && !session && !params.has('relay')) throw new Error('An external waypoint file needs its matching relay. Add ?waypoints=/data/out/waypoints.json&relay=ws://localhost:PORT/PATH');
-  const route = validateRoute(external ? await fetchJson(session?.waypoints || params.get('waypoints')) : fakeRoute);
+  let route = validateRoute(external ? await fetchJson(session?.waypoints || params.get('waypoints')) : fakeRoute);
+  // A new plan from the hub replaces the route (state.plan.routeId, shared/state.md): fetch it again and carry on.
+  let routeId = session?.planId ?? null, pendingState = null;
   const dataLabel = !external || session?.synthetic || route.source?.kind === 'synthetic' ? 'SYNTHETIC DATA' : route.source?.kind === 'terrain-derived' ? 'TERRAIN DATA' : 'EXTERNAL DATA';
   let state = standalone ? validateState(fakeState, route) : null;
   let status = standalone ? 'local' : 'connecting';
@@ -106,6 +108,16 @@ async function start() {
   }
 
   function applyState(next) {
+    const nextRouteId = next.plan?.routeId ?? null;
+    if (session && nextRouteId !== routeId) {
+      routeId = nextRouteId; pendingState = next;
+      fetchJson(session.waypoints).then(doc => {
+        route = validateRoute(doc); history = selection = null; routeKey = ''; message('New route from the hub planner.');
+        const latest = pendingState; pendingState = null; if (latest) applyState(latest);
+      }).catch(error => { pendingState = null; message(`Could not load the new route: ${error.message}`); });
+      return;
+    }
+    if (pendingState) { pendingState = next; return; }
     validateState(next, route);
     state = next;
     try {

@@ -17,3 +17,10 @@ Files that will probably live here:
 No site set: Gale, from `data/site.json` and `data/raw/` into `data/out/`. `SITE=<name>` or `--site <name>` (on any
 command) uses `data/sites/<name>/site.json`, `data/raw/<name>/` and `data/out/<name>/` instead; see `data/README.md`
 for the files and the site-file sections the engine reads.
+
+## Custom plans
+
+`engine plan --stops "x,y;x,y,label;...;x,y" --out <dir>` plans a route through other points, in local metres, into
+`<dir>` instead of `data/out/`. The first point is the start and the last the end; the points between are science
+stops, named by the optional label or "Stop N" (labels cannot contain `;` or `,`). The relay runs this when the hub's
+Plan screen asks for a route (`relay/README.md`, Planning).
