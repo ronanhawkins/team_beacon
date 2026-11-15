@@ -86,6 +86,7 @@ export const CONFIG = {
     suitTempHigh: 27, suitTempAlarm: 31,        // °C
     supplyLow: 0.25, supplyAlarm: 0.1,          // fraction left
     batteryLow: 0.2, staleSeconds: 10,          // wristband
+    wristBatteryStart: 0.92, wristBatteryPerMin: 0.0005, // simulated wristband battery: starts at 92%, about 0.5% per 10 min
     turnBackMin: 15,                            // safety margin (minutes) below which the hub says turn back
     leakPerMin: 0.35,                           // cooling water lost per minute in the simulated leak (key L)
   },

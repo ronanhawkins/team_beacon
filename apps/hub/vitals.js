@@ -93,17 +93,19 @@ export function createVitals(c) {
       let skinTemp = real.skinTemp;
       if (skinTemp == null && c.simulate) { m.skin += (33.0 + Math.max(0, load - 1) * 0.9 + Math.max(0, m.suitTemp - 24) * 0.25 - m.skin) * 0.05; skinTemp = m.skin; sim.skinTemp = true; }
       let battery = real.battery;
-      if (battery == null && c.simulate) { battery = Math.max(0.05, 0.86 - (now - t0) / 60000 * 0.004); sim.battery = true; }
+      if (battery == null && c.simulate) { battery = Math.max(0.05, c.wristBatteryStart - (now - t0) / 60000 * c.wristBatteryPerMin); sim.battery = true; }
       // seconds since the wrist values last changed; null while the wrist sends nothing
       const key = [real.heartRate, real.spo2, real.skinTemp, real.battery].join('|'), any = key !== '|||';
       if (any && key !== m.wristKey) { m.wristKey = key; m.wristAt = now; }
       const linkAge = any ? (now - m.wristAt) / 1000 : null;
 
-      // life support model: use scales with metabolic load; a cooling leak drains the loop and the suit warms up
+      // life support model. Supplies are used at the planned rate (each lasts its full time in config.js), not at the
+      // moment-to-moment heart rate, so the safety margin is steady: it falls by about a minute per minute walked.
+      // Only a fault changes it quickly: the cooling leak drains the loop and the suit warms up.
       const rates = {
-        cooling: load / c.coolingMinutes + (m.leak ? c.leakPerMin : 0),
-        drink: load / c.drinkMinutes,
-        suitBattery: (0.6 + 0.4 * load) / c.suitBatteryMinutes,
+        cooling: 1 / c.coolingMinutes + (m.leak ? c.leakPerMin : 0),
+        drink: 1 / c.drinkMinutes,
+        suitBattery: 1 / c.suitBatteryMinutes,
       };
       m.cooling = Math.max(0, m.cooling - rates.cooling * dtMin);
       m.drink = Math.max(0, m.drink - rates.drink * dtMin);
@@ -112,9 +114,9 @@ export function createVitals(c) {
       const coolingWorks = m.cooling > 0.02 && m.suitBattery > 0.02;
       m.suitTemp += ((coolingWorks ? 21 + (load - 1) * 1.5 : 34) + (ctx.sunlit ? 0.6 : 0) - m.suitTemp) * (coolingWorks ? 0.06 : 0.02);
 
-      // oxygen comes from the engine (fraction left on the walk); its rate scales with load from the full-tank time
+      // oxygen comes from the engine (fraction left on the walk), used at the planned full-tank rate
       const oxygen = ctx.oxygen;
-      rates.oxygen = load / c.oxygenMinutes;
+      rates.oxygen = 1 / c.oxygenMinutes;
 
       const v = { hr, spo2, skinTemp, metW, oxygen, co2: m.co2, cooling: m.cooling, drink: m.drink, suitTemp: m.suitTemp, suitBattery: m.suitBattery,
         dose: ctx.dose, doseRate: ctx.doseRate ?? null, openSky: ctx.openSky, sunlit: ctx.sunlit, battery, linkAge };

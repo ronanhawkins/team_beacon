@@ -133,7 +133,8 @@ Map: drag to rotate, Shift-drag or right-drag to move, scroll to zoom.
   alert limit and where it comes from (Wrist, Engine, Modelled or Simulated).
 - **Safety margin.** How long the scarcest supply (oxygen, cooling water, drinking water, suit battery)
   lasts at the current effort, minus the walk to shelter. Below `VITALS.turnBackMin` the banner says
-  TURN BACK NOW. Effort comes from heart rate, so a hard climb shortens the margin.
+  TURN BACK NOW. Supplies are counted at their planned rate, so the margin is steady (about a minute
+  less per minute walked); only a fault such as the cooling leak changes it quickly.
 - **Cooling leak (L).** A demo fault: the cooling water drains, the margin collapses and the suit
   warms up, so the turn-back alert can be shown on stage. The detail view has the same switch.
 - **Alerts.** Any value past its limit raises a caution banner and a log line. All limits are in
